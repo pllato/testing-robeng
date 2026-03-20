@@ -9131,13 +9131,17 @@ function renderCRMContent(leads){
   const filtered = leads.filter(l=>{
     if(_crmFilter.stage && l.stage!==_crmFilter.stage) return false;
     if(_crmFilter.search){
-      const q=_crmFilter.search.toLowerCase();
-      const basic = (l.name||'').toLowerCase().includes(q)||
-                    (l.phone||'').replace(/\D/g,'').includes(q.replace(/\D/g,''))||
-                    (l.notes||'').toLowerCase().includes(q)||
-                    (l.interest||'').toLowerCase().includes(q);
-      if(!basic && !_crmHighlightIds) return false;
-      if(!basic && _crmHighlightIds && !_crmHighlightIds.has(l.id)) return false;
+      const q = _crmFilter.search.toLowerCase();
+      const qDigits = normalizePhone(_crmFilter.search);
+      const lPhoneNorm = normalizePhone(l.phone||'');
+      const basicMatch =
+        (l.name||'').toLowerCase().includes(q) ||
+        (qDigits.length>=4 && lPhoneNorm.includes(qDigits)) ||
+        (l.notes||'').toLowerCase().includes(q) ||
+        (l.interest||'').toLowerCase().includes(q) ||
+        (l.budget||'').toLowerCase().includes(q);
+      if(_crmHighlightIds) return basicMatch || _crmHighlightIds.has(l.id);
+      return basicMatch;
     }
     return true;
   });
@@ -9172,24 +9176,26 @@ function renderCRMContent(leads){
 
   el.innerHTML = html;
 
-  // Wire async search with debounce
+  // Search on Enter only
   let _crmSearchTimer = null;
   const searchInp = document.getElementById('crm-search-inp');
   if(searchInp){
-    searchInp.addEventListener('input', ()=>{
+    searchInp.addEventListener('keydown', async (e)=>{
+      if(e.key !== 'Enter') return;
       _crmFilter.search = searchInp.value.trim();
-      clearTimeout(_crmSearchTimer);
       if(!_crmFilter.search){ _crmHighlightIds=null; renderCRMContent(leads); return; }
-      // Immediate basic filter while typing
+      // Immediate basic filter
       renderCRMContent(leads);
-      // Deep search after 400ms pause
-      _crmSearchTimer = setTimeout(async ()=>{
-        _crmHighlightIds = await crmSearchInMessages(_crmFilter.search, leads);
-        renderCRMContent(leads);
-        // Re-focus search input after re-render
-        const inp2 = document.getElementById('crm-search-inp');
-        if(inp2){ inp2.value=_crmFilter.search; inp2.focus(); inp2.setSelectionRange(inp2.value.length,inp2.value.length); }
-      }, 400);
+      // Deep search in messages
+      _crmHighlightIds = await crmSearchInMessages(_crmFilter.search, leads);
+      renderCRMContent(leads);
+      // Restore cursor in input
+      const inp2 = document.getElementById('crm-search-inp');
+      if(inp2){ inp2.value=_crmFilter.search; inp2.focus(); inp2.setSelectionRange(inp2.value.length,inp2.value.length); }
+    });
+    // Clear on Escape
+    searchInp.addEventListener('keydown', (e)=>{
+      if(e.key==='Escape'){ _crmFilter.search=''; _crmHighlightIds=null; searchInp.value=''; renderCRMContent(leads); }
     });
   }
 
@@ -9788,14 +9794,16 @@ function renderWAChatsContent(leads){
   };
 
   // Apply text search
-  const wq = (_wachatSearch||'').toLowerCase().replace(/\D/g,'') || (_wachatSearch||'').toLowerCase();
+  const wq = (_wachatSearch||'').toLowerCase();
+  const wqDigits = normalizePhone(_wachatSearch||'');
   const searchFiltered = !_wachatSearch ? filtered : filtered.filter(l=>{
     const pNorm = normalizePhone(l.phone||'');
-    const basic = (l.name||'').toLowerCase().includes(_wachatSearch.toLowerCase()) ||
-                  pNorm.includes((_wachatSearch||'').replace(/\D/g,'')) ||
-                  (l.notes||'').toLowerCase().includes(_wachatSearch.toLowerCase());
+    const basic =
+      (l.name||'').toLowerCase().includes(wq) ||
+      (wqDigits.length>=4 && pNorm.includes(wqDigits)) ||
+      (l.notes||'').toLowerCase().includes(wq);
     if(basic) return true;
-    return !!(_wachatSearchMsgIndex[l.id]||'').includes(_wachatSearch.toLowerCase());
+    return !!(_wachatSearchMsgIndex[l.id]||'').includes(wq);
   });
 
   if(_wachatsTab==='all'){
@@ -9825,14 +9833,15 @@ function renderWAChatsContent(leads){
 
   el.innerHTML = html;
 
-  // Wire search input — live filter + async message index
+  // Wire search — Enter to search, Escape to clear
   const sinp = document.getElementById('wachat-search');
   if(sinp){
-    sinp.addEventListener('input', async ()=>{
-      _wachatSearch = sinp.value;
+    sinp.addEventListener('keydown', async (e)=>{
+      if(e.key==='Escape'){ _wachatSearch=''; sinp.value=''; renderWAChatsContent(null); return; }
+      if(e.key!=='Enter') return;
+      _wachatSearch = sinp.value.trim();
       renderWAChatsContent(null); // immediate basic filter
       if(_wachatSearch){
-        // Build message text index for unindexed leads
         const toLookup = leads.filter(l=>!_wachatSearchMsgIndex[l.id]);
         await Promise.all(toLookup.map(async l=>{
           try{
@@ -9840,7 +9849,7 @@ function renderWAChatsContent(leads){
             _wachatSearchMsgIndex[l.id] = Object.values(s.val()||{}).map(m=>m.text||'').join(' ').toLowerCase();
           }catch(e){ _wachatSearchMsgIndex[l.id]=''; }
         }));
-        renderWAChatsContent(null); // re-render with message matches
+        renderWAChatsContent(null);
       }
     });
   }
