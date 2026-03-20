@@ -1750,6 +1750,11 @@ function renderPanel(p){
   else if(p==='appsettings'){renderAppSettings();}
   else if(p==='surveys'){renderSurveys();}
   else if(p==='crm'){renderCRM();}
+  // При уходе с CRM — отписываемся от real-time
+  if(p!=='crm' && _crmRealtimeListener){
+    crmRef.off('value', _crmRealtimeListener);
+    _crmRealtimeListener = null;
+  }
 }
 
 // ── DASHBOARD ────────────────────────────────────────────────────
@@ -8794,14 +8799,24 @@ function crmStage(id){ return CRM_STAGES.find(s=>s.id===id)||CRM_STAGES[0]; }
 function crmFmt(ts){ if(!ts)return'—'; const d=new Date(ts); return d.toLocaleDateString('ru',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'}); }
 
 // ── RENDER MAIN ───────────────────────────────────────────────────
+let _crmRealtimeListener = null;
+
 function renderCRM(){
   const el = document.getElementById('crm-body');
   if(!el) return;
   el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--t3)">Загрузка...</div>';
-  crmRef.once('value').then(snap=>{
+
+  // Отписываемся от предыдущего слушателя если есть
+  if(_crmRealtimeListener){
+    crmRef.off('value', _crmRealtimeListener);
+    _crmRealtimeListener = null;
+  }
+
+  // Подписываемся на real-time обновления
+  _crmRealtimeListener = crmRef.on('value', snap=>{
     const raw = snap.val()||{};
     const leads = Object.entries(raw)
-      .map(([key, val])=>({...val, id: key}))  // всегда берём ключ Firebase, игнорируем сохранённое поле id
+      .map(([key, val])=>({...val, id: key}))
       .sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
     renderCRMContent(leads);
   });
