@@ -346,7 +346,8 @@ body{font-family:var(--fb);background:var(--bg);color:var(--t1);min-height:100vh
     <div class="ni admin-only" data-p="freeSlots" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">✦</span>Свободные слоты</div>
     <div class="nav-sec">Ученики и работа</div>
     <div class="ni" data-p="students" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">🎓</span>Ученики</div>
-    <div class="ni" data-p="teamchat" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">💬</span>Чат <span id="chat-badge" style="display:none;background:var(--gn);color:var(--bg);font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
+    <div class="ni admin-only" data-p="wachats" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">📱</span>Чаты WA <span id="wachats-badge" style="display:none;background:var(--gn);color:var(--bg);font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
+    <div class="ni" data-p="teamchat" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">💬</span>Командный чат <span id="chat-badge" style="display:none;background:var(--gn);color:var(--bg);font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
     <div class="ni" data-p="tasks" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">✅</span>Задачи <span id="tasks-badge" style="display:none;background:var(--rd);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
     <div class="nav-sec">Система</div>
     <div class="ni admin-only" data-p="users" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">👤</span>Пользователи</div>
@@ -651,6 +652,10 @@ body{font-family:var(--fb);background:var(--bg);color:var(--t1);min-height:100vh
     <!-- SURVEYS -->
     <div class="panel" id="panel-surveys">
       <div id="surveys-body"></div>
+    </div>
+    <!-- WA CHATS -->
+    <div class="panel" id="panel-wachats">
+      <div id="wachats-body"></div>
     </div>
     <!-- CRM -->
     <div class="panel" id="panel-crm">
@@ -1574,6 +1579,7 @@ fbAuth.onAuthStateChanged(user=>{
         if(currentRole==='admin') updateReminderFailureBadge();
         // CRM badge — новые лиды
         if(currentRole==='admin') initCRMBadge();
+        if(currentRole==='admin') initWAUnreadListener();
       });
     }).catch(()=>{
       // No user record — treat as teacher, admin should add them
@@ -1670,8 +1676,8 @@ function countFree(){
 }
 
 // ── NAVIGATION ───────────────────────────────────────────────────
-const TITLES={today:'Сегодня ☀️',tasks:'Задачи',teamchat:'Общий чат',dashboard:'Главная',subjects:'Предметы',teachers:'Преподаватели',availability:'Время работы',schedule:'Расписание',freeSlots:'Свободные слоты',students:'Ученики',reports:'Отчёты по преподавателям',journal:'Журнал действий',trash:'Корзина',backups:'Резервные копии',users:'Пользователи',videoreviews:'Видео уроков',surveys:'Опросы',crm:'CRM — Клиенты'};
-const ACTS={today:'',tasks:'',teamchat:'',dashboard:'+',subjects:'',teachers:'+ Преподаватель',availability:'',schedule:'',freeSlots:'',students:'+ Ученик',reports:'',journal:'',trash:'',backups:'',users:'',videoreviews:'',surveys:'',crm:''};
+const TITLES={today:'Сегодня ☀️',tasks:'Задачи',teamchat:'Командный чат',dashboard:'Главная',subjects:'Предметы',teachers:'Преподаватели',availability:'Время работы',schedule:'Расписание',freeSlots:'Свободные слоты',students:'Ученики',reports:'Отчёты по преподавателям',journal:'Журнал действий',trash:'Корзина',backups:'Резервные копии',users:'Пользователи',videoreviews:'Видео уроков',surveys:'Опросы',crm:'CRM — Клиенты',wachats:'Чаты WhatsApp'};
+const ACTS={today:'',tasks:'',teamchat:'',dashboard:'+',subjects:'',teachers:'+ Преподаватель',availability:'',schedule:'',freeSlots:'',students:'+ Ученик',reports:'',journal:'',trash:'',backups:'',users:'',videoreviews:'',surveys:'',crm:'',wachats:''};
 function curPanel(){return document.querySelector('.ni.active')?.dataset.p||'dashboard';}
 function nav(el){
   // Close more menu on nav
@@ -1750,10 +1756,15 @@ function renderPanel(p){
   else if(p==='appsettings'){renderAppSettings();}
   else if(p==='surveys'){renderSurveys();}
   else if(p==='crm'){renderCRM();}
+  else if(p==='wachats'){renderWAChats();}
   // При уходе с CRM — отписываемся от real-time
   if(p!=='crm' && _crmRealtimeListener){
     crmRef.off('value', _crmRealtimeListener);
     _crmRealtimeListener = null;
+  }
+  if(p!=='wachats' && _wachatsListener){
+    crmRef.off('value', _wachatsListener);
+    _wachatsListener = null;
   }
 }
 
@@ -8875,7 +8886,9 @@ function renderCRMContent(leads){
 function buildCRMKanban(leads){
   let html = `<div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:12px;min-height:400px">`;
   CRM_STAGES.forEach(stage=>{
-    const cards = leads.filter(l=>l.stage===stage.id);
+    // Карточки с непрочитанными — наверх
+    const cards = leads.filter(l=>l.stage===stage.id)
+      .sort((a,b)=>(b.unreadCount||0)-(a.unreadCount||0));
     html += `
     <div style="min-width:220px;max-width:240px;flex-shrink:0;background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rl);display:flex;flex-direction:column;max-height:calc(100vh - 200px)"
       ondragover="event.preventDefault();event.stopPropagation()"
@@ -8911,6 +8924,7 @@ function buildCRMCard(l){
     <div style="font-size:13px;font-weight:600;color:var(--t1);margin-bottom:4px;display:flex;align-items:center;gap:6px">
       ${l.name||'Без имени'}
       ${l.source?`<span style="font-size:9px;color:var(--t3);background:var(--bg4);padding:1px 5px;border-radius:4px">${l.source}</span>`:''}
+      ${(l.unreadCount||0)>0?`<span style="background:var(--gn);color:var(--bg);font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;margin-left:auto">${l.unreadCount} 💬</span>`:''}
     </div>
     ${l.phone?`<div style="font-size:11px;color:var(--t3);margin-bottom:4px">📱 ${l.phone}</div>`:''}
     ${l.interest?`<div style="font-size:11px;color:var(--t2);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📖 ${l.interest}</div>`:''}
@@ -9237,6 +9251,257 @@ function initCRMBadge(){
     const n = snap.numChildren();
     const b = document.getElementById('crm-badge');
     if(b){ b.textContent=n; b.style.display=n?'':'none'; }
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  WA CHATS — Список всех WhatsApp переписок
+// ══════════════════════════════════════════════════════════════════
+
+let _wachatsListener = null;
+let _wachatOpenId = null; // текущий открытый чат
+let _wachatChatListener = null;
+
+function renderWAChats(){
+  const el = document.getElementById('wachats-body');
+  if(!el) return;
+  el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--t3)">Загрузка...</div>';
+
+  if(_wachatsListener){ crmRef.off('value',_wachatsListener); _wachatsListener=null; }
+
+  _wachatsListener = crmRef.on('value', snap=>{
+    const raw = snap.val()||{};
+    const leads = Object.entries(raw)
+      .map(([key,val])=>({...val,id:key}))
+      .filter(l=>l.phone) // только у кого есть телефон
+      .sort((a,b)=>(b.lastContact||b.createdAt||'').localeCompare(a.lastContact||a.createdAt||''));
+    renderWAChatsContent(leads);
+  });
+}
+
+function renderWAChatsContent(leads){
+  const el = document.getElementById('wachats-body');
+  if(!el) return;
+
+  const totalUnread = leads.reduce((s,l)=>s+(l.unreadCount||0),0);
+  const b = document.getElementById('wachats-badge');
+  if(b){ b.textContent=totalUnread; b.style.display=totalUnread?'':'none'; }
+
+  let html = `<div style="display:flex;gap:0;height:calc(100vh - 120px);background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden">
+    <!-- Список чатов -->
+    <div style="width:300px;flex-shrink:0;border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden">
+      <div style="padding:10px 12px;border-bottom:1px solid var(--b1);font-size:12px;font-weight:700;color:var(--t1);display:flex;align-items:center;justify-content:space-between">
+        <span>📱 WhatsApp чаты</span>
+        <span style="font-size:10px;color:var(--t3)">${leads.length} диалогов</span>
+      </div>
+      <div style="flex:1;overflow-y:auto">`;
+
+  leads.forEach(l=>{
+    const stage = crmStage(l.stage);
+    const unread = l.unreadCount||0;
+    const isOpen = _wachatOpenId === l.id;
+    // Ищем связанного ученика по телефону
+    const phone = (l.phone||'').replace(/\D/g,'');
+    const linkedStudent = (S.students||[]).find(s=>(s.phone||'').replace(/\D/g,'')=== phone || (s.parentPhone||'').replace(/\D/g,'')=== phone);
+
+    html += `<div onclick="openWAChat('${l.id}')"
+      style="padding:10px 12px;border-bottom:1px solid var(--b1);cursor:pointer;background:${isOpen?'var(--acbg)':'transparent'};display:flex;gap:10px;align-items:flex-start"
+      onmouseenter="if('${l.id}'!==_wachatOpenId)this.style.background='var(--bg3)'"
+      onmouseleave="if('${l.id}'!==_wachatOpenId)this.style.background='transparent'">
+      <div style="width:36px;height:36px;border-radius:50%;background:${stage.hex}33;border:2px solid ${stage.hex}66;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">
+        ${linkedStudent?'🎓':'👤'}
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:4px">
+          <div style="font-size:12px;font-weight:${unread?'700':'500'};color:${unread?'var(--t1)':'var(--t2)'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.name||l.phone}</div>
+          ${unread?`<span style="background:var(--gn);color:var(--bg);font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;flex-shrink:0">${unread}</span>`:''}
+        </div>
+        <div style="font-size:10px;color:var(--t3);margin-top:1px">${l.phone||''}</div>
+        <div style="display:flex;align-items:center;gap:5px;margin-top:3px">
+          <span style="font-size:9px;color:${stage.color};background:${stage.hex}22;padding:1px 5px;border-radius:4px">${stage.label}</span>
+          ${linkedStudent?`<span style="font-size:9px;color:var(--t3)">→ ${linkedStudent.name}</span>`:''}
+        </div>
+      </div>
+    </div>`;
+  });
+
+  if(!leads.length) html += '<div style="padding:40px 20px;text-align:center;color:var(--t3);font-size:12px">Нет диалогов</div>';
+
+  html += `</div></div>
+    <!-- Область чата -->
+    <div id="wachat-area" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:13px">
+        👈 Выберите диалог
+      </div>
+    </div>
+  </div>`;
+
+  el.innerHTML = html;
+
+  // Если был открыт чат — переоткрываем
+  if(_wachatOpenId && leads.find(l=>l.id===_wachatOpenId)){
+    openWAChat(_wachatOpenId, true);
+  }
+}
+
+function openWAChat(leadId, noScroll){
+  _wachatOpenId = leadId;
+  // Сбрасываем unread
+  crmRef.child(leadId+'/unreadCount').set(0);
+
+  crmRef.child(leadId).once('value').then(snap=>{
+    const l = snap.val()||{};
+    const stage = crmStage(l.stage);
+    const phone = (l.phone||'').replace(/\D/g,'');
+    const linkedStudent = (S.students||[]).find(s=>(s.phone||'').replace(/\D/g,'')=== phone || (s.parentPhone||'').replace(/\D/g,'')=== phone);
+
+    const area = document.getElementById('wachat-area');
+    if(!area) return;
+
+    area.innerHTML = `
+      <!-- Шапка чата -->
+      <div style="padding:10px 14px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:10px;flex-shrink:0;background:var(--bg3)">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:700;color:var(--t1)">${l.name||l.phone}</div>
+          <div style="font-size:11px;color:var(--t3);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span>${l.phone||''}</span>
+            <span style="color:${stage.color}">${stage.label}</span>
+            ${linkedStudent?`<span>🎓 <a href="#" onclick="nav(document.querySelector('[data-p=students]'));setTimeout(()=>openStudent('${linkedStudent.id}'),300);return false;" style="color:var(--ac2);text-decoration:none">${linkedStudent.name}</a></span>`:''}
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button onclick="openCRMCard('${leadId}')" style="background:var(--acbg);border:1px solid var(--acb);border-radius:6px;color:var(--ac2);cursor:pointer;padding:5px 10px;font-size:11px;font-family:var(--fb);font-weight:600">💼 Сделка</button>
+          ${l.phone?`<a href="https://wa.me/${phone}" target="_blank" style="background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.25);border-radius:6px;color:var(--gn);padding:5px 10px;font-size:11px;text-decoration:none;display:flex;align-items:center">↗ WA</a>`:''}
+        </div>
+      </div>
+      <!-- Сообщения -->
+      <div id="wachat-msgs" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px"></div>
+      <!-- Ввод -->
+      <div style="padding:10px 12px;border-top:1px solid var(--b1);display:flex;gap:8px;flex-shrink:0;background:var(--bg3)">
+        <textarea id="wachat-inp" placeholder="Написать сообщение..." rows="2"
+          style="flex:1;background:var(--bg4);border:1px solid var(--b2);border-radius:8px;color:var(--t1);font-family:var(--fb);font-size:13px;padding:7px 10px;resize:none"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendWAMessage('${leadId}',false);}"></textarea>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <button onclick="sendWAMessage('${leadId}',false)" title="Внутренняя заметка" style="background:var(--bg4);border:1px solid var(--b2);border-radius:6px;color:var(--t2);cursor:pointer;padding:6px 10px;font-size:12px">📝</button>
+          <button onclick="sendWAMessage('${leadId}',true)" title="Отправить в WhatsApp" style="background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.3);border-radius:6px;color:var(--gn);cursor:pointer;padding:6px 10px;font-size:12px;font-weight:700">📲</button>
+        </div>
+      </div>`;
+
+    // Подписываемся на сообщения
+    if(_wachatChatListener){ crmChatRef.off('value',_wachatChatListener); _wachatChatListener=null; }
+    _wachatChatListener = crmChatRef.child(leadId).limitToLast(50).on('value', snap=>{
+      const msgs = Object.values(snap.val()||{}).sort((a,b)=>a.ts.localeCompare(b.ts));
+      const msgsEl = document.getElementById('wachat-msgs');
+      if(!msgsEl) return;
+      const myUid = fbAuth.currentUser?.uid||'';
+      msgsEl.innerHTML = msgs.map(m=>{
+        const isOut = m.type==='out'||m.uid===myUid;
+        const isSys = m.type==='system';
+        const isIn = m.type==='in'||m.channel==='whatsapp';
+        if(isSys) return `<div style="text-align:center;margin:4px 0"><span style="font-size:10px;color:var(--t3);background:var(--bg3);padding:2px 8px;border-radius:8px">${m.text}</span></div>`;
+        const ts = new Date(m.ts).toLocaleString('ru',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'});
+        const waIcon = isIn ? '📱 ' : (m.channel==='whatsapp'||isOut&&m.type==='out' ? '📤 ' : '📝 ');
+        return `<div style="display:flex;flex-direction:column;align-items:${isOut?'flex-end':'flex-start'}">
+          <div style="font-size:9px;color:var(--t3);margin-bottom:2px">${waIcon}${isOut?'':m.name+' · '}${ts}</div>
+          <div style="max-width:75%;padding:8px 12px;border-radius:${isOut?'12px 12px 2px 12px':'12px 12px 12px 2px'};font-size:13px;line-height:1.5;${isOut?'background:var(--acbg);border:1px solid var(--acb)':'background:var(--bg3);border:1px solid var(--b1)'}">
+            ${m.text.replace(/\n/g,'<br>')}
+          </div>
+        </div>`;
+      }).join('');
+      msgsEl.scrollTop = msgsEl.scrollHeight;
+    });
+
+    // Подсвечиваем активный элемент в списке
+    renderWAChatsContent(null); // перерисует список с выделением
+  });
+}
+
+async function sendWAMessage(leadId, toWA){
+  const inp = document.getElementById('wachat-inp');
+  const text = (inp?.value||'').trim();
+  if(!text) return;
+  inp.value='';
+  const now = new Date().toISOString();
+  const uid = fbAuth.currentUser?.uid||'';
+  const usnap = await fbDb.ref('appUsers/'+uid).once('value');
+  const uname = usnap.val()?.name || fbAuth.currentUser?.email || '—';
+
+  crmChatRef.child(leadId).push({type:toWA?'out':'note',text,ts:now,uid,name:uname,channel:toWA?'whatsapp':'internal'});
+  crmRef.child(leadId).update({lastContact:now,updatedAt:now});
+  crmRef.child(leadId+'/msgCount').transaction(v=>(v||0)+1);
+
+  if(toWA){
+    const snap = await crmRef.child(leadId).once('value');
+    const l = snap.val();
+    const phone = (l?.phone||'').replace(/\D/g,'');
+    if(phone){
+      const res = await notifyWhatsApp('+'+phone, text);
+      if(!res||!res.ok) toast('⚠ WhatsApp: '+(res?.error||'ошибка'),true);
+    }
+  }
+}
+
+// ── Unread badge system ───────────────────────────────────────────
+// Вызывается из Worker webhook — инкрементирует unreadCount
+// На фронте слушаем изменения и показываем бейджи на канбан-картах
+
+function initWAUnreadListener(){
+  crmRef.on('value', snap=>{
+    const raw = snap.val()||{};
+    let totalUnread = 0;
+    Object.values(raw).forEach(l=>{ totalUnread += (l.unreadCount||0); });
+    const b = document.getElementById('wachats-badge');
+    if(b){ b.textContent=totalUnread||''; b.style.display=totalUnread?'':'none'; }
+    // Обновляем канбан если открыт
+    if(curPanel()==='crm') renderCRM();
+  });
+}
+
+// Добавляем unread бейдж в buildCRMCard
+// (патчим функцию — она уже определена выше, перезаписываем)
+const _origBuildCRMCard = buildCRMCard;
+
+// ── Связь Ученик ↔ Лид ──────────────────────────────────────────
+// По кнопке в карточке ученика открываем CRM лид если есть совпадение по телефону
+function findCRMLeadByPhone(phone){
+  const p = (phone||'').replace(/\D/g,'');
+  return new Promise(res=>{
+    crmRef.once('value').then(snap=>{
+      const raw = snap.val()||{};
+      const found = Object.entries(raw).find(([,l])=>(l.phone||'').replace(/\D/g,'')=== p);
+      res(found ? {id:found[0],...found[1]} : null);
+    });
+  });
+}
+
+// Добавляем кнопку CRM в карточку ученика
+function addCRMLinkToStudent(studentEl, phone){
+  if(!phone||!studentEl) return;
+  findCRMLeadByPhone(phone).then(lead=>{
+    const existing = studentEl.querySelector('.crm-link-btn');
+    if(existing) existing.remove();
+    const btn = document.createElement('button');
+    btn.className = 'crm-link-btn btn btn-sm';
+    btn.style.cssText = 'font-size:10px;padding:3px 8px;margin-left:4px';
+    if(lead){
+      const stage = crmStage(lead.stage);
+      btn.innerHTML = `💼 ${stage.label}`;
+      btn.style.color = stage.color;
+      btn.onclick = ()=>{ nav(document.querySelector('[data-p=crm]')); setTimeout(()=>openCRMCard(lead.id),300); };
+      btn.title = 'Открыть сделку в CRM';
+    } else {
+      btn.innerHTML = '+ В CRM';
+      btn.onclick = ()=>{
+        nav(document.querySelector('[data-p=crm]'));
+        setTimeout(()=>{
+          openCRMCard();
+          const phoneEl = document.getElementById('crm-f-phone');
+          if(phoneEl) phoneEl.value = '+'+phone.replace(/\D/g,'');
+        },300);
+      };
+      btn.title = 'Создать лид в CRM';
+    }
+    studentEl.appendChild(btn);
   });
 }
 
