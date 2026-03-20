@@ -355,7 +355,6 @@ body{font-family:var(--fb);background:var(--bg);color:var(--t1);min-height:100vh
     <div class="ni" data-p="videoreviews" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">🎥</span>Видео уроков <span id="video-badge" style="display:none;background:var(--am);color:var(--bg);font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
     <div class="ni" data-p="surveys" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">📋</span>Опросы <span id="surveys-badge" style="display:none;background:var(--gn);color:var(--bg);font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
     <div class="ni admin-only" data-p="crm" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">💼</span>CRM <span id="crm-badge" style="display:none;background:var(--ac);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
-    <div class="ni admin-only" data-p="trialcal" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">🧪</span>Пробные уроки <span id="trial-badge" style="display:none;background:var(--am);color:var(--bg);font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
     <div class="ni admin-only" id="ni-more" onclick="toggleMore(this)"><span style="font-size:14px;width:18px;text-align:center">•••</span>Ещё</div>
     <div id="more-menu" style="display:none">
       <div class="ni admin-only" data-p="subjects" onclick="nav(this)" style="padding-left:30px"><span style="font-size:13px;width:18px;text-align:center">📚</span>Предметы</div>
@@ -1003,6 +1002,7 @@ body{font-family:var(--fb);background:var(--bg);color:var(--t1);min-height:100vh
       <div class="fr"><label>Предмет</label><select id="t-subj"></select></div>
     </div>
     <div class="fr"><label>Статус</label><select id="t-status"><option value="active">Активен</option><option value="inactive">Неактивен</option></select></div>
+    <div class="fr"><label>📱 Телефон WhatsApp</label><input id="t-phone" placeholder="+7 700 000 00 00" style="font-size:13px"/></div>
     <!-- Avail section: only shown for NEW teacher -->
     <div id="t-avail-wrap">
       <div class="divider"></div>
@@ -1705,8 +1705,8 @@ function countFree(){
 }
 
 // ── NAVIGATION ───────────────────────────────────────────────────
-const TITLES={today:'Сегодня ☀️',tasks:'Задачи',teamchat:'Командный чат',dashboard:'Главная',subjects:'Предметы',teachers:'Преподаватели',availability:'Время работы',schedule:'Расписание',freeSlots:'Свободные слоты',students:'Ученики',reports:'Отчёты по преподавателям',journal:'Журнал действий',trash:'Корзина',backups:'Резервные копии',users:'Пользователи',videoreviews:'Видео уроков',surveys:'Опросы',crm:'CRM — Клиенты',wachats:'Чаты',trialcal:'🧪 Пробные уроки'};
-const ACTS={today:'',tasks:'',teamchat:'',dashboard:'+',subjects:'',teachers:'+ Преподаватель',availability:'',schedule:'',freeSlots:'',students:'+ Ученик',reports:'',journal:'',trash:'',backups:'',users:'',videoreviews:'',surveys:'',crm:'',wachats:'',trialcal:''};
+const TITLES={today:'Сегодня ☀️',tasks:'Задачи',teamchat:'Командный чат',dashboard:'Главная',subjects:'Предметы',teachers:'Преподаватели',availability:'Время работы',schedule:'Расписание',freeSlots:'Свободные слоты',students:'Ученики',reports:'Отчёты по преподавателям',journal:'Журнал действий',trash:'Корзина',backups:'Резервные копии',users:'Пользователи',videoreviews:'Видео уроков',surveys:'Опросы',crm:'CRM — Клиенты',wachats:'Чаты'};
+const ACTS={today:'',tasks:'',teamchat:'',dashboard:'+',subjects:'',teachers:'+ Преподаватель',availability:'',schedule:'',freeSlots:'',students:'+ Ученик',reports:'',journal:'',trash:'',backups:'',users:'',videoreviews:'',surveys:'',crm:'',wachats:''};
 function curPanel(){return document.querySelector('.ni.active')?.dataset.p||'dashboard';}
 function nav(el){
   // Close more menu on nav
@@ -3354,10 +3354,12 @@ function openTeacherModal(id){
     document.getElementById('t-name').value=t.name;
     document.getElementById('t-subj').value=t.subjId;
     document.getElementById('t-status').value=t.status;
-    document.getElementById('t-avail-wrap').style.display='none'; // editing: use Availability tab
+    const ph=document.getElementById('t-phone'); if(ph) ph.value=t.phone||'';
+    document.getElementById('t-avail-wrap').style.display='none';
   } else {
     document.getElementById('t-name').value='';
     document.getElementById('t-status').value='active';
+    const ph=document.getElementById('t-phone'); if(ph) ph.value='';
     document.getElementById('t-avail-wrap').style.display='';
     _tAvail={};
     tAvailPreset();
@@ -3393,11 +3395,12 @@ function saveTeacher(){
   const name=document.getElementById('t-name').value.trim();if(!name){toast('Введите ФИО',true);return;}
   const subjId=parseInt(document.getElementById('t-subj').value);
   const status=document.getElementById('t-status').value;
+  const phone=document.getElementById('t-phone')?.value.trim()||'';
   if(editTId){
-    const t=teacher(editTId);t.name=name;t.subjId=subjId;t.status=status;
+    const t=teacher(editTId);t.name=name;t.subjId=subjId;t.status=status;t.phone=phone;
   } else {
     const id=Date.now();
-    S.teachers.push({id,name,subjId,status,ci:S.teachers.length%5});
+    S.teachers.push({id,name,subjId,status,phone,ci:S.teachers.length%5});
     S.avail[id]={};
     for(let d=0;d<7;d++){S.avail[id][d]={};for(let ti=0;ti<TIMES.length;ti++)S.avail[id][d][ti]=!!(_tAvail[d]&&_tAvail[d][ti]);}
   }
@@ -9212,12 +9215,12 @@ function renderCRMContent(leads){
   const counts={};
   leads.forEach(l=>{ counts[l.stage]=(counts[l.stage]||0)+1; });
 
-  const vBtn=(v,lbl)=>`<button onclick="_crmView='${v}';renderCRM()" style="padding:5px 12px;font-size:12px;border-radius:6px;border:1px solid;cursor:pointer;font-family:var(--fb);${_crmView===v?'background:var(--ac);border-color:var(--ac);color:#fff':'background:var(--bg3);border-color:var(--b2);color:var(--t2)'}">${lbl}</button>`;
+  const vBtn=(v,lbl)=>`<button onclick="_crmView='${v}';renderCRMContent(leads)" style="padding:5px 12px;font-size:12px;border-radius:6px;border:1px solid;cursor:pointer;font-family:var(--fb);${_crmView===v?'background:var(--ac);border-color:var(--ac);color:#fff':'background:var(--bg3);border-color:var(--b2);color:var(--t2)'}">${lbl}</button>`;
 
   let html = `
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
     <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-      ${vBtn('kanban','⠿ Канбан')}${vBtn('list','☰ Список')}
+      ${vBtn('kanban','⠿ Канбан')}${vBtn('list','☰ Список')}${vBtn('trials','🧪 Пробные уроки')}
       <select onchange="_crmFilter.stage=this.value;renderCRM()" style="background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:12px;padding:5px 9px">
         <option value="">Все стадии</option>
         ${CRM_STAGES.map(s=>`<option value="${s.id}" ${_crmFilter.stage===s.id?'selected':''}>${s.label} (${counts[s.id]||0})</option>`).join('')}
@@ -9232,11 +9235,19 @@ function renderCRMContent(leads){
 
   if(_crmView === 'kanban'){
     html += buildCRMKanban(filtered);
+  } else if(_crmView === 'trials'){
+    html += `<div id="trial-cal-inner"></div>`;
   } else {
     html += buildCRMList(filtered);
   }
 
   el.innerHTML = html;
+
+  // Trials view — render calendar
+  if(_crmView==='trials'){
+    const inner = document.getElementById('trial-cal-inner');
+    if(inner) buildTrialCalendarHTML(inner, leads.filter(l=>l.trialDate&&l.id), {});
+  }
 
   // Search on Enter only
   const searchInp = document.getElementById('crm-search-inp');
@@ -9263,6 +9274,12 @@ function renderCRMContent(leads){
   // Badge in nav
   const b = document.getElementById('crm-badge');
   if(b){ const n=counts['new']||0; b.textContent=n; b.style.display=n?'':'none'; }
+
+  // Trial badge (upcoming trials count)
+  const today = new Date().toISOString().slice(0,10);
+  const trialCount = leads.filter(l=>l.trialDate && l.trialDate>=today).length;
+  const tb = document.getElementById('trial-badge');
+  if(tb){ tb.textContent=trialCount||''; tb.style.display=trialCount?'':'none'; }
 
   // Инициализируем drag & drop через JS-обработчики
   if(_crmView==='kanban') {
@@ -10453,7 +10470,7 @@ function buildTrialCalendarHTML(el, leads, raw){
         </div>
         <div style="display:flex;gap:5px;flex-shrink:0">
           <button onclick="openCRMCard('${l.id}')" style="background:var(--acbg);border:1px solid var(--acb);border-radius:5px;color:var(--ac2);cursor:pointer;padding:3px 8px;font-size:11px;font-family:var(--fb)">✏️</button>
-          ${t?.phone?`<button onclick="sendTrialNotify('${l.id}')" style="background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.25);border-radius:5px;color:var(--gn);cursor:pointer;padding:3px 8px;font-size:11px;font-family:var(--fb)">📲</button>`:''}
+          ${t&&getTeacherPhone(t)?`<button onclick="sendTrialNotify('${l.id}')" style="background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.25);border-radius:5px;color:var(--gn);cursor:pointer;padding:3px 8px;font-size:11px;font-family:var(--fb)">📲</button>`:''}
         </div>
       </div>`;
     });
@@ -10490,18 +10507,31 @@ function openTrialDetail(leadId){
 }
 
 // Уведомление преподавателю о пробном уроке
+function getTeacherPhone(teacher){
+  // First check appUsers via uid link
+  if(teacher?.uid && S.appUsers?.[teacher.uid]?.phone){
+    return S.appUsers[teacher.uid].phone;
+  }
+  // Fallback to direct phone field on teacher record
+  return teacher?.phone || '';
+}
+
 async function sendTrialNotify(leadId){
   const snap = await crmRef.child(leadId).once('value');
   const l = snap.val();
   if(!l){ toast('Лид не найден',true); return; }
+  if(!l.trialTeacherId){ toast('Не назначен преподаватель пробного урока',true); return; }
   const t = (S.teachers||[]).find(t=>String(t.id)===String(l.trialTeacherId));
-  if(!t?.phone){ toast('У преподавателя нет телефона',true); return; }
+  if(!t){ toast('Преподаватель не найден в базе',true); return; }
+  const rawPhone = getTeacherPhone(t);
+  if(!rawPhone){ toast(`У ${t.name} нет телефона в профиле. Зайдите в Пользователи → ${t.name} → добавьте телефон.`,true); return; }
+  const phone = normalizePhone(rawPhone);
+  if(!phone){ toast('Некорректный формат телефона преподавателя',true); return; }
   const dt = l.trialDate ? new Date(l.trialDate+'T'+(l.trialTime||'12:00')).toLocaleDateString('ru',{day:'numeric',month:'long',weekday:'long'}) : '—';
   const msg = `🧪 Пробный урок\n\n👤 Клиент: ${l.name||'—'}\n📱 Телефон: ${l.phone||'—'}\n📅 ${dt}${l.trialTime?' в '+l.trialTime:''}\n${l.interest?'📖 '+l.interest+'\n':''}${l.notes?'💬 '+l.notes:''}`;
-  const phone = t.phone.replace(/\D/g,'');
   const res = await notifyWhatsApp('+'+phone, msg);
-  if(res?.ok) toast('✓ Преподаватель уведомлён в WhatsApp');
-  else toast('⚠ Ошибка отправки: '+(res?.error||''), true);
+  if(res?.ok) toast(`✓ ${t.name} уведомлён в WhatsApp`);
+  else toast('⚠ Ошибка отправки: '+(res?.error||'неизвестная ошибка'), true);
 }
 
 // Хук — при сохранении сделки если назначен пробный урок — уведомляем преподавателя
