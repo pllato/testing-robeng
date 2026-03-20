@@ -10539,10 +10539,36 @@ async function sendTrialNotify(leadId){
   if(!l.trialTeacherId){ toast('Не назначен преподаватель пробного урока',true); return; }
   const t = (S.teachers||[]).find(t=>String(t.id)===String(l.trialTeacherId));
   if(!t){ toast('Преподаватель не найден в базе',true); return; }
-  const rawPhone = getTeacherPhone(t);
-  if(!rawPhone){ toast(`У ${t.name} нет телефона в профиле. Зайдите в Пользователи → ${t.name} → добавьте телефон.`,true); return; }
+
+  // Get phone — try local cache first, then read Firebase directly
+  let rawPhone = getTeacherPhone(t);
+  if(!rawPhone){
+    // Direct Firebase read — guaranteed fresh data
+    const usersSnap = await fbDb.ref('appUsers').once('value');
+    const allUsers = usersSnap.val()||{};
+    S.appUsers = allUsers; // refresh cache
+    // Try by uid
+    if(t.uid && allUsers[t.uid]?.phone) rawPhone = allUsers[t.uid].phone;
+    // Try by id as key
+    if(!rawPhone && allUsers[String(t.id)]?.phone) rawPhone = allUsers[String(t.id)].phone;
+    // Try by matching name (case-insensitive)
+    if(!rawPhone){
+      const tNameLower = (t.name||'').toLowerCase();
+      const matched = Object.values(allUsers).find(u=>(u.name||'').toLowerCase()===tNameLower);
+      if(matched?.phone) rawPhone = matched.phone;
+    }
+  }
+
+  if(!rawPhone){
+    // Show what we found in appUsers to help debug
+    const users = S.appUsers||{};
+    const names = Object.values(users).map(u=>u.name||u.email||'?').slice(0,5).join(', ');
+    toast(`У ${t.name} нет телефона. Пользователи в системе: ${names}`,true);
+    return;
+  }
+
   const phone = normalizePhone(rawPhone);
-  if(!phone){ toast('Некорректный формат телефона преподавателя',true); return; }
+  if(!phone){ toast('Некорректный формат телефона: '+rawPhone,true); return; }
   const dt = l.trialDate ? new Date(l.trialDate+'T'+(l.trialTime||'12:00')).toLocaleDateString('ru',{day:'numeric',month:'long',weekday:'long'}) : '—';
   const msg = `🧪 Пробный урок\n\n👤 Клиент: ${l.name||'—'}\n📱 Телефон: ${l.phone||'—'}\n📅 ${dt}${l.trialTime?' в '+l.trialTime:''}\n${l.interest?'📖 '+l.interest+'\n':''}${l.notes?'💬 '+l.notes:''}`;
   const res = await notifyWhatsApp('+'+phone, msg);
