@@ -7658,7 +7658,55 @@ function renderCRMStageSettings(){
   }).join('');
 }
 
-// ── CRM Stage Editor ─────────────────────────────────────────────
+// ── CRM Deduplication ─────────────────────────────────────────────
+async function crmDedup(){
+  if(!confirm('Объединить дублирующиеся сделки по номеру телефона?\n\nОстанется одна сделка на номер — с самой последней активностью.')) return;
+  const snap = await crmRef.once('value');
+  const raw = snap.val()||{};
+  const byPhone = {};
+  // Группируем по нормализованному телефону
+  Object.entries(raw).forEach(([key, lead])=>{
+    const p = normalizePhone(lead.phone||'');
+    if(!p) return;
+    if(!byPhone[p]) byPhone[p]=[];
+    byPhone[p].push({key, ...lead});
+  });
+  let merged=0, deleted=0;
+  for(const [p, group] of Object.entries(byPhone)){
+    if(group.length<=1) continue;
+    // Сортируем — главный лид: самый старый (createdAt минимальный), с наибольшим msgCount
+    group.sort((a,b)=>(a.createdAt||'').localeCompare(b.createdAt||''));
+    const main = group[0];
+    const rest = group.slice(1);
+    // Объединяем данные в главный
+    const mergedData = {
+      ...main,
+      msgCount: group.reduce((s,l)=>s+(l.msgCount||0),0),
+      lastContact: group.reduce((last,l)=>(l.lastContact||'')>last?l.lastContact:last, main.lastContact||''),
+      notes: [...new Set(group.map(l=>l.notes).filter(Boolean))].join(' | ')||main.notes||'',
+    };
+    // Ставим наиболее продвинутую стадию
+    const stageOrder = CRM_STAGES.map(s=>s.id);
+    let bestStage = main.stage||'new';
+    rest.forEach(l=>{ if(stageOrder.indexOf(l.stage||'new')>stageOrder.indexOf(bestStage)) bestStage=l.stage; });
+    mergedData.stage = bestStage;
+    await crmRef.child(main.key).update(mergedData);
+    // Переносим сообщения из дублей в главный
+    for(const dup of rest){
+      const chatSnap = await crmChatRef.child(dup.key).once('value');
+      const msgs = chatSnap.val()||{};
+      for(const [msgKey, msg] of Object.entries(msgs)){
+        await crmChatRef.child(main.key).push(msg);
+      }
+      await crmRef.child(dup.key).remove();
+      await crmChatRef.child(dup.key).remove();
+      deleted++;
+    }
+    merged++;
+  }
+  toast(`✓ Объединено ${merged} номеров, удалено ${deleted} дублей`);
+  renderCRM();
+}
 function renderCRMStagesEditor(){
   const el = document.getElementById('crm-stages-editor');
   if(!el) return;
@@ -9046,6 +9094,8 @@ function renderCRMContent(leads){
         oninput="_crmFilter.search=this.value;renderCRMContent(${JSON.stringify(leads).replace(/</g,'\\u003c')})"
         style="background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:12px;padding:5px 10px;min-width:180px"/>
     </div>
+    <button onclick="renderCRM()" style="font-size:11px;padding:4px 11px;border-radius:6px;border:1px solid var(--b2);cursor:pointer;background:var(--bg3);color:var(--t2);font-family:var(--fb)">↺ Обновить</button>
+    <button onclick="crmDedup()" title="Объединить дублирующиеся сделки по телефону" style="font-size:11px;padding:4px 11px;border-radius:6px;border:1px solid rgba(240,89,117,.3);cursor:pointer;background:rgba(240,89,117,.08);color:var(--rd);font-family:var(--fb)">🔀 Убрать дубли</button>
     <button onclick="openCRMCard()" style="background:var(--ac);border:none;border-radius:var(--r);color:#fff;font-family:var(--fd);font-size:11px;font-weight:600;padding:8px 16px;cursor:pointer;letter-spacing:.03em">+ Новый лид</button>
   </div>`;
 
