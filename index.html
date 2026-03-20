@@ -8880,28 +8880,42 @@ function renderCRMContent(leads){
   // Badge in nav
   const b = document.getElementById('crm-badge');
   if(b){ const n=counts['new']||0; b.textContent=n; b.style.display=n?'':'none'; }
+
+  // Инициализируем drag & drop через JS-обработчики
+  if(_crmView==='kanban') {
+    initCRMDragDrop();
+    // Кнопки действий на карточках
+    document.querySelectorAll('.crm-card button[data-action]').forEach(btn=>{
+      btn.addEventListener('click', e=>{
+        e.stopPropagation();
+        e.preventDefault();
+        const id = btn.dataset.id;
+        const action = btn.dataset.action;
+        if(action==='wa') crmWhatsApp(id);
+        else if(action==='call') crmCall(id);
+        else if(action==='chat') openCRMChat(id);
+      });
+    });
+  }
 }
 
 // ── KANBAN ────────────────────────────────────────────────────────
 function buildCRMKanban(leads){
-  let html = `<div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:12px;min-height:400px">`;
+  let html = `<div id="crm-kanban-wrap" style="display:flex;gap:10px;overflow-x:auto;padding-bottom:12px;min-height:400px">`;
   CRM_STAGES.forEach(stage=>{
-    // Карточки с непрочитанными — наверх
     const cards = leads.filter(l=>l.stage===stage.id)
       .sort((a,b)=>(b.unreadCount||0)-(a.unreadCount||0));
     html += `
-    <div style="min-width:220px;max-width:240px;flex-shrink:0;background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rl);display:flex;flex-direction:column;max-height:calc(100vh - 200px)"
-      ondragover="event.preventDefault();event.stopPropagation()"
-      ondrop="event.stopPropagation();crmDrop(event,'${stage.id}')">
+    <div class="crm-col" data-stage="${stage.id}"
+      style="min-width:220px;max-width:240px;flex-shrink:0;background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rl);display:flex;flex-direction:column;max-height:calc(100vh - 200px)">
       <div style="padding:10px 12px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
         <div style="font-size:11px;font-weight:700;color:${stage.color}">${stage.label}</div>
         <span style="font-size:11px;font-weight:700;color:${stage.color};background:${stage.hex}22;border:1px solid ${stage.hex}44;padding:1px 7px;border-radius:8px">${cards.length}</span>
       </div>
-      <div style="flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:7px"
-        ondragover="event.preventDefault();event.stopPropagation()"
-        ondrop="event.stopPropagation();crmDrop(event,'${stage.id}')">
+      <div class="crm-col-body" data-stage="${stage.id}"
+        style="flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:7px">
         ${cards.map(l=>buildCRMCard(l)).join('')}
-        ${!cards.length?`<div style="text-align:center;padding:20px 0;color:var(--t3);font-size:11px" ondragover="event.preventDefault()" ondrop="crmDrop(event,'${stage.id}')">Пусто — перетащите сюда</div>`:''}
+        ${!cards.length?`<div class="crm-col-empty" data-stage="${stage.id}" style="text-align:center;padding:20px 0;color:var(--t3);font-size:11px;flex:1">Пусто</div>`:''}
       </div>
     </div>`;
   });
@@ -8909,22 +8923,43 @@ function buildCRMKanban(leads){
   return html;
 }
 
+function initCRMDragDrop(){
+  // Вешаем обработчики на все колонки
+  document.querySelectorAll('.crm-col, .crm-col-body, .crm-col-empty').forEach(col=>{
+    col.addEventListener('dragover', e=>{ e.preventDefault(); e.stopPropagation(); col.style.outline='2px solid var(--ac)'; });
+    col.addEventListener('dragleave', e=>{ col.style.outline=''; });
+    col.addEventListener('drop', e=>{
+      e.preventDefault(); e.stopPropagation();
+      col.style.outline='';
+      const stage = col.dataset.stage;
+      if(stage && _crmDragId && _crmDragId!=='null') crmDrop(e, stage);
+    });
+  });
+  // Карточки
+  document.querySelectorAll('.crm-card[draggable]').forEach(card=>{
+    card.addEventListener('dragstart', e=>{
+      _crmDragId = card.dataset.id;
+      card.style.opacity = '.4';
+      e.stopPropagation();
+    });
+    card.addEventListener('dragend', e=>{ card.style.opacity='1'; });
+    card.addEventListener('click', e=>{
+      if(!e.defaultPrevented) openCRMCard(card.dataset.id);
+    });
+  });
+}
+
 function buildCRMCard(l){
   const stage = crmStage(l.stage);
   const daysSince = l.lastContact ? Math.floor((Date.now()-new Date(l.lastContact).getTime())/86400000) : null;
   const staleWarn = daysSince!==null && daysSince>3 && l.stage!=='active' && l.stage!=='lost';
-  return `<div draggable="true"
-    ondragstart="event.stopPropagation();_crmDragId='${l.id}';this.style.opacity='.4'"
-    ondragend="this.style.opacity='1'"
-    onclick="openCRMCard('${l.id}')"
-    style="background:var(--bg3);border:1px solid ${staleWarn?'rgba(240,89,117,.35)':'var(--b1)'};border-radius:10px;padding:10px 12px;cursor:grab;transition:border-color .15s,opacity .15s;position:relative"
-    onmouseenter="this.style.borderColor='${stage.hex}66'"
-    onmouseleave="this.style.borderColor='${staleWarn?'rgba(240,89,117,.35)':'var(--b1)'}'"
-  >
+  const unread = l.unreadCount||0;
+  return `<div draggable="true" class="crm-card" data-id="${l.id}"
+    style="background:var(--bg3);border:1px solid ${staleWarn?'rgba(240,89,117,.35)':unread?'rgba(63,216,142,.35)':'var(--b1)'};border-radius:10px;padding:10px 12px;cursor:grab;transition:border-color .15s,opacity .15s;user-select:none">
     <div style="font-size:13px;font-weight:600;color:var(--t1);margin-bottom:4px;display:flex;align-items:center;gap:6px">
       ${l.name||'Без имени'}
       ${l.source?`<span style="font-size:9px;color:var(--t3);background:var(--bg4);padding:1px 5px;border-radius:4px">${l.source}</span>`:''}
-      ${(l.unreadCount||0)>0?`<span style="background:var(--gn);color:var(--bg);font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;margin-left:auto">${l.unreadCount} 💬</span>`:''}
+      ${unread>0?`<span style="background:var(--gn);color:var(--bg);font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;margin-left:auto">${unread} 💬</span>`:''}
     </div>
     ${l.phone?`<div style="font-size:11px;color:var(--t3);margin-bottom:4px">📱 ${l.phone}</div>`:''}
     ${l.interest?`<div style="font-size:11px;color:var(--t2);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📖 ${l.interest}</div>`:''}
@@ -8934,9 +8969,9 @@ function buildCRMCard(l){
       ${daysSince!==null&&!staleWarn?`<span style="font-size:9px;color:var(--t3)">${daysSince===0?'сегодня':daysSince+'д'}</span>`:''}
     </div>
     <div style="display:flex;gap:4px;margin-top:8px">
-      ${l.phone?`<button onclick="event.stopPropagation();crmWhatsApp('${l.id}')" title="WhatsApp" style="background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.25);border-radius:5px;color:var(--gn);cursor:pointer;padding:3px 7px;font-size:11px">💬</button>`:''}
-      ${l.phone?`<button onclick="event.stopPropagation();crmCall('${l.id}')" title="Позвонить (Binotel)" style="background:rgba(124,92,252,.1);border:1px solid rgba(124,92,252,.25);border-radius:5px;color:var(--ac2);cursor:pointer;padding:3px 7px;font-size:11px">📞</button>`:''}
-      <button onclick="event.stopPropagation();openCRMChat('${l.id}')" title="История общения" style="background:var(--bg4);border:1px solid var(--b2);border-radius:5px;color:var(--t3);cursor:pointer;padding:3px 7px;font-size:11px">💬 ${l.msgCount||0}</button>
+      ${l.phone?`<button data-action="wa" data-id="${l.id}" title="Чат WA" style="background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.25);border-radius:5px;color:var(--gn);cursor:pointer;padding:3px 7px;font-size:11px">💬</button>`:''}
+      ${l.phone?`<button data-action="call" data-id="${l.id}" title="Позвонить" style="background:rgba(124,92,252,.1);border:1px solid rgba(124,92,252,.25);border-radius:5px;color:var(--ac2);cursor:pointer;padding:3px 7px;font-size:11px">📞</button>`:''}
+      <button data-action="chat" data-id="${l.id}" title="История" style="background:var(--bg4);border:1px solid var(--b2);border-radius:5px;color:var(--t3);cursor:pointer;padding:3px 7px;font-size:11px">💬 ${l.msgCount||0}</button>
     </div>
   </div>`;
 }
