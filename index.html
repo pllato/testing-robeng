@@ -8968,6 +8968,7 @@ function buildCRMCard(l){
     </div>
     ${l.phone?`<div style="font-size:11px;color:var(--t3);margin-bottom:4px">📱 ${l.phone}</div>`:''}
     ${l.interest?`<div style="font-size:11px;color:var(--t2);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📖 ${l.interest}</div>`:''}
+    ${l.notes?`<div style="font-size:10px;color:var(--t3);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-style:italic">💬 ${l.notes}</div>`:''}
     <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">
       <span style="font-size:10px;color:var(--t3)">${crmFmt(l.createdAt)}</span>
       ${staleWarn?`<span style="font-size:9px;color:var(--rd);font-weight:600">${daysSince}д без связи</span>`:''}
@@ -9057,10 +9058,28 @@ function openCRMCard(id){
   _crmEditId = id || null;
   const modal = document.getElementById('m-crm-card');
   if(!modal) return;
-  // Заполняем селект стадий динамически
+
+  // Заполняем стадии
   const stageEl = document.getElementById('crm-f-stage');
   if(stageEl && !stageEl.options.length){
     stageEl.innerHTML = CRM_STAGES.map(s=>`<option value="${s.id}">${s.label}</option>`).join('');
+  }
+
+  // Заполняем предметы из S.subjects
+  const interestEl = document.getElementById('crm-f-interest');
+  if(interestEl){
+    const curVal = interestEl.value;
+    interestEl.innerHTML = '<option value="">— Не выбран —</option>' +
+      (S.subjects||[]).map(s=>`<option value="${s.name}">${s.name}</option>`).join('');
+    if(curVal) interestEl.value = curVal;
+  }
+
+  // Заполняем ответственных из преподавателей + appUsers
+  const assigneeEl = document.getElementById('crm-f-assignee');
+  if(assigneeEl){
+    const staff = (S.teachers||[]).filter(t=>t.status==='active').map(t=>t.name);
+    assigneeEl.innerHTML = '<option value="">— Не назначен —</option>' +
+      staff.map(n=>`<option value="${n}">${n}</option>`).join('');
   }
   if(id){
     crmRef.child(id).once('value').then(snap=>{
@@ -9605,16 +9624,18 @@ function renderCRMStudents(leadId){
     el.innerHTML = enrollments.map(e=>{
       const st = (S.students||[]).find(s=>s.id===e.studentId);
       const t = (S.teachers||[]).find(t=>String(t.id)===String(e.teacherId));
-      const slots = (e.slots||[]).map(sl=>DS[sl.day]).join(', ');
+      const slots = (e.slots||[]).map(sl=>DS[sl.day]).join(' · ');
       const inactive = e.inactive;
-      return `<div style="background:var(--bg2);border:1px solid var(--b1);border-radius:8px;padding:9px 11px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px;opacity:${inactive?'.5':'1'}">
-        <div style="flex:1;min-width:0">
-          <div style="font-size:12px;font-weight:600;color:var(--t1);margin-bottom:2px">${st?.name||'—'} ${inactive?'<span style="font-size:9px;color:var(--rd)">(неактивен)</span>':''}</div>
-          <div style="font-size:10px;color:var(--t3)">${t?'👩‍🏫 '+t.name:''} ${slots?'· '+slots:''}</div>
-          <div style="font-size:10px;color:var(--t3)">${e.dateStart||''} → ${e.dateEnd||''}</div>
+      return `<div style="background:var(--bg2);border:1px solid var(--b1);border-radius:8px;padding:9px 11px;opacity:${inactive?'.55':'1'}">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:4px">
+          <div style="font-size:12px;font-weight:700;color:var(--t1)">${st?.name||'—'} ${inactive?'<span style="font-size:9px;color:var(--rd)">(неактивен)</span>':''}</div>
+          <button onclick="openStudentModal('${e.id}')"
+            style="background:var(--acbg);border:1px solid var(--acb);border-radius:5px;color:var(--ac2);cursor:pointer;padding:2px 8px;font-size:10px;flex-shrink:0;font-family:var(--fb)">✏️ Открыть</button>
         </div>
-        <button onclick="close1('m-crm-card');openStudentModal('${e.id}')"
-          style="background:var(--bg3);border:1px solid var(--b2);border-radius:5px;color:var(--t2);cursor:pointer;padding:3px 7px;font-size:10px;flex-shrink:0">✏️</button>
+        <div style="font-size:10px;color:var(--t3);line-height:1.6">
+          ${t?'👩‍🏫 '+t.name+' · ':''}${slots?slots:'—'}<br>
+          📅 ${e.dateStart||''} → ${e.dateEnd||''}
+        </div>
       </div>`;
     }).join('');
   });
@@ -9693,66 +9714,67 @@ function addCRMLinkToStudent(studentEl, phone){
 <!-- ── ONBOARDING OVERLAY ───────────────────────────────────────── -->
 <!-- ── CRM: CARD MODAL ──────────────────────────────────────── -->
 <div class="mo" id="m-crm-card">
-  <div class="modal modal-xl" style="max-height:92vh;overflow-y:auto;max-width:1100px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:10px">
+  <div class="modal modal-xl" style="max-height:94vh;overflow-y:auto;max-width:960px;width:96vw">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px">
       <div class="mt" id="crm-card-ttl" style="margin-bottom:0">Новый лид</div>
       <button class="btn btn-xs btn-r" onclick="deleteCRMCard()" id="crm-del-btn">🗑 Удалить</button>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px">
-      <!-- Col 1: fields -->
-      <div>
+
+    <!-- TOP ROW: поля + чат -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <!-- Left: fields -->
+      <div style="display:flex;flex-direction:column;gap:0">
         <div class="fr"><label>ФИО / Имя клиента</label><input id="crm-f-name" placeholder="Иванова Татьяна"/></div>
         <div class="fr"><label>📱 Телефон WhatsApp</label><input id="crm-f-phone" placeholder="+7 700 000 00 00"/></div>
-        <div class="fr">
-          <label>Источник</label>
-          <select id="crm-f-source" style="background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:13px;padding:8px 11px;width:100%">
-            <option value="">— Не указан —</option>
-            <option value="whatsapp">WhatsApp</option>
-            <option value="instagram">Instagram</option>
-            <option value="website">Сайт</option>
-            <option value="referral">Рекомендация</option>
-            <option value="call">Входящий звонок</option>
-            <option value="other">Другое</option>
-          </select>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="fr">
+            <label>Источник</label>
+            <select id="crm-f-source" style="background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:13px;padding:8px 11px;width:100%">
+              <option value="">— Не указан —</option>
+              <option value="whatsapp">WhatsApp</option>
+              <option value="instagram">Instagram</option>
+              <option value="website">Сайт</option>
+              <option value="referral">Рекомендация</option>
+              <option value="call">Входящий звонок</option>
+              <option value="other">Другое</option>
+            </select>
+          </div>
+          <div class="fr">
+            <label>📖 Предмет / Курс</label>
+            <select id="crm-f-interest" style="background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:13px;padding:8px 11px;width:100%">
+              <option value="">— Не выбран —</option>
+            </select>
+          </div>
         </div>
-        <div class="fr"><label>📖 Интерес / Курс</label><input id="crm-f-interest" placeholder="Roblox для ребёнка 8 лет"/></div>
-        <div class="fr-row">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
           <div class="fr"><label>👶 Возраст ребёнка</label><input id="crm-f-age" type="number" min="3" max="18" placeholder="7"/></div>
           <div class="fr"><label>💰 Бюджет</label><input id="crm-f-budget" placeholder="20 000 тг/мес"/></div>
         </div>
-        <div class="fr-row">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
           <div class="fr">
             <label>Стадия</label>
-            <select id="crm-f-stage" style="background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:13px;padding:8px 11px;width:100%">
-            </select>
+            <select id="crm-f-stage" style="background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:13px;padding:8px 11px;width:100%"></select>
           </div>
           <div class="fr"><label>📅 Дата пробного урока</label><input id="crm-f-trialdate" type="date"/></div>
         </div>
-        <div class="fr"><label>👤 Ответственный</label><input id="crm-f-assignee" placeholder="Имя администратора"/></div>
-        <div class="fr"><label>📝 Заметки</label><textarea id="crm-f-notes" placeholder="Любые важные детали..."></textarea></div>
-        <div class="ma" style="margin-top:0;padding-top:0;border-top:none;justify-content:flex-start;gap:8px">
+        <div class="fr">
+          <label>👤 Ответственный</label>
+          <select id="crm-f-assignee" style="background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:13px;padding:8px 11px;width:100%">
+            <option value="">— Не назначен —</option>
+          </select>
+        </div>
+        <div class="fr"><label>📝 Заметки</label><textarea id="crm-f-notes" placeholder="Важные детали..." rows="2"></textarea></div>
+        <div style="display:flex;gap:8px;margin-top:4px">
           <button class="btn" onclick="close1('m-crm-card')">Отмена</button>
           <button class="btn btn-a" onclick="saveCRMCard()">💾 Сохранить</button>
         </div>
       </div>
-      <!-- Col 2: students -->
-      <div style="display:flex;flex-direction:column;gap:8px">
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <div style="font-size:12px;font-weight:700;color:var(--t1)">🎓 Ученики по этой сделке</div>
-          <button id="crm-add-student-btn" onclick="openStudentFromLead()"
-            style="background:var(--gn);border:none;border-radius:6px;color:var(--bg);font-size:11px;font-weight:700;padding:5px 10px;cursor:pointer;font-family:var(--fb)">+ Ученик</button>
-        </div>
-        <div id="crm-students-list" style="flex:1;background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);padding:10px;min-height:120px;display:flex;flex-direction:column;gap:8px">
-          <div style="color:var(--t3);font-size:11px;text-align:center;padding:20px 0">Нет учеников — нажмите «+ Ученик»</div>
-        </div>
-        <div style="font-size:10px;color:var(--t3)">Один клиент может записать нескольких детей</div>
-      </div>
-      <!-- Col 3: mini chat -->
-      <div style="display:flex;flex-direction:column;gap:8px">
-        <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:2px">💬 Переписка</div>
-        <div id="crm-chat-preview" style="flex:1;min-height:260px;max-height:340px;overflow-y:auto;background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);padding:10px"></div>
+      <!-- Right: chat -->
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="font-size:12px;font-weight:600;color:var(--t2)">💬 Переписка</div>
+        <div id="crm-chat-preview" style="flex:1;min-height:300px;max-height:360px;overflow-y:auto;background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);padding:10px"></div>
         <div style="display:flex;gap:6px">
-          <textarea id="crm-chat-inp" placeholder="Внутренняя заметка или ответ..." rows="2"
+          <textarea id="crm-chat-inp" placeholder="Заметка или ответ..." rows="2"
             style="flex:1;background:var(--bg3);border:1px solid var(--b2);border-radius:8px;color:var(--t1);font-family:var(--fb);font-size:12px;padding:7px 10px;resize:none"
             onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendCRMMsg();}"></textarea>
           <div style="display:flex;flex-direction:column;gap:4px">
@@ -9760,7 +9782,19 @@ function addCRMLinkToStudent(studentEl, phone){
             <button onclick="sendCRMMsgWA()" style="background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.25);border-radius:6px;color:var(--gn);cursor:pointer;padding:5px 9px;font-size:12px" title="Отправить в WhatsApp">📲</button>
           </div>
         </div>
-        <div style="font-size:10px;color:var(--t3)">📝 — внутренняя заметка &nbsp;·&nbsp; 📲 — в WhatsApp клиенту</div>
+        <div style="font-size:10px;color:var(--t3)">📝 — заметка внутри &nbsp;·&nbsp; 📲 — в WhatsApp клиенту</div>
+      </div>
+    </div>
+
+    <!-- BOTTOM: ученики -->
+    <div style="border-top:1px solid var(--b1);padding-top:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:12px;font-weight:700;color:var(--t1)">🎓 Ученики по этой сделке</div>
+        <button id="crm-add-student-btn" onclick="openStudentFromLead()"
+          style="background:var(--gn);border:none;border-radius:6px;color:var(--bg);font-size:11px;font-weight:700;padding:6px 14px;cursor:pointer;font-family:var(--fb)">+ Добавить ученика</button>
+      </div>
+      <div id="crm-students-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;min-height:60px">
+        <div style="color:var(--t3);font-size:11px;padding:16px 0;grid-column:1/-1">Нет учеников — нажмите «+ Добавить ученика»</div>
       </div>
     </div>
   </div>
