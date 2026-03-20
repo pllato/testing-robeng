@@ -1640,7 +1640,7 @@ function subj(id){return S.subjects.find(s=>s.id===id)||{name:'—',color:'#666'
 function teacher(id){return S.teachers.find(t=>String(t.id)===String(id));}
 function student(id){return S.students.find(s=>s.id===id);}
 function inits(n){return n.split(' ').slice(0,2).map(w=>w[0]).join('');}
-function close1(id){document.getElementById(id).classList.remove('open');}
+function close1(id){const el=document.getElementById(id);if(el){el.classList.remove('open');el.style.zIndex='';}}
 function open1(id){document.getElementById(id).classList.add('open');}
 function toast(msg,err){const el=document.getElementById('toast');el.textContent=msg;el.className='toast show'+(err?' err':'');setTimeout(()=>el.className='toast',3000);}
 document.querySelectorAll('.mo').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
@@ -7700,7 +7700,7 @@ async function crmDedup(){
           <div style="font-size:10px;color:var(--t3);margin-top:1px">${stageLabel} · Создан: ${date} · Сообщений: ${l.msgCount||0}</div>
           ${l.notes?`<div style="font-size:10px;color:var(--t3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">💬 ${l.notes}</div>`:''}
         </div>
-        <button onclick="openCRMCard('${l.key}')" style="background:var(--bg4);border:1px solid var(--b2);border-radius:5px;color:var(--t3);cursor:pointer;padding:3px 8px;font-size:10px;font-family:var(--fb)">📋</button>
+        <button onclick="openCRMCard('${l.key}')" style="background:var(--bg4);border:1px solid var(--b2);border-radius:5px;color:var(--t3);cursor:pointer;padding:3px 8px;font-size:10px;font-family:var(--fb)" title="Открыть сделку">📋 Открыть</button>
       </div>`;
     });
     html += '</div>';
@@ -9172,15 +9172,24 @@ function renderCRMContent(leads){
 
   el.innerHTML = html;
 
-  // Wire async search in messages
+  // Wire async search with debounce
+  let _crmSearchTimer = null;
   const searchInp = document.getElementById('crm-search-inp');
   if(searchInp){
-    searchInp.addEventListener('input', async ()=>{
+    searchInp.addEventListener('input', ()=>{
       _crmFilter.search = searchInp.value.trim();
+      clearTimeout(_crmSearchTimer);
       if(!_crmFilter.search){ _crmHighlightIds=null; renderCRMContent(leads); return; }
-      renderCRMContent(leads); // immediate basic filter
-      _crmHighlightIds = await crmSearchInMessages(_crmFilter.search, leads);
-      renderCRMContent(leads); // re-render with message matches highlighted
+      // Immediate basic filter while typing
+      renderCRMContent(leads);
+      // Deep search after 400ms pause
+      _crmSearchTimer = setTimeout(async ()=>{
+        _crmHighlightIds = await crmSearchInMessages(_crmFilter.search, leads);
+        renderCRMContent(leads);
+        // Re-focus search input after re-render
+        const inp2 = document.getElementById('crm-search-inp');
+        if(inp2){ inp2.value=_crmFilter.search; inp2.focus(); inp2.setSelectionRange(inp2.value.length,inp2.value.length); }
+      }, 400);
     });
   }
 
@@ -9421,6 +9430,7 @@ function openCRMCard(id){
       loadCRMChatPreview(id);
       renderCRMStudents(id);
       modal.classList.add('open');
+      modal.style.zIndex = '210';
     });
   } else {
     document.getElementById('crm-f-name').value='';
@@ -9437,6 +9447,7 @@ function openCRMCard(id){
     document.getElementById('crm-card-ttl').textContent = 'Новый лид';
     document.getElementById('crm-chat-preview').innerHTML='';
     modal.classList.add('open');
+    modal.style.zIndex = '210';
   }
 }
 
@@ -10040,7 +10051,13 @@ function archiveChatLead(leadId){
 
 // ── Пометить как непрочитанное ────────────────────────────────────
 function markChatUnread(leadId){
-  crmRef.child(leadId+'/unreadCount').transaction(v=>Math.max((v||0)+1, 1));
+  // If this is the currently open chat, close it first to prevent auto-reset
+  if(_wachatOpenId === leadId){
+    _wachatOpenId = null;
+    const area = document.getElementById('wachat-area');
+    if(area) area.innerHTML = '<div style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:13px">👈 Выберите диалог</div>';
+  }
+  crmRef.child(leadId+'/unreadCount').set(1);
   toast('Помечено как непрочитанное');
 }
 
