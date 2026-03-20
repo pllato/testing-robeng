@@ -9611,26 +9611,42 @@ function renderWAChatsContent(leads){
   };
 
   if(_wachatsTab==='all'){
-    const clients = filtered.filter(l=>l._isClient);
-    const newLeads = filtered.filter(l=>!l._isClient&&!l._isStaff);
-    const staff = filtered.filter(l=>l._isStaff);
-    if(clients.length){
-      html += `<div style="padding:5px 12px;font-size:9px;font-weight:700;color:var(--gn);background:rgba(63,216,142,.06);border-bottom:1px solid rgba(63,216,142,.1);letter-spacing:.05em">🎓 ДЕЙСТВУЮЩИЕ КЛИЕНТЫ · ${clients.length}</div>`;
-      clients.forEach(l=>{ html += renderItem(l); });
+    // Во вкладке Все — хронологический порядок, самые новые сверху
+    filtered.forEach(l=>{ html += renderItem(l); });
+  } else if(_wachatsTab==='staff'){
+    // Сотрудники из CRM-лидов
+    if(filtered.length) filtered.forEach(l=>{ html += renderItem(l); });
+    // Сотрудники которых ещё нет в CRM
+    const existPhones = new Set(filtered.map(l=>(l.phone||'').replace(/\D/g,'')));
+    const noChat = (S.teachers||[]).filter(t=>t.status==='active' && t.phone && !existPhones.has((t.phone||'').replace(/\D/g,'')));
+    if(noChat.length){
+      html += `<div style="padding:5px 12px;font-size:9px;font-weight:700;color:var(--t3);background:var(--bg3);border-bottom:1px solid var(--b1);letter-spacing:.05em">➕ НАЧАТЬ ЧАТ</div>`;
+      noChat.forEach(t=>{
+        html += `<div onclick="startStaffChat('${t.id}')" style="padding:10px 12px;border-bottom:1px solid var(--b1);cursor:pointer;display:flex;gap:10px;align-items:center" onmouseenter="this.style.background='var(--bg3)'" onmouseleave="this.style.background=''">
+          <div style="width:36px;height:36px;border-radius:50%;background:rgba(168,127,255,.15);border:2px dashed rgba(168,127,255,.4);display:flex;align-items:center;justify-content:center;font-size:14px">👩‍🏫</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;font-weight:500;color:var(--t2)">${t.name||'—'}</div>
+            <div style="font-size:10px;color:var(--t3);margin-top:1px">${t.phone||'—'}</div>
+            <div style="font-size:9px;color:var(--ac2);margin-top:2px">🔒 Начать внутренний чат</div>
+          </div>
+        </div>`;
+      });
     }
-    if(newLeads.length){
-      html += `<div style="padding:5px 12px;font-size:9px;font-weight:700;color:var(--t3);background:var(--bg3);border-bottom:1px solid var(--b1);letter-spacing:.05em">💬 НОВЫЕ · ${newLeads.length}</div>`;
-      newLeads.forEach(l=>{ html += renderItem(l); });
-    }
-    if(staff.length){
-      html += `<div style="padding:5px 12px;font-size:9px;font-weight:700;color:var(--ac2);background:rgba(168,127,255,.06);border-bottom:1px solid rgba(168,127,255,.1);letter-spacing:.05em">👩‍🏫 СОТРУДНИКИ · ${staff.length}</div>`;
-      staff.forEach(l=>{ html += renderItem(l); });
-    }
+    if(!filtered.length && !noChat.length) html += '<div style="padding:40px 20px;text-align:center;color:var(--t3);font-size:12px">Нет сотрудников с телефонами</div>';
   } else {
     filtered.forEach(l=>{ html += renderItem(l); });
   }
 
-  if(!filtered.length) html += '<div style="padding:40px 20px;text-align:center;color:var(--t3);font-size:12px">Нет диалогов</div>';
+  // Кнопка "Новый чат" для вкладок Новые и Клиенты
+  if(_wachatsTab==='new' || _wachatsTab==='clients'){
+    html += `<div style="padding:10px 12px;border-top:1px solid var(--b1);margin-top:auto">
+      <button id="wachat-new-btn" style="width:100%;background:rgba(63,216,142,.1);border:1px dashed rgba(63,216,142,.3);border-radius:8px;color:var(--gn);cursor:pointer;padding:9px;font-size:12px;font-family:var(--fb);font-weight:600">
+        📱 + Новый WhatsApp чат
+      </button>
+    </div>`;
+  }
+
+  if(!filtered.length && _wachatsTab!=='staff') html += '<div style="padding:40px 20px;text-align:center;color:var(--t3);font-size:12px">Нет диалогов</div>';
 
   html += `</div></div>
     <div id="wachat-area" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
@@ -9641,6 +9657,9 @@ function renderWAChatsContent(leads){
   </div>`;
 
   el.innerHTML = html;
+
+  // Кнопка нового чата
+  document.getElementById('wachat-new-btn')?.addEventListener('click', ()=>openNewWAChat());
 
   if(_wachatOpenId && leads.find(l=>l.id===_wachatOpenId)){
     openWAChat(_wachatOpenId, true);
@@ -9756,8 +9775,47 @@ function openWAChat(leadId, _fromRender){
   });
 }
 
+// Начать чат с сотрудником — создаём лид по его телефону
+async function startStaffChat(teacherId){
+  const t = (S.teachers||[]).find(t=>String(t.id)===String(teacherId));
+  if(!t?.phone){ toast('У сотрудника нет телефона',true); return; }
+  const phone = (t.phone||'').replace(/\D/g,'');
+  const now = new Date().toISOString();
+  // Ищем существующий лид
+  const snap = await crmRef.orderByChild('phone').equalTo('+'+phone).limitToFirst(1).once('value');
+  const existing = snap.val();
+  if(existing){
+    const id = Object.keys(existing)[0];
+    _wachatsTab='staff';
+    renderWAChats();
+    setTimeout(()=>openWAChat(id), 300);
+  } else {
+    const ref = crmRef.push();
+    const id = ref.key;
+    await ref.set({id, name:t.name, phone:'+'+phone, source:'internal', stage:'contact', createdAt:now, updatedAt:now, lastContact:now, msgCount:0});
+    _wachatsTab='staff';
+    renderWAChats();
+    setTimeout(()=>openWAChat(id), 400);
+  }
+}
+
+// Начать новый WhatsApp чат — вводим номер
+function openNewWAChat(){
+  const phone = prompt('Введите номер WhatsApp (без +, например 77001234567):');
+  if(!phone) return;
+  const clean = phone.replace(/\D/g,'');
+  if(clean.length<10){ toast('Некорректный номер',true); return; }
+  const now = new Date().toISOString();
+  const ref = crmRef.push();
+  const id = ref.key;
+  ref.set({id, name:'+'+clean, phone:'+'+clean, source:'whatsapp', stage:'new', createdAt:now, updatedAt:now, lastContact:now, msgCount:0}).then(()=>{
+    renderWAChats();
+    setTimeout(()=>openWAChat(id), 400);
+    toast('Чат создан — можете написать первое сообщение');
+  });
+}
+
 async function sendWAMessage(leadId, toWA){
-  const inp = document.getElementById('wachat-inp');
   const text = (inp?.value||'').trim();
   if(!text) return;
   inp.value='';
