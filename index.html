@@ -1586,6 +1586,11 @@ fbAuth.onAuthStateChanged(user=>{
         });
         // Listen for video report changes
         videoRef.on('value',vSnap=>{S.videoReports=vSnap.val()||{};renderSchedule();});
+        // Load all users into S.appUsers for phone lookups
+        usersRef.once('value').then(uSnap=>{
+          S.appUsers = uSnap.val()||{};
+        });
+        usersRef.on('value', uSnap=>{ S.appUsers = uSnap.val()||{}; });
         startTeamChatBadgeListener();
         tasksRef.on('value',()=>{updateTasksBadge();updateTodayBadge();if(curPanel()==='tasks')renderTasks();if(curPanel()==='today')renderToday();});
         startDbListener();
@@ -10510,12 +10515,21 @@ function openTrialDetail(leadId){
 
 // Уведомление преподавателю о пробном уроке
 function getTeacherPhone(teacher){
-  // First check appUsers via uid link
-  if(teacher?.uid && S.appUsers?.[teacher.uid]?.phone){
+  if(!teacher) return '';
+  // 1. Via teacher.uid → appUsers
+  if(teacher.uid && S.appUsers?.[teacher.uid]?.phone)
     return S.appUsers[teacher.uid].phone;
+  // 2. Via teacher.id as Firebase uid → appUsers
+  const idStr = String(teacher.id);
+  if(S.appUsers?.[idStr]?.phone)
+    return S.appUsers[idStr].phone;
+  // 3. Find appUser where name matches teacher name
+  if(teacher.name && S.appUsers){
+    const match = Object.values(S.appUsers).find(u=>u.name===teacher.name);
+    if(match?.phone) return match.phone;
   }
-  // Fallback to direct phone field on teacher record
-  return teacher?.phone || '';
+  // 4. Direct phone field on teacher record (fallback)
+  return teacher.phone || '';
 }
 
 async function sendTrialNotify(leadId){
