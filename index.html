@@ -698,6 +698,15 @@ body{font-family:var(--fb);background:var(--bg);color:var(--t1);min-height:100vh
         <div style="display:flex;align-items:center;gap:10px;margin-top:16px">
           <div id="settings-saved" style="display:none;font-size:12px;color:var(--gn);background:var(--gnbg);border:1px solid rgba(63,216,142,.3);border-radius:6px;padding:5px 12px">✓ Настройки сохранены</div>
         </div>
+
+        <!-- CRM SETTINGS -->
+        <div style="margin-top:28px;padding-top:20px;border-top:1px solid var(--b1)">
+          <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:4px">💼 Настройки CRM</div>
+          <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Сообщения при перемещении лида по стадиям канбана</div>
+          <div id="crm-stage-settings"></div>
+          <button class="btn btn-sm btn-a" onclick="saveCRMSettings()" style="margin-top:12px">💾 Сохранить шаблоны</button>
+          <div id="crm-settings-saved" style="display:none;font-size:12px;color:var(--gn);margin-top:8px">✓ Сохранено</div>
+        </div>
       </div>
     </div>
     <!-- REPORTS -->
@@ -1580,6 +1589,8 @@ fbAuth.onAuthStateChanged(user=>{
         // CRM badge — новые лиды
         if(currentRole==='admin') initCRMBadge();
         if(currentRole==='admin') initWAUnreadListener();
+        // Загружаем сохранённые шаблоны CRM
+        if(S.settings?.crmStageMsgs) Object.assign(CRM_STAGE_MSGS, S.settings.crmStageMsgs);
       });
     }).catch(()=>{
       // No user record — treat as teacher, admin should add them
@@ -4786,7 +4797,7 @@ function renderLost(){
     return `<div class="card" style="margin-bottom:10px;padding:14px 16px;border-left:3px solid var(--rd)">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
         <div>
-          <div style="font-size:15px;font-weight:700;color:var(--t1)">${stu?.name||'—'}</div>
+          <div style="font-size:15px;font-weight:700;color:var(--t1);cursor:pointer;text-decoration:underline dotted" onclick="openStudentModal(${e.id})">${stu?.name||'—'}</div>
           <div style="font-size:12px;color:var(--t3);margin-top:2px">${t?.name||'—'} · Обучался: ${dur}</div>
           <div style="font-size:12px;color:var(--t3);margin-top:2px">Старт: ${fmtDateRu(e.dateStart)} · Деактивирован: ${fmtDateRu(e.deactivationDate||'')}</div>
           <div style="font-size:12px;color:var(--rd);margin-top:3px">Причина: ${e.deactivationReason||'—'}</div>
@@ -4851,7 +4862,7 @@ function renderActive(){
     return `<div class="card" style="margin-bottom:8px;padding:12px 16px">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
         <div>
-          <div style="font-size:14px;font-weight:700;color:var(--t1)">${stu?.name||'—'}</div>
+          <div style="font-size:14px;font-weight:700;color:var(--t1);cursor:pointer;text-decoration:underline dotted" onclick="openStudentModal(${e.id})">${stu?.name||'—'}</div>
           <div style="font-size:12px;color:var(--t3);margin-top:2px">${t?.name||'—'} · Обучается: ${dur} · ${endLabel}</div>
         </div>
         <div style="display:flex;gap:6px">
@@ -4892,11 +4903,12 @@ function renderStarts(){
     return `<div class="card" style="margin-bottom:10px;padding:14px 16px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
         <div>
-          <div style="font-size:15px;font-weight:700;color:var(--t1)">${stu?.name||'-'}</div>
+          <div style="font-size:15px;font-weight:700;color:var(--t1);cursor:pointer;text-decoration:underline dotted" onclick="openStudentModal(${e.id})">${stu?.name||'-'}</div>
           <div style="font-size:12px;color:var(--t3);margin-top:2px">${t?.name||'-'} · Старт ${fmtDateRu(e.dateStart)} · ${daysLabel}</div>
           <div style="font-size:11px;color:var(--t3);margin-top:2px">Длительность: ${dur}</div>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-sm" onclick="setVacation(${e.id})" style="font-size:11px;background:rgba(56,189,248,.1);color:var(--tl)">🏖 Отпуск</button>
           <button class="btn btn-sm btn-a" onclick="confirmStart(${e.id})" style="font-size:12px">✅ Старт прошёл</button>
         </div>
       </div>
@@ -4935,7 +4947,7 @@ function renderRenewals(){
       ${isToday?'<div style="font-size:11px;font-weight:700;color:var(--gn);margin-bottom:6px;letter-spacing:.05em">💳 ВЫСТАВИТЬ СЧЁТ СЕГОДНЯ</div>':''}
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
         <div>
-          <div style="font-size:15px;font-weight:700;color:var(--t1)">${stu?.name||'-'}</div>
+          <div style="font-size:15px;font-weight:700;color:var(--t1);cursor:pointer;text-decoration:underline dotted" onclick="openStudentModal(${e.id})">${stu?.name||'-'}</div>
           <div style="font-size:12px;color:var(--t3);margin-top:2px">${t?.name||'-'} · Оканчивается ${fmtDateRu(e.dateEnd)} · ${daysLabel}</div>
           <div style="font-size:11px;color:var(--t3);margin-top:2px">Обучается: ${dur} · Старт: ${fmtDateRu(e.dateStart)}</div>
           ${e.renewalComment?`<div style="font-size:11px;color:var(--am);margin-top:3px">💬 ${e.renewalComment}</div>`:''}
@@ -4966,13 +4978,14 @@ function renderDelayed(){
     return `<div class="card" style="margin-bottom:10px;padding:14px 16px;border-left:3px solid var(--am)">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
         <div>
-          <div style="font-size:15px;font-weight:700;color:var(--t1)">${stu?.name||'-'}</div>
+          <div style="font-size:15px;font-weight:700;color:var(--t1);cursor:pointer;text-decoration:underline dotted" onclick="openStudentModal(${e.id})">${stu?.name||'-'}</div>
           <div style="font-size:12px;color:var(--t3);margin-top:2px">${t?.name||'-'} · Обучается: ${dur}</div>
           ${e.paymentDueDate?`<div style="font-size:12px;color:var(--am);margin-top:3px">⏳ Ожидаем оплату до: <strong>${fmtDateRu(e.paymentDueDate)}</strong></div>`:''}
           ${e.renewalComment?`<div style="font-size:11px;color:var(--t3);margin-top:2px">💬 ${e.renewalComment}</div>`:''}
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
           <button class="btn btn-sm btn-a" onclick="clearDelayed(${e.id})" style="font-size:12px">✓ Оплата получена</button>
+          <button class="btn btn-sm" onclick="setVacation(${e.id})" style="font-size:12px;background:rgba(56,189,248,.1);color:var(--tl)">🏖 Отпуск</button>
           <button class="btn btn-sm" onclick="deactivateEnroll(${e.id})" style="font-size:12px;background:rgba(240,89,117,.1);color:var(--rd)">✕ Деактивировать</button>
         </div>
       </div>
@@ -7606,7 +7619,41 @@ function renderAppSettings(){
   if(cb) cb.checked = S.settings.remindersEnabled!==false;
   const freq=S.settings.videoFrequency||"each";
   document.querySelectorAll("input[name=\"video-freq\"]").forEach(r=>{r.checked=r.value===freq;});
+  renderCRMStageSettings();
+}
 
+function renderCRMStageSettings(){
+  const el = document.getElementById('crm-stage-settings');
+  if(!el) return;
+  // Загружаем сохранённые шаблоны из S.settings
+  const msgs = S.settings?.crmStageMsgs || CRM_STAGE_MSGS;
+
+  el.innerHTML = CRM_STAGES.map(stage=>{
+    const msg = msgs[stage.id] || '';
+    return `<div style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+        <span style="font-size:11px;font-weight:700;color:${stage.color};background:${stage.hex}22;border:1px solid ${stage.hex}44;padding:2px 9px;border-radius:8px">${stage.label}</span>
+        <span style="font-size:10px;color:var(--t3)">Сообщение при переходе в эту стадию (пусто = не отправлять)</span>
+      </div>
+      <textarea id="crm-msg-${stage.id}" rows="2" placeholder="Оставьте пустым чтобы не отправлять автоматически..."
+        style="width:100%;background:var(--bg3);border:1px solid var(--b2);border-radius:8px;color:var(--t1);font-family:var(--fb);font-size:12px;padding:7px 10px;resize:vertical;box-sizing:border-box">${msg}</textarea>
+    </div>`;
+  }).join('');
+}
+
+function saveCRMSettings(){
+  if(!S.settings) S.settings={};
+  const msgs = {};
+  CRM_STAGES.forEach(stage=>{
+    const el = document.getElementById('crm-msg-'+stage.id);
+    if(el) msgs[stage.id] = el.value.trim();
+  });
+  S.settings.crmStageMsgs = msgs;
+  // Обновляем рабочие шаблоны
+  Object.assign(CRM_STAGE_MSGS, msgs);
+  save();
+  const saved = document.getElementById('crm-settings-saved');
+  if(saved){ saved.style.display=''; setTimeout(()=>saved.style.display='none', 2500); }
 }
 
 function saveAppSettings(){
