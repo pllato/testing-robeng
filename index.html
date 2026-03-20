@@ -9014,29 +9014,37 @@ function buildCRMList(leads){
 // ── DRAG & DROP ───────────────────────────────────────────────────
 function crmDrop(event, newStage){
   event.preventDefault();
-  if(!_crmDragId || _crmDragId==='null' || _crmDragId==='undefined') return;
-  const prev = {};
-  crmRef.child(_crmDragId).once('value').then(snap=>{
+  const dragId = _crmDragId; // сохраняем до сброса
+  _crmDragId = null;
+  if(!dragId || dragId==='null' || dragId==='undefined') return;
+
+  // Оптимистично обновляем сразу — не ждём Firebase
+  const now = new Date().toISOString();
+  crmRef.child(dragId).once('value').then(snap=>{
     const l = snap.val();
-    if(!l || l.stage===newStage) return;
-    const now = new Date().toISOString();
-    crmRef.child(_crmDragId).update({stage:newStage, lastContact:now});
-    // Log stage change in chat
-    const msg = `📌 Стадия изменена: «${crmStage(l.stage).label}» → «${crmStage(newStage).label}»`;
-    crmChatRef.child(_crmDragId).push({type:'system',text:msg,ts:now,uid:fbAuth.currentUser?.uid||'',name:'Система'});
-    // Auto WhatsApp message
+    if(!l) return;
+    if(l.stage === newStage){ toast('Уже в этой стадии'); return; }
+
+    // Пишем в Firebase
+    crmRef.child(dragId).update({stage: newStage, lastContact: now, updatedAt: now});
+
+    // Лог в чат
+    const msg = `📌 Стадия: «${crmStage(l.stage).label}» → «${crmStage(newStage).label}»`;
+    crmChatRef.child(dragId).push({type:'system', text:msg, ts:now, uid:fbAuth.currentUser?.uid||'', name:'Система'});
+
+    // Авто WhatsApp
     const tpl = CRM_STAGE_MSGS[newStage];
     if(tpl && l.phone){
       const phone = (l.phone||'').replace(/\D/g,'');
       if(phone) notifyWhatsApp('+'+phone, tpl).then(()=>{
-        crmChatRef.child(_crmDragId).push({type:'out',text:tpl,ts:new Date().toISOString(),uid:fbAuth.currentUser?.uid||'',name:'Система (авто)'});
-        crmRef.child(_crmDragId+'/msgCount').transaction(v=>(v||0)+1);
+        crmChatRef.child(dragId).push({type:'out', text:tpl, ts:new Date().toISOString(), uid:fbAuth.currentUser?.uid||'', name:'Авто'});
+        crmRef.child(dragId+'/msgCount').transaction(v=>(v||0)+1);
       });
     }
-    renderCRM();
-    toast(`Лид перемещён → ${crmStage(newStage).label}`);
+
+    toast(`✓ ${l.name||'Лид'} → ${crmStage(newStage).label}`);
+    // real-time слушатель сам обновит канбан
   });
-  _crmDragId = null;
 }
 
 // ── OPEN CARD MODAL ───────────────────────────────────────────────
