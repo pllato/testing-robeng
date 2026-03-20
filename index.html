@@ -1433,17 +1433,27 @@ function updateReminderFailureBadge(){
   const today=new Date().toISOString().slice(0,10);
   fbDb.ref('reminderFailures/'+today).once('value').then(snap=>{
     const fails=snap.val()||{};
-    const count=Object.keys(fails).length;
+    // Filter out false positives (student has no phone but parent does, or vice versa)
+    const realCount = Object.values(fails).filter(f=>{
+      if(f.error==='нет телефона ученика'){
+        const stu=(S.students||[]).find(s=>s.name===f.studentName);
+        if(stu && (stu.parentPhone||'').replace(/\D/g,'')) return false;
+      }
+      if(f.error==='нет телефона родителя'){
+        const stu=(S.students||[]).find(s=>s.name===f.studentName);
+        if(stu && (stu.phone||'').replace(/\D/g,'')) return false;
+      }
+      return true;
+    }).length;
     const el=document.getElementById('reminder-fail-badge');
     if(el){
-      if(count>0){
+      if(realCount>0){
         el.style.display='';
-        el.textContent='⚠ '+count+' напомин. не отправлено';
+        el.textContent='⚠ '+realCount+' напомин. не отправлено';
       } else {
         el.style.display='none';
       }
     }
-    // Обновляем блок на дашборде
     renderReminderFailures(fails);
   });
 }
@@ -1451,14 +1461,35 @@ function updateReminderFailureBadge(){
 function renderReminderFailures(fails){
   const el=document.getElementById('reminder-fail-block');
   if(!el)return;
-  const entries=Object.values(fails||{});
-  if(!entries.length){el.innerHTML='';return;}
+  const allEntries=Object.values(fails||{});
+
+  // Filter out "нет телефона ученика" if parent phone exists — those are NOT real failures
+  const today=new Date().toISOString().slice(0,10);
+  const realFails = allEntries.filter(f=>{
+    if(f.error==='нет телефона ученика'){
+      // Find the student — if parent phone exists, this is not a real failure
+      const stu=(S.students||[]).find(s=>s.name===f.studentName);
+      if(stu && (stu.parentPhone||'').replace(/\D/g,'')) return false;
+    }
+    if(f.error==='нет телефона родителя'){
+      const stu=(S.students||[]).find(s=>s.name===f.studentName);
+      if(stu && (stu.phone||'').replace(/\D/g,'')) return false;
+    }
+    return true;
+  });
+
+  if(!realFails.length){el.innerHTML='';return;}
+
   el.innerHTML=`<div class="dup-warn" style="margin-bottom:12px">
-    <div style="font-size:13px;font-weight:600;color:var(--am);margin-bottom:6px">⚠ Не отправлено напоминаний сегодня: ${entries.length}</div>
-    ${entries.map(f=>`<div class="dup-item" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div style="font-size:13px;font-weight:600;color:var(--am)">⚠ Не отправлено напоминаний сегодня: ${realFails.length}</div>
+      <button onclick="fbDb.ref('reminderFailures/${today}').remove();document.getElementById('reminder-fail-block').innerHTML='';document.getElementById('reminder-fail-badge')?.style&&(document.getElementById('reminder-fail-badge').style.display='none')"
+        style="font-size:10px;color:var(--t3);background:var(--bg4);border:1px solid var(--b2);border-radius:5px;padding:2px 8px;cursor:pointer;font-family:var(--fb)">✕ Скрыть</button>
+    </div>
+    ${realFails.map(f=>`<div class="dup-item" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
       <span style="color:var(--t1);font-weight:600">${f.studentName||'—'}</span>
       <span style="color:var(--t3);font-size:11px">${f.recipient==='student'?'ученик':'родитель'}</span>
-      <span style="color:var(--t3);font-size:11px">${f.phone}</span>
+      <span style="color:var(--t3);font-size:11px">${f.phone||'нет телефона'}</span>
       <span style="color:var(--rd);font-size:11px">${f.error||'ошибка'}</span>
     </div>`).join('')}
   </div>`;
