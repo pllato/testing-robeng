@@ -10317,64 +10317,157 @@ function renderCRMStudents(leadId){
 }
 
 // ── TRIAL LESSONS CALENDAR ────────────────────────────────────────
+let _trialCalMonth = null; // {year, month} currently viewed
+
 function renderTrialCalendar(){
   const el = document.getElementById('trialcal-body');
   if(!el) return;
   el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--t3)">Загрузка...</div>';
 
+  const now = new Date();
+  if(!_trialCalMonth) _trialCalMonth = {year: now.getFullYear(), month: now.getMonth()};
+
   crmRef.once('value').then(snap=>{
     const raw = snap.val()||{};
-    const leads = Object.values(raw)
-      .filter(l=>l.trialDate)
-      .sort((a,b)=>{
-        const da = (a.trialDate||'')+'T'+(a.trialTime||'00:00');
-        const db = (b.trialDate||'')+'T'+(b.trialTime||'00:00');
-        return da.localeCompare(db);
+    const leads = Object.values(raw).filter(l=>l.trialDate && l.id);
+
+    // Badge
+    const today = now.toISOString().slice(0,10);
+    const upcomingCount = leads.filter(l=>l.trialDate >= today).length;
+    const badge = document.getElementById('trial-badge');
+    if(badge){ badge.textContent=upcomingCount||''; badge.style.display=upcomingCount?'':'none'; }
+
+    buildTrialCalendarHTML(el, leads, raw);
+  });
+}
+
+function buildTrialCalendarHTML(el, leads, raw){
+  const {year, month} = _trialCalMonth;
+  const today = new Date().toISOString().slice(0,10);
+
+  // Group leads by date
+  const byDate = {};
+  leads.forEach(l=>{
+    if(!byDate[l.trialDate]) byDate[l.trialDate]=[];
+    byDate[l.trialDate].push(l);
+  });
+
+  // Calendar grid
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month+1, 0);
+  const startDow = (firstDay.getDay()+6)%7; // Mon=0
+  const totalDays = lastDay.getDate();
+  const monthName = firstDay.toLocaleDateString('ru',{month:'long',year:'numeric'});
+
+  const DAYS = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+
+  let html = `
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <button id="trial-prev" style="background:var(--bg3);border:1px solid var(--b2);border-radius:6px;color:var(--t2);cursor:pointer;padding:5px 12px;font-size:14px">‹</button>
+      <span style="font-size:16px;font-weight:700;color:var(--t1);text-transform:capitalize;min-width:180px;text-align:center">${monthName}</span>
+      <button id="trial-next" style="background:var(--bg3);border:1px solid var(--b2);border-radius:6px;color:var(--t2);cursor:pointer;padding:5px 12px;font-size:14px">›</button>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button id="trial-today" style="background:var(--bg3);border:1px solid var(--b2);border-radius:6px;color:var(--t2);cursor:pointer;padding:5px 12px;font-size:12px;font-family:var(--fb)">Сегодня</button>
+      <button id="trial-new-btn" style="background:var(--ac);border:none;border-radius:6px;color:#fff;cursor:pointer;padding:6px 14px;font-size:12px;font-family:var(--fb);font-weight:600">+ Пробный урок</button>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:2px">
+    ${DAYS.map((d,i)=>`<div style="text-align:center;font-size:11px;font-weight:600;color:${i>=5?'var(--am)':'var(--t3)'};padding:4px 0">${d}</div>`).join('')}
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px">`;
+
+  // Empty cells before first day
+  for(let i=0;i<startDow;i++){
+    html += `<div style="min-height:90px;background:var(--bg3);border-radius:6px;opacity:.3"></div>`;
+  }
+
+  for(let d=1;d<=totalDays;d++){
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday = dateStr===today;
+    const isPast = dateStr<today;
+    const dow = (new Date(year,month,d).getDay()+6)%7;
+    const isWeekend = dow>=5;
+    const dayLeads = byDate[dateStr]||[];
+
+    html += `<div style="min-height:90px;background:${isToday?'rgba(124,92,252,.08)':'var(--bg3)'};border:1px solid ${isToday?'var(--ac)':'var(--b1)'};border-radius:6px;padding:4px;overflow:hidden">
+      <div style="font-size:12px;font-weight:${isToday?'800':'500'};color:${isToday?'var(--ac)':isWeekend?'var(--am)':isPast?'var(--t3)':'var(--t2)'};margin-bottom:3px;text-align:right;padding-right:2px">${d}</div>`;
+
+    dayLeads.sort((a,b)=>(a.trialTime||'').localeCompare(b.trialTime||''))
+      .forEach(l=>{
+        const t = (S.teachers||[]).find(t=>String(t.id)===String(l.trialTeacherId));
+        const color = isPast ? 'var(--t3)' : (t ? 'var(--ac2)' : 'var(--am)');
+        const bg = isPast ? 'var(--bg4)' : 'rgba(124,92,252,.12)';
+        html += `<div onclick="openTrialDetail('${l.id}')" title="${l.name||''} ${l.trialTime||''}" style="background:${bg};border-radius:4px;padding:2px 5px;margin-bottom:2px;cursor:pointer;overflow:hidden">
+          <div style="font-size:10px;font-weight:600;color:${color};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.trialTime?l.trialTime+' ':''}<span style="font-weight:400">${l.name||'—'}</span></div>
+          ${t?`<div style="font-size:9px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">👩‍🏫 ${t.name}</div>`:'<div style="font-size:9px;color:var(--am)">⚠ нет препод.</div>'}
+        </div>`;
       });
 
-    const today = new Date().toISOString().slice(0,10);
-    const upcoming = leads.filter(l=>l.trialDate >= today);
-    const past = leads.filter(l=>l.trialDate < today);
+    html += `</div>`;
+  }
 
-    // Update badge
-    const badge = document.getElementById('trial-badge');
-    if(badge){ badge.textContent=upcoming.length||''; badge.style.display=upcoming.length?'':'none'; }
+  // Fill remaining cells
+  const totalCells = startDow + totalDays;
+  const remainder = totalCells % 7;
+  if(remainder) for(let i=0;i<7-remainder;i++) html += `<div style="min-height:90px;background:var(--bg3);border-radius:6px;opacity:.3"></div>`;
 
-    const renderCard = (l, isPast)=>{
+  html += `</div>`;
+
+  // Upcoming list below calendar (next 5)
+  const upcoming = leads.filter(l=>l.trialDate>=today).sort((a,b)=>{
+    return ((a.trialDate||'')+(a.trialTime||'')).localeCompare((b.trialDate||'')+(b.trialTime||''));
+  }).slice(0,5);
+
+  if(upcoming.length){
+    html += `<div style="margin-top:20px;font-size:12px;font-weight:700;color:var(--t2);margin-bottom:8px">⏳ Ближайшие</div>
+    <div style="display:flex;flex-direction:column;gap:6px">`;
+    upcoming.forEach(l=>{
       const t = (S.teachers||[]).find(t=>String(t.id)===String(l.trialTeacherId));
-      const dt = l.trialDate ? new Date(l.trialDate+'T'+(l.trialTime||'12:00')).toLocaleDateString('ru',{day:'numeric',month:'short',weekday:'short'}) : '—';
-      return `<div style="background:var(--bg2);border:1px solid ${isPast?'var(--b1)':'var(--b1)'};border-left:3px solid ${isPast?'var(--t3)':'var(--ac)'};border-radius:var(--r);padding:12px 14px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;opacity:${isPast?.65:1}">
+      const dt = new Date(l.trialDate+'T'+(l.trialTime||'12:00')).toLocaleDateString('ru',{weekday:'short',day:'numeric',month:'short'});
+      html += `<div style="display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--b1);border-radius:8px;padding:8px 12px">
         <div style="flex:1;min-width:0">
-          <div style="font-size:14px;font-weight:700;color:var(--t1);margin-bottom:4px">${l.name||'—'}</div>
-          <div style="font-size:12px;color:var(--t3);display:flex;flex-wrap:wrap;gap:10px">
-            <span>📅 ${dt} ${l.trialTime?'· '+l.trialTime:''}</span>
-            ${t?`<span>👩‍🏫 ${t.name}</span>`:'<span style="color:var(--am)">⚠ Преподаватель не назначен</span>'}
-            ${l.phone?`<span>📱 ${l.phone}</span>`:''}
-            ${l.interest?`<span>📖 ${l.interest}</span>`:''}
-          </div>
+          <div style="font-size:13px;font-weight:600;color:var(--t1)">${l.name||'—'}</div>
+          <div style="font-size:11px;color:var(--t3);margin-top:1px">📅 ${dt}${l.trialTime?' · '+l.trialTime:''} ${t?'· 👩‍🏫 '+t.name:'· ⚠ преп. не назначен'}</div>
         </div>
-        <div style="display:flex;gap:6px;flex-shrink:0">
-          <button onclick="openCRMCard('${l.id||Object.keys(snap.val()||{}).find(k=>snap.val()[k]===l)}')"
-            style="background:var(--acbg);border:1px solid var(--acb);border-radius:6px;color:var(--ac2);cursor:pointer;padding:4px 10px;font-size:11px;font-family:var(--fb)">✏️ Сделка</button>
-          ${!isPast&&t&&t.phone?`<button onclick="sendTrialNotify('${l.id||''}')"
-            style="background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.25);border-radius:6px;color:var(--gn);cursor:pointer;padding:4px 10px;font-size:11px;font-family:var(--fb)">📲 Уведомить</button>`:''}
+        <div style="display:flex;gap:5px;flex-shrink:0">
+          <button onclick="openCRMCard('${l.id}')" style="background:var(--acbg);border:1px solid var(--acb);border-radius:5px;color:var(--ac2);cursor:pointer;padding:3px 8px;font-size:11px;font-family:var(--fb)">✏️</button>
+          ${t?.phone?`<button onclick="sendTrialNotify('${l.id}')" style="background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.25);border-radius:5px;color:var(--gn);cursor:pointer;padding:3px 8px;font-size:11px;font-family:var(--fb)">📲</button>`:''}
         </div>
       </div>`;
-    };
+    });
+    html += `</div>`;
+  }
 
-    let html = '';
-    if(upcoming.length){
-      html += `<div style="font-size:12px;font-weight:700;color:var(--t1);margin-bottom:10px">📅 Предстоящие · ${upcoming.length}</div>`;
-      html += `<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px">${upcoming.map(l=>renderCard(l,false)).join('')}</div>`;
-    }
-    if(past.length){
-      html += `<div style="font-size:12px;font-weight:700;color:var(--t3);margin-bottom:10px">✓ Прошедшие · ${past.length}</div>`;
-      html += `<div style="display:flex;flex-direction:column;gap:8px">${past.map(l=>renderCard(l,true)).join('')}</div>`;
-    }
-    if(!leads.length) html = '<div class="empty"><div class="empty-icon">🧪</div><div class="empty-text">Нет пробных уроков</div><div class="empty-sub">Назначайте из карточки CRM</div></div>';
+  el.innerHTML = html;
 
-    el.innerHTML = html;
+  // Navigation buttons via addEventListener
+  document.getElementById('trial-prev')?.addEventListener('click', ()=>{
+    let {year,month} = _trialCalMonth;
+    month--; if(month<0){month=11;year--;}
+    _trialCalMonth={year,month};
+    buildTrialCalendarHTML(el, leads, raw);
   });
+  document.getElementById('trial-next')?.addEventListener('click', ()=>{
+    let {year,month} = _trialCalMonth;
+    month++; if(month>11){month=0;year++;}
+    _trialCalMonth={year,month};
+    buildTrialCalendarHTML(el, leads, raw);
+  });
+  document.getElementById('trial-today')?.addEventListener('click', ()=>{
+    const n=new Date(); _trialCalMonth={year:n.getFullYear(),month:n.getMonth()};
+    buildTrialCalendarHTML(el, leads, raw);
+  });
+  document.getElementById('trial-new-btn')?.addEventListener('click', ()=>{
+    // Open blank CRM card to create new trial
+    openCRMCard();
+  });
+}
+
+function openTrialDetail(leadId){
+  openCRMCard(leadId);
 }
 
 // Уведомление преподавателю о пробном уроке
