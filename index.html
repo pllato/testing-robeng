@@ -7658,53 +7658,93 @@ function renderCRMStageSettings(){
   }).join('');
 }
 
-// ── CRM Deduplication ─────────────────────────────────────────────
+// ── CRM Manual Deduplication ─────────────────────────────────────
 async function crmDedup(){
-  if(!confirm('Объединить дублирующиеся сделки по номеру телефона?\n\nОстанется одна сделка на номер — с самой последней активностью.')) return;
+  open1('m-crm-dedup');
+  const el = document.getElementById('dedup-body');
+  el.innerHTML = '<div style="text-align:center;padding:30px;color:var(--t3)">Поиск дублей...</div>';
+
   const snap = await crmRef.once('value');
   const raw = snap.val()||{};
   const byPhone = {};
-  // Группируем по нормализованному телефону
-  Object.entries(raw).forEach(([key, lead])=>{
+  Object.entries(raw).forEach(([key,lead])=>{
     const p = normalizePhone(lead.phone||'');
     if(!p) return;
     if(!byPhone[p]) byPhone[p]=[];
     byPhone[p].push({key, ...lead});
   });
-  let merged=0, deleted=0;
-  for(const [p, group] of Object.entries(byPhone)){
-    if(group.length<=1) continue;
-    // Сортируем — главный лид: самый старый (createdAt минимальный), с наибольшим msgCount
-    group.sort((a,b)=>(a.createdAt||'').localeCompare(b.createdAt||''));
-    const main = group[0];
-    const rest = group.slice(1);
-    // Объединяем данные в главный
-    const mergedData = {
-      ...main,
-      msgCount: group.reduce((s,l)=>s+(l.msgCount||0),0),
-      lastContact: group.reduce((last,l)=>(l.lastContact||'')>last?l.lastContact:last, main.lastContact||''),
-      notes: [...new Set(group.map(l=>l.notes).filter(Boolean))].join(' | ')||main.notes||'',
-    };
-    // Ставим наиболее продвинутую стадию
-    const stageOrder = CRM_STAGES.map(s=>s.id);
-    let bestStage = main.stage||'new';
-    rest.forEach(l=>{ if(stageOrder.indexOf(l.stage||'new')>stageOrder.indexOf(bestStage)) bestStage=l.stage; });
-    mergedData.stage = bestStage;
-    await crmRef.child(main.key).update(mergedData);
-    // Переносим сообщения из дублей в главный
-    for(const dup of rest){
-      const chatSnap = await crmChatRef.child(dup.key).once('value');
-      const msgs = chatSnap.val()||{};
-      for(const [msgKey, msg] of Object.entries(msgs)){
-        await crmChatRef.child(main.key).push(msg);
-      }
-      await crmRef.child(dup.key).remove();
-      await crmChatRef.child(dup.key).remove();
-      deleted++;
-    }
-    merged++;
+
+  const groups = Object.entries(byPhone).filter(([,g])=>g.length>1);
+  if(!groups.length){
+    el.innerHTML = '<div style="text-align:center;padding:30px;color:var(--gn);font-size:14px">✅ Дублей не найдено</div>';
+    return;
   }
-  toast(`✓ Объединено ${merged} номеров, удалено ${deleted} дублей`);
+
+  const stageOrder = CRM_STAGES.map(s=>s.id);
+  let html = `<div style="font-size:12px;color:var(--t3);margin-bottom:14px">Найдено ${groups.length} номеров с дублями. Выберите основную запись для каждой группы:</div>`;
+
+  groups.forEach(([phone, group], gi)=>{
+    group.sort((a,b)=>(a.createdAt||'').localeCompare(b.createdAt||''));
+    html += `<div style="margin-bottom:18px;border:1px solid var(--b1);border-radius:10px;overflow:hidden">
+      <div style="padding:8px 12px;background:var(--bg3);font-size:11px;font-weight:700;color:var(--t2);display:flex;justify-content:space-between;align-items:center">
+        <span>📱 +${phone} · ${group.length} записи</span>
+        <button onclick="dedupMergeGroup('${phone}',${gi})" style="background:var(--ac);border:none;border-radius:5px;color:#fff;cursor:pointer;padding:3px 10px;font-size:10px;font-family:var(--fb)">Объединить</button>
+      </div>`;
+    group.forEach((l,li)=>{
+      const stageLabel = crmStage(l.stage).label;
+      const date = l.createdAt ? new Date(l.createdAt).toLocaleDateString('ru') : '—';
+      html += `<div style="padding:9px 12px;border-top:1px solid var(--b1);display:flex;align-items:center;gap:10px">
+        <input type="radio" name="dedup-main-${gi}" value="${l.key}" ${li===0?'checked':''} style="accent-color:var(--ac);flex-shrink:0">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:600;color:var(--t1)">${l.name||'—'}</div>
+          <div style="font-size:10px;color:var(--t3);margin-top:1px">${stageLabel} · Создан: ${date} · Сообщений: ${l.msgCount||0}</div>
+          ${l.notes?`<div style="font-size:10px;color:var(--t3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">💬 ${l.notes}</div>`:''}
+        </div>
+        <button onclick="openCRMCard('${l.key}')" style="background:var(--bg4);border:1px solid var(--b2);border-radius:5px;color:var(--t3);cursor:pointer;padding:3px 8px;font-size:10px;font-family:var(--fb)">📋</button>
+      </div>`;
+    });
+    html += '</div>';
+  });
+
+  // Store groups for merge
+  window._dedupGroups = groups;
+  el.innerHTML = html;
+}
+
+async function dedupMergeGroup(phone, gi){
+  const group = window._dedupGroups?.[gi];
+  if(!group) return;
+  const radioName = `dedup-main-${gi}`;
+  const selected = document.querySelector(`input[name="${radioName}"]:checked`);
+  const mainKey = selected?.value || group[0].key;
+
+  const mainLead = group.find(l=>l.key===mainKey);
+  const rest = group.filter(l=>l.key!==mainKey);
+
+  // Merge data into main
+  const stageOrder = CRM_STAGES.map(s=>s.id);
+  let bestStage = mainLead.stage||'new';
+  rest.forEach(l=>{ if(stageOrder.indexOf(l.stage||'new')>stageOrder.indexOf(bestStage)) bestStage=l.stage; });
+
+  const mergedNotes = [...new Set([mainLead.notes, ...rest.map(l=>l.notes)].filter(Boolean))].join(' | ');
+  const lastContact = group.reduce((last,l)=>(l.lastContact||'')>last?l.lastContact:last, mainLead.lastContact||'');
+  const totalMsgs = group.reduce((s,l)=>s+(l.msgCount||0),0);
+
+  await crmRef.child(mainKey).update({ stage:bestStage, notes:mergedNotes||mainLead.notes||'', lastContact, msgCount:totalMsgs, updatedAt:new Date().toISOString() });
+
+  // Move messages from duplicates to main
+  for(const dup of rest){
+    const chatSnap = await crmChatRef.child(dup.key).once('value');
+    const msgs = chatSnap.val()||{};
+    for(const msg of Object.values(msgs)) await crmChatRef.child(mainKey).push(msg);
+    await crmRef.child(dup.key).remove();
+    await crmChatRef.child(dup.key).remove();
+  }
+
+  toast(`✓ Объединено (оставлено: ${mainLead.name||mainLead.phone})`);
+  // Refresh dedup view
+  window._dedupGroups.splice(gi,1);
+  crmDedup();
   renderCRM();
 }
 function renderCRMStagesEditor(){
@@ -9032,6 +9072,7 @@ let _crmChatListener = null;
 let _crmDragId = null;
 let _crmView = 'kanban'; // 'kanban' | 'list'
 let _crmFilter = {stage:'', search:''};
+let _crmHighlightIds = null; // Set of leadIds matching message search
 
 // ── Helpers ───────────────────────────────────────────────────────
 function crmStage(id){ return CRM_STAGES.find(s=>s.id===id)||CRM_STAGES[0]; }
@@ -9061,6 +9102,28 @@ function renderCRM(){
   });
 }
 
+let _crmSearchMsgs = {}; // cache: leadId → joined text
+let _crmSearchPending = false;
+
+async function crmSearchInMessages(q, leads){
+  // Загружаем тексты сообщений параллельно для лидов без кэша
+  const toFetch = leads.filter(l=>l.id && !_crmSearchMsgs[l.id]);
+  if(toFetch.length){
+    await Promise.all(toFetch.map(async l=>{
+      try{
+        const snap = await crmChatRef.child(l.id).once('value');
+        const msgs = snap.val()||{};
+        _crmSearchMsgs[l.id] = Object.values(msgs).map(m=>m.text||'').join(' ').toLowerCase();
+      }catch(e){ _crmSearchMsgs[l.id]=''; }
+    }));
+  }
+  const qL = q.toLowerCase();
+  return new Set(leads.filter(l=>{
+    const hay = [l.name||'',l.phone||'',l.notes||'',l.interest||'',l.budget||'',_crmSearchMsgs[l.id]||''].join(' ').toLowerCase();
+    return hay.includes(qL);
+  }).map(l=>l.id));
+}
+
 function renderCRMContent(leads){
   const el = document.getElementById('crm-body');
   if(!el) return;
@@ -9069,9 +9132,12 @@ function renderCRMContent(leads){
     if(_crmFilter.stage && l.stage!==_crmFilter.stage) return false;
     if(_crmFilter.search){
       const q=_crmFilter.search.toLowerCase();
-      if(!(l.name||'').toLowerCase().includes(q) &&
-         !(l.phone||'').includes(q) &&
-         !(l.notes||'').toLowerCase().includes(q)) return false;
+      const basic = (l.name||'').toLowerCase().includes(q)||
+                    (l.phone||'').replace(/\D/g,'').includes(q.replace(/\D/g,''))||
+                    (l.notes||'').toLowerCase().includes(q)||
+                    (l.interest||'').toLowerCase().includes(q);
+      if(!basic && !_crmHighlightIds) return false;
+      if(!basic && _crmHighlightIds && !_crmHighlightIds.has(l.id)) return false;
     }
     return true;
   });
@@ -9090,9 +9156,8 @@ function renderCRMContent(leads){
         <option value="">Все стадии</option>
         ${CRM_STAGES.map(s=>`<option value="${s.id}" ${_crmFilter.stage===s.id?'selected':''}>${s.label} (${counts[s.id]||0})</option>`).join('')}
       </select>
-      <input placeholder="🔍 Поиск..." value="${_crmFilter.search}"
-        oninput="_crmFilter.search=this.value;renderCRMContent(${JSON.stringify(leads).replace(/</g,'\\u003c')})"
-        style="background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:12px;padding:5px 10px;min-width:180px"/>
+      <input id="crm-search-inp" placeholder="🔍 Поиск по имени, телефону, переписке..." value="${_crmFilter.search}"
+        style="background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:12px;padding:5px 10px;min-width:220px"/>
     </div>
     <button onclick="renderCRM()" style="font-size:11px;padding:4px 11px;border-radius:6px;border:1px solid var(--b2);cursor:pointer;background:var(--bg3);color:var(--t2);font-family:var(--fb)">↺ Обновить</button>
     <button onclick="crmDedup()" title="Объединить дублирующиеся сделки по телефону" style="font-size:11px;padding:4px 11px;border-radius:6px;border:1px solid rgba(240,89,117,.3);cursor:pointer;background:rgba(240,89,117,.08);color:var(--rd);font-family:var(--fb)">🔀 Убрать дубли</button>
@@ -9106,6 +9171,18 @@ function renderCRMContent(leads){
   }
 
   el.innerHTML = html;
+
+  // Wire async search in messages
+  const searchInp = document.getElementById('crm-search-inp');
+  if(searchInp){
+    searchInp.addEventListener('input', async ()=>{
+      _crmFilter.search = searchInp.value.trim();
+      if(!_crmFilter.search){ _crmHighlightIds=null; renderCRMContent(leads); return; }
+      renderCRMContent(leads); // immediate basic filter
+      _crmHighlightIds = await crmSearchInMessages(_crmFilter.search, leads);
+      renderCRMContent(leads); // re-render with message matches highlighted
+    });
+  }
 
   // Badge in nav
   const b = document.getElementById('crm-badge');
@@ -9194,8 +9271,11 @@ function buildCRMCard(l){
   }) : null;
   const linkedStudent = linkedEnroll ? (S.students||[]).find(s=>s.id===linkedEnroll.studentId) : null;
 
+  const isHighlighted = _crmHighlightIds && _crmHighlightIds.has(l.id);
+  const isSearchMatch = _crmFilter.search && isHighlighted;
+
   return `<div draggable="true" class="crm-card" data-id="${l.id}"
-    style="background:var(--bg3);border:1px solid ${staleWarn?'rgba(240,89,117,.35)':unread?'rgba(63,216,142,.35)':'var(--b1)'};border-radius:10px;padding:10px 12px;cursor:grab;transition:border-color .15s,opacity .15s;user-select:none">
+    style="background:var(--bg3);border:1px solid ${isSearchMatch?'rgba(124,92,252,.6)':staleWarn?'rgba(240,89,117,.35)':unread?'rgba(63,216,142,.35)':'var(--b1)'};border-radius:10px;padding:10px 12px;cursor:grab;transition:border-color .15s,opacity .15s;user-select:none${isSearchMatch?';box-shadow:0 0 0 2px rgba(124,92,252,.2)':''}">
     <div style="font-size:13px;font-weight:600;color:var(--t1);margin-bottom:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
       ${l.name||'Без имени'}
       ${l.source?`<span style="font-size:9px;color:var(--t3);background:var(--bg4);padding:1px 5px;border-radius:4px">${l.source}</span>`:''}
@@ -9599,7 +9679,8 @@ function renderWAChats(){
   });
 }
 
-let _wachatsLastLeads = [];
+let _wachatSearch = '';
+let _wachatSearchMsgIndex = {}; // leadId → text cache
 
 function renderWAChatsContent(leads){
   const el = document.getElementById('wachats-body');
@@ -9648,7 +9729,12 @@ function renderWAChatsContent(leads){
         ${tBtn('clients','Клиенты',clientsN)}
         ${archivedN?tBtn('archived','📦 Архив',archivedN):''}
       </div>
-      <div style="flex:1;overflow-y:auto">`;
+      <!-- Search -->
+      <div style="padding:7px 10px;border-bottom:1px solid var(--b1);flex-shrink:0">
+        <input id="wachat-search" placeholder="🔍 Поиск по имени, номеру, тексту..." value="${_wachatSearch||''}"
+          style="width:100%;background:var(--bg4);border:1px solid var(--b2);border-radius:6px;color:var(--t1);font-family:var(--fb);font-size:11px;padding:5px 8px;box-sizing:border-box"/>
+      </div>
+      <div style="flex:1;overflow-y:auto" id="wachat-list-body">`;
 
   const renderItem = (l)=>{
     const stage = crmStage(l.stage);
@@ -9690,22 +9776,33 @@ function renderWAChatsContent(leads){
     </div>`;
   };
 
+  // Apply text search
+  const wq = (_wachatSearch||'').toLowerCase().replace(/\D/g,'') || (_wachatSearch||'').toLowerCase();
+  const searchFiltered = !_wachatSearch ? filtered : filtered.filter(l=>{
+    const pNorm = normalizePhone(l.phone||'');
+    const basic = (l.name||'').toLowerCase().includes(_wachatSearch.toLowerCase()) ||
+                  pNorm.includes((_wachatSearch||'').replace(/\D/g,'')) ||
+                  (l.notes||'').toLowerCase().includes(_wachatSearch.toLowerCase());
+    if(basic) return true;
+    return !!(_wachatSearchMsgIndex[l.id]||'').includes(_wachatSearch.toLowerCase());
+  });
+
   if(_wachatsTab==='all'){
-    filtered.forEach(l=>{ html += renderItem(l); });
+    searchFiltered.forEach(l=>{ html += renderItem(l); });
     html += `<div style="padding:10px 12px;border-top:1px solid var(--b1)">
       <button id="wachat-new-btn" style="width:100%;background:var(--bg3);border:1px dashed var(--b2);border-radius:8px;color:var(--t2);cursor:pointer;padding:9px;font-size:12px;font-family:var(--fb)">+ Новый чат (WhatsApp)</button>
     </div>`;
   } else if(_wachatsTab==='archived'){
-    if(filtered.length) filtered.forEach(l=>{ html += renderItem(l); });
+    if(searchFiltered.length) searchFiltered.forEach(l=>{ html += renderItem(l); });
     else html += '<div style="padding:30px;text-align:center;color:var(--t3);font-size:12px">Архив пуст</div>';
   } else {
-    filtered.forEach(l=>{ html += renderItem(l); });
+    searchFiltered.forEach(l=>{ html += renderItem(l); });
     html += `<div style="padding:10px 12px;border-top:1px solid var(--b1)">
       <button id="wachat-new-btn" style="width:100%;background:rgba(63,216,142,.08);border:1px dashed rgba(63,216,142,.3);border-radius:8px;color:var(--gn);cursor:pointer;padding:9px;font-size:12px;font-family:var(--fb)">📱 + Новый WhatsApp чат</button>
     </div>`;
   }
 
-  if(!filtered.length) html += '<div style="padding:30px 20px;text-align:center;color:var(--t3);font-size:12px">Нет диалогов</div>';
+  if(!searchFiltered.length) html += '<div style="padding:30px 20px;text-align:center;color:var(--t3);font-size:12px">Нет диалогов</div>';
 
   html += `</div></div>
     <div id="wachat-area" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
@@ -9717,10 +9814,29 @@ function renderWAChatsContent(leads){
 
   el.innerHTML = html;
 
+  // Wire search input — live filter + async message index
+  const sinp = document.getElementById('wachat-search');
+  if(sinp){
+    sinp.addEventListener('input', async ()=>{
+      _wachatSearch = sinp.value;
+      renderWAChatsContent(null); // immediate basic filter
+      if(_wachatSearch){
+        // Build message text index for unindexed leads
+        const toLookup = leads.filter(l=>!_wachatSearchMsgIndex[l.id]);
+        await Promise.all(toLookup.map(async l=>{
+          try{
+            const s = await crmChatRef.child(l.id).once('value');
+            _wachatSearchMsgIndex[l.id] = Object.values(s.val()||{}).map(m=>m.text||'').join(' ').toLowerCase();
+          }catch(e){ _wachatSearchMsgIndex[l.id]=''; }
+        }));
+        renderWAChatsContent(null); // re-render with message matches
+      }
+    });
+  }
+
   // Кнопка нового чата — контекстная
   document.getElementById('wachat-new-btn')?.addEventListener('click', ()=>{
-    if(_wachatsTab==='staff') openNewStaffChatDialog();
-    else if(_wachatsTab==='all') openNewChatDialog();
+    if(_wachatsTab==='all') openNewChatDialog();
     else openNewWAChat();
   });
 
@@ -9797,9 +9913,12 @@ function openWAChat(leadId, _fromRender){
     document.getElementById('wachat-del-btn')?.addEventListener('click', ()=>archiveChatLead(leadId));
     const doSend = ()=>sendWAMessage(leadId, !isStaff);
     document.getElementById('wachat-send-btn')?.addEventListener('click', doSend);
-    document.getElementById('wachat-inp')?.addEventListener('keydown', e=>{
+    const inp = document.getElementById('wachat-inp');
+    inp?.addEventListener('keydown', e=>{
       if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); doSend(); }
     });
+    // Авто-фокус при открытии
+    setTimeout(()=>inp?.focus(), 50);
 
     // Подписываемся на сообщения
     if(_wachatChatListener){ crmChatRef.off('value',_wachatChatListener); _wachatChatListener=null; }
@@ -9941,6 +10060,7 @@ async function sendWAMessage(leadId, toWA){
   const text = (inp?.value||'').trim();
   if(!text) return;
   inp.value='';
+  inp.focus(); // держим фокус после отправки
   const now = new Date().toISOString();
   const uid = fbAuth.currentUser?.uid||'';
   const usnap = await fbDb.ref('appUsers/'+uid).once('value');
@@ -10264,7 +10384,16 @@ function addCRMLinkToStudent(studentEl, phone){
   </div>
 </div>
 
-<!-- ── ONBOARDING OVERLAY ───────────────────────────────────────── -->
+<!-- Modal: CRM Dedup -->
+<div class="mo" id="m-crm-dedup">
+  <div class="modal" style="max-width:700px;width:95vw;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div class="mt">🔀 Объединение дублей</div>
+      <button class="btn btn-xs" onclick="close1('m-crm-dedup')">✕</button>
+    </div>
+    <div id="dedup-body">Загрузка...</div>
+  </div>
+</div>
 <!-- ── CRM: CARD MODAL ──────────────────────────────────────── -->
 <div class="mo" id="m-crm-card">
   <div class="modal modal-xl" style="max-height:94vh;overflow-y:auto;max-width:960px;width:96vw">
