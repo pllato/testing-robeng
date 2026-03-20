@@ -7170,9 +7170,9 @@ function checkLessonReminders(){
             if(!res||!res.ok) logReminderFailure(e.id, st.name, studentPhone, 'student', res?.error||'unknown');
           });
           _sentPhones.add(studentPhone);
-        } else {
-          logReminderFailure(e.id, st.name, '', 'student', 'нет телефона ученика');
         }
+        // Нет номера ученика — не логируем ошибку, если есть номер родителя (напоминание уйдёт туда)
+        // Логируем только если нет ни одного номера
       }
 
       // Отправляем родителю — только если номер ещё не был использован
@@ -7181,8 +7181,9 @@ function checkLessonReminders(){
           notifyWhatsApp('+'+parentPhone, msg).then(res=>{
             if(!res||!res.ok) logReminderFailure(e.id, st.name, parentPhone, 'parent', res?.error||'unknown');
           });
-        } else if(!parentPhone){
-          logReminderFailure(e.id, st.name, '', 'parent', 'нет телефона родителя');
+        } else if(!parentPhone && !studentPhone){
+          // Логируем ошибку только если оба номера отсутствуют
+          logReminderFailure(e.id, st.name, '', 'student', 'нет телефона (ни ученика, ни родителя)');
         }
       }
 
