@@ -9758,6 +9758,8 @@ function openWAChat(leadId, _fromRender){
         <div style="display:flex;gap:6px;flex-shrink:0">
           <button id="wachat-crm-btn" style="background:var(--acbg);border:1px solid var(--acb);border-radius:6px;color:var(--ac2);cursor:pointer;padding:5px 10px;font-size:11px;font-family:var(--fb);font-weight:600">💼 Сделка</button>
           ${!isStaff && phone?`<a href="https://wa.me/${phone}" target="_blank" style="background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.25);border-radius:6px;color:var(--gn);padding:5px 10px;font-size:11px;text-decoration:none;display:flex;align-items:center">↗ WA</a>`:''}
+          <button id="wachat-unread-btn" title="Пометить непрочитанным" style="background:var(--bg4);border:1px solid var(--b2);border-radius:6px;color:var(--t3);cursor:pointer;padding:5px 8px;font-size:13px">🔵</button>
+          <button id="wachat-del-btn" title="Удалить чат" style="background:rgba(240,89,117,.08);border:1px solid rgba(240,89,117,.2);border-radius:6px;color:var(--rd);cursor:pointer;padding:5px 8px;font-size:13px">🗑</button>
         </div>
       </div>
       <div id="wachat-msgs" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px"></div>
@@ -9772,6 +9774,8 @@ function openWAChat(leadId, _fromRender){
 
     // Кнопки через addEventListener
     document.getElementById('wachat-crm-btn')?.addEventListener('click', ()=>openCRMCard(leadId));
+    document.getElementById('wachat-unread-btn')?.addEventListener('click', ()=>markChatUnread(leadId));
+    document.getElementById('wachat-del-btn')?.addEventListener('click', ()=>deleteChatLead(leadId));
     const doSend = ()=>sendWAMessage(leadId, !isStaff);
     document.getElementById('wachat-send-btn')?.addEventListener('click', doSend);
     document.getElementById('wachat-inp')?.addEventListener('keydown', e=>{
@@ -9868,40 +9872,38 @@ function openNewChatDialog(){ openNewWAChat(); }
 async function startStaffChat(teacherId){
   const t = (S.teachers||[]).find(t=>String(t.id)===String(teacherId));
   if(!t?.phone){ toast('У сотрудника нет телефона',true); return; }
-  const phone = (t.phone||'').replace(/\D/g,'');
-  const now = new Date().toISOString();
-  // Ищем существующий лид
-  const snap = await crmRef.orderByChild('phone').equalTo('+'+phone).limitToFirst(1).once('value');
-  const existing = snap.val();
+  const pNorm = normalizePhone(t.phone);
+  const snap = await crmRef.once('value');
+  const raw = snap.val()||{};
+  const existing = Object.entries(raw).find(([,l])=>normalizePhone(l?.phone||'')=== pNorm);
   if(existing){
-    const id = Object.keys(existing)[0];
-    _wachatsTab='staff';
-    renderWAChats();
-    setTimeout(()=>openWAChat(id), 300);
+    _wachatsTab='all'; renderWAChats();
+    setTimeout(()=>openWAChat(existing[0]), 300);
   } else {
+    const now = new Date().toISOString();
     const ref = crmRef.push();
     const id = ref.key;
-    await ref.set({id, name:t.name, phone:'+'+phone, source:'internal', stage:'contact', createdAt:now, updatedAt:now, lastContact:now, msgCount:0});
-    _wachatsTab='staff';
-    renderWAChats();
+    await ref.set({id, name:t.name, phone:'+'+pNorm, source:'whatsapp', stage:'new', createdAt:now, updatedAt:now, lastContact:now, msgCount:0});
+    _wachatsTab='all'; renderWAChats();
     setTimeout(()=>openWAChat(id), 400);
   }
 }
 
-// Начать новый WhatsApp чат — вводим номер
-function openNewWAChat(){
-  const phone = prompt('Введите номер WhatsApp (без +, например 77001234567):');
-  if(!phone) return;
-  const clean = phone.replace(/\D/g,'');
-  if(clean.length<10){ toast('Некорректный номер',true); return; }
-  const now = new Date().toISOString();
-  const ref = crmRef.push();
-  const id = ref.key;
-  ref.set({id, name:'+'+clean, phone:'+'+clean, source:'whatsapp', stage:'new', createdAt:now, updatedAt:now, lastContact:now, msgCount:0}).then(()=>{
-    renderWAChats();
-    setTimeout(()=>openWAChat(id), 400);
-    toast('Чат создан — можете написать первое сообщение');
-  });
+// ── Удаление чата / сделки ────────────────────────────────────────
+function deleteChatLead(leadId){
+  if(!confirm('Удалить этот чат и сделку?\n\nВся переписка будет удалена.')) return;
+  crmRef.child(leadId).remove();
+  crmChatRef.child(leadId).remove();
+  _wachatOpenId = null;
+  const area = document.getElementById('wachat-area');
+  if(area) area.innerHTML = '<div style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:13px">👈 Выберите диалог</div>';
+  toast('Чат удалён');
+}
+
+// ── Пометить как непрочитанное ────────────────────────────────────
+function markChatUnread(leadId){
+  crmRef.child(leadId+'/unreadCount').transaction(v=>Math.max((v||0)+1, 1));
+  toast('Помечено как непрочитанное');
 }
 
 // Нормализация телефона — принимает любой формат, возвращает только цифры международного формата
