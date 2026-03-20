@@ -355,6 +355,7 @@ body{font-family:var(--fb);background:var(--bg);color:var(--t1);min-height:100vh
     <div class="ni" data-p="videoreviews" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">🎥</span>Видео уроков <span id="video-badge" style="display:none;background:var(--am);color:var(--bg);font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
     <div class="ni" data-p="surveys" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">📋</span>Опросы <span id="surveys-badge" style="display:none;background:var(--gn);color:var(--bg);font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
     <div class="ni admin-only" data-p="crm" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">💼</span>CRM <span id="crm-badge" style="display:none;background:var(--ac);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
+    <div class="ni admin-only" data-p="trialcal" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">🧪</span>Пробные уроки <span id="trial-badge" style="display:none;background:var(--am);color:var(--bg);font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
     <div class="ni admin-only" id="ni-more" onclick="toggleMore(this)"><span style="font-size:14px;width:18px;text-align:center">•••</span>Ещё</div>
     <div id="more-menu" style="display:none">
       <div class="ni admin-only" data-p="subjects" onclick="nav(this)" style="padding-left:30px"><span style="font-size:13px;width:18px;text-align:center">📚</span>Предметы</div>
@@ -656,6 +657,10 @@ body{font-family:var(--fb);background:var(--bg);color:var(--t1);min-height:100vh
     <!-- WA CHATS -->
     <div class="panel" id="panel-wachats">
       <div id="wachats-body"></div>
+    </div>
+    <!-- TRIAL CALENDAR -->
+    <div class="panel" id="panel-trialcal">
+      <div id="trialcal-body"></div>
     </div>
     <!-- CRM -->
     <div class="panel" id="panel-crm">
@@ -1700,8 +1705,8 @@ function countFree(){
 }
 
 // ── NAVIGATION ───────────────────────────────────────────────────
-const TITLES={today:'Сегодня ☀️',tasks:'Задачи',teamchat:'Командный чат',dashboard:'Главная',subjects:'Предметы',teachers:'Преподаватели',availability:'Время работы',schedule:'Расписание',freeSlots:'Свободные слоты',students:'Ученики',reports:'Отчёты по преподавателям',journal:'Журнал действий',trash:'Корзина',backups:'Резервные копии',users:'Пользователи',videoreviews:'Видео уроков',surveys:'Опросы',crm:'CRM — Клиенты',wachats:'Чаты'};
-const ACTS={today:'',tasks:'',teamchat:'',dashboard:'+',subjects:'',teachers:'+ Преподаватель',availability:'',schedule:'',freeSlots:'',students:'+ Ученик',reports:'',journal:'',trash:'',backups:'',users:'',videoreviews:'',surveys:'',crm:'',wachats:''};
+const TITLES={today:'Сегодня ☀️',tasks:'Задачи',teamchat:'Командный чат',dashboard:'Главная',subjects:'Предметы',teachers:'Преподаватели',availability:'Время работы',schedule:'Расписание',freeSlots:'Свободные слоты',students:'Ученики',reports:'Отчёты по преподавателям',journal:'Журнал действий',trash:'Корзина',backups:'Резервные копии',users:'Пользователи',videoreviews:'Видео уроков',surveys:'Опросы',crm:'CRM — Клиенты',wachats:'Чаты',trialcal:'🧪 Пробные уроки'};
+const ACTS={today:'',tasks:'',teamchat:'',dashboard:'+',subjects:'',teachers:'+ Преподаватель',availability:'',schedule:'',freeSlots:'',students:'+ Ученик',reports:'',journal:'',trash:'',backups:'',users:'',videoreviews:'',surveys:'',crm:'',wachats:'',trialcal:''};
 function curPanel(){return document.querySelector('.ni.active')?.dataset.p||'dashboard';}
 function nav(el){
   // Close more menu on nav
@@ -1781,6 +1786,7 @@ function renderPanel(p){
   else if(p==='surveys'){renderSurveys();}
   else if(p==='crm'){renderCRM();}
   else if(p==='wachats'){renderWAChats();}
+  else if(p==='trialcal'){renderTrialCalendar();}
   // При уходе с CRM — отписываемся от real-time
   if(p!=='crm' && _crmRealtimeListener){
     crmRef.off('value', _crmRealtimeListener);
@@ -9272,6 +9278,14 @@ function openCRMCard(id){
       renderCRMStageBar(l.stage||'new');
       document.getElementById('crm-f-assignee').value = l.assignee||'';
       document.getElementById('crm-f-trialdate').value = l.trialDate||'';
+      const ttEl = document.getElementById('crm-f-trialtime');
+      if(ttEl) ttEl.value = l.trialTime||'14:00';
+      // Fill trial teacher
+      const ttchEl = document.getElementById('crm-f-trialteacher');
+      if(ttchEl){
+        ttchEl.innerHTML = '<option value="">— Не назначен —</option>' +
+          (S.teachers||[]).filter(t=>t.status==='active').map(t=>`<option value="${t.id}" ${String(l.trialTeacherId)===String(t.id)?'selected':''}>${t.name}</option>`).join('');
+      }
       document.getElementById('crm-card-ttl').textContent = 'Карточка клиента';
       // Load chat preview
       loadCRMChatPreview(id);
@@ -9311,12 +9325,19 @@ function saveCRMCard(){
     stage: document.getElementById('crm-f-stage').value,
     assignee: document.getElementById('crm-f-assignee').value.trim(),
     trialDate: document.getElementById('crm-f-trialdate').value,
+    trialTime: document.getElementById('crm-f-trialtime')?.value||'',
+    trialTeacherId: document.getElementById('crm-f-trialteacher')?.value||'',
     updatedAt: now,
   };
   if(_crmEditId){
     data.id = _crmEditId;
-    crmRef.child(_crmEditId).update(data).then(()=>{
-      close1('m-crm-card'); renderCRM(); toast('Карточка сохранена');
+    // Check if trial date changed → notify teacher
+    crmRef.child(_crmEditId).once('value').then(snap=>{
+      const prev = snap.val()||{};
+      crmRef.child(_crmEditId).update(data).then(()=>{
+        maybeSendTrialNotify(_crmEditId, prev.trialDate, data.trialDate, data.trialTeacherId);
+        close1('m-crm-card'); renderCRM(); toast('Карточка сохранена');
+      });
     });
   } else {
     data.createdAt = now;
@@ -9611,8 +9632,14 @@ function renderWAChatsContent(leads){
   };
 
   if(_wachatsTab==='all'){
-    // Во вкладке Все — хронологический порядок, самые новые сверху
+    // Хронологический порядок, самые новые сверху
     filtered.forEach(l=>{ html += renderItem(l); });
+    // Кнопка нового чата
+    html += `<div style="padding:10px 12px;border-top:1px solid var(--b1)">
+      <button id="wachat-new-btn" style="width:100%;background:var(--bg3);border:1px dashed var(--b2);border-radius:8px;color:var(--t2);cursor:pointer;padding:9px;font-size:12px;font-family:var(--fb)">
+        + Новый чат
+      </button>
+    </div>`;
   } else if(_wachatsTab==='staff'){
     // Сотрудники из CRM-лидов
     if(filtered.length) filtered.forEach(l=>{ html += renderItem(l); });
@@ -9633,14 +9660,15 @@ function renderWAChatsContent(leads){
       });
     }
     if(!filtered.length && !noChat.length) html += '<div style="padding:40px 20px;text-align:center;color:var(--t3);font-size:12px">Нет сотрудников с телефонами</div>';
+    html += `<div style="padding:10px 12px;border-top:1px solid var(--b1)">
+      <button id="wachat-new-btn" style="width:100%;background:rgba(168,127,255,.08);border:1px dashed rgba(168,127,255,.3);border-radius:8px;color:var(--ac2);cursor:pointer;padding:9px;font-size:12px;font-family:var(--fb)">
+        + Начать чат с сотрудником
+      </button>
+    </div>`;
   } else {
     filtered.forEach(l=>{ html += renderItem(l); });
-  }
-
-  // Кнопка "Новый чат" для вкладок Новые и Клиенты
-  if(_wachatsTab==='new' || _wachatsTab==='clients'){
-    html += `<div style="padding:10px 12px;border-top:1px solid var(--b1);margin-top:auto">
-      <button id="wachat-new-btn" style="width:100%;background:rgba(63,216,142,.1);border:1px dashed rgba(63,216,142,.3);border-radius:8px;color:var(--gn);cursor:pointer;padding:9px;font-size:12px;font-family:var(--fb);font-weight:600">
+    html += `<div style="padding:10px 12px;border-top:1px solid var(--b1)">
+      <button id="wachat-new-btn" style="width:100%;background:rgba(63,216,142,.08);border:1px dashed rgba(63,216,142,.3);border-radius:8px;color:var(--gn);cursor:pointer;padding:9px;font-size:12px;font-family:var(--fb)">
         📱 + Новый WhatsApp чат
       </button>
     </div>`;
@@ -9658,8 +9686,12 @@ function renderWAChatsContent(leads){
 
   el.innerHTML = html;
 
-  // Кнопка нового чата
-  document.getElementById('wachat-new-btn')?.addEventListener('click', ()=>openNewWAChat());
+  // Кнопка нового чата — контекстная
+  document.getElementById('wachat-new-btn')?.addEventListener('click', ()=>{
+    if(_wachatsTab==='staff') openNewStaffChatDialog();
+    else if(_wachatsTab==='all') openNewChatDialog();
+    else openNewWAChat();
+  });
 
   if(_wachatOpenId && leads.find(l=>l.id===_wachatOpenId)){
     openWAChat(_wachatOpenId, true);
@@ -9693,15 +9725,14 @@ function openWAChat(leadId, _fromRender){
       ? `<span style="font-size:9px;background:rgba(168,127,255,.15);border:1px solid rgba(168,127,255,.3);color:var(--ac2);padding:1px 7px;border-radius:6px">🔒 Внутренняя сеть</span>`
       : `<span style="font-size:9px;background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.25);color:var(--gn);padding:1px 7px;border-radius:6px">📱 WhatsApp</span>`;
 
-    // Для сотрудников — только внутренние сообщения (скрываем кнопку WA)
-    const inputBtns = isStaff
-      ? `<button id="wachat-send-btn" title="Отправить внутри портала" style="background:rgba(168,127,255,.1);border:1px solid rgba(168,127,255,.25);border-radius:6px;color:var(--ac2);cursor:pointer;padding:6px 10px;font-size:12px">📨</button>`
-      : `<button id="wachat-note-btn" title="Внутренняя заметка" style="background:var(--bg4);border:1px solid var(--b2);border-radius:6px;color:var(--t2);cursor:pointer;padding:6px 10px;font-size:12px">📝</button>
-         <button id="wachat-wa-btn" title="Отправить в WhatsApp" style="background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.3);border-radius:6px;color:var(--gn);cursor:pointer;padding:6px 10px;font-size:12px;font-weight:700">📲</button>`;
-
-    const inputHint = isStaff
-      ? `<span style="font-size:10px;color:var(--ac2)">🔒 Сообщение только внутри портала</span>`
-      : `<span style="font-size:10px;color:var(--t3)">📝 заметка &nbsp;·&nbsp; 📲 в WhatsApp</span>`;
+    // Один универсальный send button
+    const sendBtnStyle = isStaff
+      ? `background:rgba(168,127,255,.15);border:1px solid rgba(168,127,255,.3);border-radius:8px;color:var(--ac2);cursor:pointer;padding:8px 16px;font-size:13px;font-weight:700;font-family:var(--fb);white-space:nowrap`
+      : `background:var(--gn);border:none;border-radius:8px;color:var(--bg);cursor:pointer;padding:8px 16px;font-size:13px;font-weight:700;font-family:var(--fb);white-space:nowrap`;
+    const sendBtnLabel = isStaff ? '📨 Отправить' : '📲 WhatsApp';
+    const sendHint = isStaff
+      ? `<span style="font-size:10px;color:var(--ac2)">🔒 Только внутри портала · Enter</span>`
+      : `<span style="font-size:10px;color:var(--t3)">📲 отправка в WhatsApp · Enter</span>`;
 
     area.innerHTML = `
       <div style="padding:10px 14px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:10px;flex-shrink:0;background:var(--bg3)">
@@ -9723,24 +9754,20 @@ function openWAChat(leadId, _fromRender){
       </div>
       <div id="wachat-msgs" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px"></div>
       <div style="padding:10px 12px;border-top:1px solid var(--b1);flex-shrink:0;background:var(--bg3)">
-        <div style="display:flex;gap:8px;margin-bottom:5px">
-          <textarea id="wachat-inp" placeholder="${isStaff?'Написать сотруднику (внутри портала)...':'Написать сообщение...'}" rows="2"
+        <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:4px">
+          <textarea id="wachat-inp" placeholder="${isStaff?'Сообщение сотруднику (внутри портала)...':'Сообщение клиенту в WhatsApp...'}" rows="2"
             style="flex:1;background:var(--bg4);border:1px solid var(--b2);border-radius:8px;color:var(--t1);font-family:var(--fb);font-size:13px;padding:7px 10px;resize:none"></textarea>
-          <div style="display:flex;flex-direction:column;gap:4px">${inputBtns}</div>
+          <button id="wachat-send-btn" style="${sendBtnStyle}">${sendBtnLabel}</button>
         </div>
-        ${inputHint}
+        ${sendHint}
       </div>`;
 
     // Кнопки через addEventListener
     document.getElementById('wachat-crm-btn')?.addEventListener('click', ()=>openCRMCard(leadId));
-    if(isStaff){
-      document.getElementById('wachat-send-btn')?.addEventListener('click', ()=>sendWAMessage(leadId, false));
-    } else {
-      document.getElementById('wachat-note-btn')?.addEventListener('click', ()=>sendWAMessage(leadId, false));
-      document.getElementById('wachat-wa-btn')?.addEventListener('click', ()=>sendWAMessage(leadId, true));
-    }
+    const doSend = ()=>sendWAMessage(leadId, !isStaff);
+    document.getElementById('wachat-send-btn')?.addEventListener('click', doSend);
     document.getElementById('wachat-inp')?.addEventListener('keydown', e=>{
-      if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendWAMessage(leadId, !isStaff); }
+      if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); doSend(); }
     });
 
     // Подписываемся на сообщения
@@ -9775,7 +9802,55 @@ function openWAChat(leadId, _fromRender){
   });
 }
 
-// Начать чат с сотрудником — создаём лид по его телефону
+// Универсальный диалог нового чата (вкладка Все)
+function openNewChatDialog(){
+  const type = confirm('Создать чат с клиентом?\n\nОК — клиент (WhatsApp)\nОтмена — сотрудник (внутренний)');
+  if(type) openNewWAChat(); else openNewStaffChatDialog();
+}
+
+// Новый чат с сотрудником
+function openNewStaffChatDialog(){
+  const active = (S.teachers||[]).filter(t=>t.status==='active');
+  if(!active.length){ toast('Нет активных сотрудников',true); return; }
+  const list = active.map((t,i)=>`${i+1}. ${t.name}${t.phone?' ('+t.phone+')':''}`).join('\n');
+  const idx = prompt(`Выберите сотрудника (номер):\n${list}`);
+  if(!idx) return;
+  const t = active[parseInt(idx)-1];
+  if(!t){ toast('Неверный номер',true); return; }
+  if(!t.phone){ toast('У сотрудника нет телефона. Добавьте в карточке преподавателя.',true); return; }
+  startStaffChat(t.id);
+}
+
+// Новый WhatsApp чат — проверяем существующий по номеру
+async function openNewWAChat(){
+  const phone = prompt('Введите номер WhatsApp (только цифры, например 77001234567):');
+  if(!phone) return;
+  const clean = phone.replace(/\D/g,'');
+  if(clean.length<10){ toast('Некорректный номер',true); return; }
+
+  // Проверяем существующий лид
+  const snap = await crmRef.once('value');
+  const raw = snap.val()||{};
+  const existing = Object.entries(raw).find(([,l])=>(l.phone||'').replace(/\D/g,'')=== clean);
+  if(existing){
+    toast('Чат уже существует — открываю');
+    _wachatsTab='all';
+    renderWAChats();
+    setTimeout(()=>openWAChat(existing[0]), 400);
+    return;
+  }
+
+  const now = new Date().toISOString();
+  const ref = crmRef.push();
+  const id = ref.key;
+  ref.set({id, name:'+'+clean, phone:'+'+clean, source:'whatsapp', stage:'new', createdAt:now, updatedAt:now, lastContact:now, msgCount:0}).then(()=>{
+    _wachatsTab='all';
+    renderWAChats();
+    setTimeout(()=>openWAChat(id), 400);
+    toast('Чат создан');
+  });
+}
+
 async function startStaffChat(teacherId){
   const t = (S.teachers||[]).find(t=>String(t.id)===String(teacherId));
   if(!t?.phone){ toast('У сотрудника нет телефона',true); return; }
@@ -9989,7 +10064,88 @@ function renderCRMStudents(leadId){
   });
 }
 
-// ── Связь Ученик ↔ Лид ──────────────────────────────────────────
+// ── TRIAL LESSONS CALENDAR ────────────────────────────────────────
+function renderTrialCalendar(){
+  const el = document.getElementById('trialcal-body');
+  if(!el) return;
+  el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--t3)">Загрузка...</div>';
+
+  crmRef.once('value').then(snap=>{
+    const raw = snap.val()||{};
+    const leads = Object.values(raw)
+      .filter(l=>l.trialDate)
+      .sort((a,b)=>{
+        const da = (a.trialDate||'')+'T'+(a.trialTime||'00:00');
+        const db = (b.trialDate||'')+'T'+(b.trialTime||'00:00');
+        return da.localeCompare(db);
+      });
+
+    const today = new Date().toISOString().slice(0,10);
+    const upcoming = leads.filter(l=>l.trialDate >= today);
+    const past = leads.filter(l=>l.trialDate < today);
+
+    // Update badge
+    const badge = document.getElementById('trial-badge');
+    if(badge){ badge.textContent=upcoming.length||''; badge.style.display=upcoming.length?'':'none'; }
+
+    const renderCard = (l, isPast)=>{
+      const t = (S.teachers||[]).find(t=>String(t.id)===String(l.trialTeacherId));
+      const dt = l.trialDate ? new Date(l.trialDate+'T'+(l.trialTime||'12:00')).toLocaleDateString('ru',{day:'numeric',month:'short',weekday:'short'}) : '—';
+      return `<div style="background:var(--bg2);border:1px solid ${isPast?'var(--b1)':'var(--b1)'};border-left:3px solid ${isPast?'var(--t3)':'var(--ac)'};border-radius:var(--r);padding:12px 14px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;opacity:${isPast?.65:1}">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:700;color:var(--t1);margin-bottom:4px">${l.name||'—'}</div>
+          <div style="font-size:12px;color:var(--t3);display:flex;flex-wrap:wrap;gap:10px">
+            <span>📅 ${dt} ${l.trialTime?'· '+l.trialTime:''}</span>
+            ${t?`<span>👩‍🏫 ${t.name}</span>`:'<span style="color:var(--am)">⚠ Преподаватель не назначен</span>'}
+            ${l.phone?`<span>📱 ${l.phone}</span>`:''}
+            ${l.interest?`<span>📖 ${l.interest}</span>`:''}
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button onclick="openCRMCard('${l.id||Object.keys(snap.val()||{}).find(k=>snap.val()[k]===l)}')"
+            style="background:var(--acbg);border:1px solid var(--acb);border-radius:6px;color:var(--ac2);cursor:pointer;padding:4px 10px;font-size:11px;font-family:var(--fb)">✏️ Сделка</button>
+          ${!isPast&&t&&t.phone?`<button onclick="sendTrialNotify('${l.id||''}')"
+            style="background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.25);border-radius:6px;color:var(--gn);cursor:pointer;padding:4px 10px;font-size:11px;font-family:var(--fb)">📲 Уведомить</button>`:''}
+        </div>
+      </div>`;
+    };
+
+    let html = '';
+    if(upcoming.length){
+      html += `<div style="font-size:12px;font-weight:700;color:var(--t1);margin-bottom:10px">📅 Предстоящие · ${upcoming.length}</div>`;
+      html += `<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px">${upcoming.map(l=>renderCard(l,false)).join('')}</div>`;
+    }
+    if(past.length){
+      html += `<div style="font-size:12px;font-weight:700;color:var(--t3);margin-bottom:10px">✓ Прошедшие · ${past.length}</div>`;
+      html += `<div style="display:flex;flex-direction:column;gap:8px">${past.map(l=>renderCard(l,true)).join('')}</div>`;
+    }
+    if(!leads.length) html = '<div class="empty"><div class="empty-icon">🧪</div><div class="empty-text">Нет пробных уроков</div><div class="empty-sub">Назначайте из карточки CRM</div></div>';
+
+    el.innerHTML = html;
+  });
+}
+
+// Уведомление преподавателю о пробном уроке
+async function sendTrialNotify(leadId){
+  const snap = await crmRef.child(leadId).once('value');
+  const l = snap.val();
+  if(!l){ toast('Лид не найден',true); return; }
+  const t = (S.teachers||[]).find(t=>String(t.id)===String(l.trialTeacherId));
+  if(!t?.phone){ toast('У преподавателя нет телефона',true); return; }
+  const dt = l.trialDate ? new Date(l.trialDate+'T'+(l.trialTime||'12:00')).toLocaleDateString('ru',{day:'numeric',month:'long',weekday:'long'}) : '—';
+  const msg = `🧪 Пробный урок\n\n👤 Клиент: ${l.name||'—'}\n📱 Телефон: ${l.phone||'—'}\n📅 ${dt}${l.trialTime?' в '+l.trialTime:''}\n${l.interest?'📖 '+l.interest+'\n':''}${l.notes?'💬 '+l.notes:''}`;
+  const phone = t.phone.replace(/\D/g,'');
+  const res = await notifyWhatsApp('+'+phone, msg);
+  if(res?.ok) toast('✓ Преподаватель уведомлён в WhatsApp');
+  else toast('⚠ Ошибка отправки: '+(res?.error||''), true);
+}
+
+// Хук — при сохранении сделки если назначен пробный урок — уведомляем преподавателя
+async function maybeSendTrialNotify(leadId, prevTrialDate, newTrialDate, newTrialTeacherId){
+  if(!newTrialDate || !newTrialTeacherId) return;
+  if(prevTrialDate === newTrialDate) return; // не изменилось
+  await sendTrialNotify(leadId);
+}
 // По кнопке в карточке ученика открываем CRM лид если есть совпадение по телефону
 function findCRMLeadByPhone(phone){
   const p = (phone||'').replace(/\D/g,'');
@@ -10104,7 +10260,18 @@ function addCRMLinkToStudent(studentEl, phone){
           <div class="fr"><label>💰 Бюджет</label><input id="crm-f-budget" placeholder="20 000 тг/мес"/></div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-          <div class="fr"><label>📅 Дата пробного урока</label><input id="crm-f-trialdate" type="date"/></div>
+          <div class="fr"><label>📅 Дата и время пробного урока</label>
+            <div style="display:flex;gap:6px">
+              <input id="crm-f-trialdate" type="date" style="flex:1"/>
+              <input id="crm-f-trialtime" type="time" value="14:00" style="width:90px;background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:13px;padding:8px 8px"/>
+            </div>
+          </div>
+          <div class="fr">
+            <label>👩‍🏫 Преподаватель пробного урока</label>
+            <select id="crm-f-trialteacher" style="background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:13px;padding:8px 11px;width:100%">
+              <option value="">— Не назначен —</option>
+            </select>
+          </div>
           <div class="fr">
             <label>👤 Ответственный</label>
             <select id="crm-f-assignee" style="background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:13px;padding:8px 11px;width:100%">
