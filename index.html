@@ -8800,9 +8800,8 @@ function renderCRM(){
   el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--t3)">Загрузка...</div>';
   crmRef.once('value').then(snap=>{
     const raw = snap.val()||{};
-    // Важно: сохраняем Firebase-ключ как поле id
     const leads = Object.entries(raw)
-      .map(([key, val])=>({...val, id:key}))
+      .map(([key, val])=>({...val, id: val.id||key}))
       .sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
     renderCRMContent(leads);
   });
@@ -8977,6 +8976,11 @@ function openCRMCard(id){
   _crmEditId = id || null;
   const modal = document.getElementById('m-crm-card');
   if(!modal) return;
+  // Заполняем селект стадий динамически
+  const stageEl = document.getElementById('crm-f-stage');
+  if(stageEl && !stageEl.options.length){
+    stageEl.innerHTML = CRM_STAGES.map(s=>`<option value="${s.id}">${s.label}</option>`).join('');
+  }
   if(id){
     crmRef.child(id).once('value').then(snap=>{
       const l = snap.val()||{};
@@ -9277,7 +9281,6 @@ function initCRMBadge(){
           <div class="fr">
             <label>Стадия</label>
             <select id="crm-f-stage" style="background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:13px;padding:8px 11px;width:100%">
-              ${CRM_STAGES.map(s=>`<option value="${s.id}">${s.label}</option>`).join('')}
             </select>
           </div>
           <div class="fr"><label>📅 Дата пробного урока</label><input id="crm-f-trialdate" type="date"/></div>
