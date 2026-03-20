@@ -8801,7 +8801,7 @@ function renderCRM(){
   crmRef.once('value').then(snap=>{
     const raw = snap.val()||{};
     const leads = Object.entries(raw)
-      .map(([key, val])=>({...val, id: val.id||key}))
+      .map(([key, val])=>({...val, id: key}))  // всегда берём ключ Firebase, игнорируем сохранённое поле id
       .sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
     renderCRMContent(leads);
   });
@@ -8950,7 +8950,7 @@ function buildCRMList(leads){
 // ── DRAG & DROP ───────────────────────────────────────────────────
 function crmDrop(event, newStage){
   event.preventDefault();
-  if(!_crmDragId) return;
+  if(!_crmDragId || _crmDragId==='null' || _crmDragId==='undefined') return;
   const prev = {};
   crmRef.child(_crmDragId).once('value').then(snap=>{
     const l = snap.val();
