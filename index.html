@@ -9239,11 +9239,8 @@ function openCRMCard(id){
   const modal = document.getElementById('m-crm-card');
   if(!modal) return;
 
-  // Заполняем стадии
-  const stageEl = document.getElementById('crm-f-stage');
-  if(stageEl && !stageEl.options.length){
-    stageEl.innerHTML = CRM_STAGES.map(s=>`<option value="${s.id}">${s.label}</option>`).join('');
-  }
+  // Заполняем стадии — теперь через pipeline bar
+  renderCRMStageBar(id ? null : 'new');
 
   // Заполняем предметы из S.subjects
   const interestEl = document.getElementById('crm-f-interest');
@@ -9272,6 +9269,7 @@ function openCRMCard(id){
       document.getElementById('crm-f-age').value = l.childAge||'';
       document.getElementById('crm-f-notes').value = l.notes||'';
       document.getElementById('crm-f-stage').value = l.stage||'new';
+      renderCRMStageBar(l.stage||'new');
       document.getElementById('crm-f-assignee').value = l.assignee||'';
       document.getElementById('crm-f-trialdate').value = l.trialDate||'';
       document.getElementById('crm-card-ttl').textContent = 'Карточка клиента';
@@ -9289,6 +9287,7 @@ function openCRMCard(id){
     document.getElementById('crm-f-age').value='';
     document.getElementById('crm-f-notes').value='';
     document.getElementById('crm-f-stage').value='new';
+    renderCRMStageBar('new');
     document.getElementById('crm-f-assignee').value='';
     document.getElementById('crm-f-trialdate').value='';
     document.getElementById('crm-card-ttl').textContent = 'Новый лид';
@@ -9510,6 +9509,8 @@ let _wachatsListener = null;
 let _wachatOpenId = null; // текущий открытый чат
 let _wachatChatListener = null;
 
+let _wachatsTab = 'all'; // 'all' | 'clients' | 'staff'
+
 function renderWAChats(){
   const el = document.getElementById('wachats-body');
   if(!el) return;
@@ -9521,43 +9522,62 @@ function renderWAChats(){
     const raw = snap.val()||{};
     const leads = Object.entries(raw)
       .map(([key,val])=>({...val,id:key}))
-      .filter(l=>l.phone) // только у кого есть телефон
+      .filter(l=>l.phone)
       .sort((a,b)=>(b.lastContact||b.createdAt||'').localeCompare(a.lastContact||a.createdAt||''));
     renderWAChatsContent(leads);
   });
 }
 
+let _wachatsLastLeads = [];
+
 function renderWAChatsContent(leads){
   const el = document.getElementById('wachats-body');
   if(!el) return;
+  if(!leads){ leads = _wachatsLastLeads; }
+  _wachatsLastLeads = leads;
 
   const totalUnread = leads.reduce((s,l)=>s+(l.unreadCount||0),0);
   const b = document.getElementById('wachats-badge');
-  if(b){ b.textContent=totalUnread; b.style.display=totalUnread?'':'none'; }
+  if(b){ b.textContent=totalUnread||''; b.style.display=totalUnread?'':'none'; }
 
-  let html = `<div style="display:flex;gap:0;height:calc(100vh - 120px);background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden">
-    <!-- Список чатов -->
-    <div style="width:300px;flex-shrink:0;border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden">
-      <div style="padding:10px 12px;border-bottom:1px solid var(--b1);font-size:12px;font-weight:700;color:var(--t1);display:flex;align-items:center;justify-content:space-between">
-        <span>📱 WhatsApp чаты</span>
-        <span style="font-size:10px;color:var(--t3)">${leads.length} диалогов</span>
-      </div>
-      <div style="flex:1;overflow-y:auto">`;
-
-  // Разделяем на действующих клиентов и новых
-  const withStudent = [], withoutStudent = [];
-  leads.forEach(l=>{
+  // Classify
+  const staffPhones = new Set((S.teachers||[]).map(t=>(t.phone||'').replace(/\D/g,'')).filter(Boolean));
+  const enriched = leads.map(l=>{
     const p = (l.phone||'').replace(/\D/g,'');
-    const isExisting = p && (S.enrollments||[]).some(e=>{
+    const isStaff = staffPhones.has(p);
+    const isClient = !isStaff && p && (S.enrollments||[]).some(e=>{
       if(e.inactive) return false;
       const st = (S.students||[]).find(s=>s.id===e.studentId);
       return st && ((st.phone||'').replace(/\D/g,'')=== p || (st.parentPhone||'').replace(/\D/g,'')=== p);
     });
-    if(isExisting) withStudent.push({...l, _isExisting:true});
-    else withoutStudent.push(l);
+    return {...l, _isClient:isClient, _isStaff:isStaff};
   });
 
-  const renderChatItem = (l)=>{
+  const filtered = enriched.filter(l=>{
+    if(_wachatsTab==='clients') return l._isClient;
+    if(_wachatsTab==='staff') return l._isStaff;
+    return true;
+  });
+
+  const clientsN = enriched.filter(l=>l._isClient).length;
+  const staffN   = enriched.filter(l=>l._isStaff).length;
+
+  const tBtn=(id,lbl,count)=>{
+    const active = _wachatsTab===id;
+    return `<button onclick="_wachatsTab='${id}';renderWAChatsContent(null)"
+      style="flex:1;padding:8px 4px;font-size:11px;font-weight:${active?'700':'500'};border:none;border-bottom:2px solid ${active?'var(--ac)':'transparent'};background:transparent;color:${active?'var(--t1)':'var(--t3)'};cursor:pointer;font-family:var(--fb)">${lbl}${count?` (${count})`:''}</button>`;
+  };
+
+  let html = `<div style="display:flex;gap:0;height:calc(100vh - 120px);background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden">
+    <div style="width:300px;flex-shrink:0;border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden">
+      <div style="display:flex;border-bottom:1px solid var(--b1);background:var(--bg3);flex-shrink:0">
+        ${tBtn('all','Все',leads.length)}
+        ${tBtn('clients','Клиенты',clientsN)}
+        ${tBtn('staff','Сотрудники',staffN)}
+      </div>
+      <div style="flex:1;overflow-y:auto">`;
+
+  const renderItem = (l)=>{
     const stage = crmStage(l.stage);
     const unread = l.unreadCount||0;
     const isOpen = _wachatOpenId === l.id;
@@ -9568,7 +9588,7 @@ function renderWAChatsContent(leads){
       onmouseenter="if('${l.id}'!==_wachatOpenId)this.style.background='var(--bg3)'"
       onmouseleave="if('${l.id}'!==_wachatOpenId)this.style.background='${isOpen?'var(--acbg)':'transparent'}'">
       <div style="width:36px;height:36px;border-radius:50%;background:${stage.hex}33;border:2px solid ${stage.hex}66;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">
-        ${linkedStudent?'🎓':'👤'}
+        ${l._isStaff?'👩‍🏫':linkedStudent?'🎓':'👤'}
       </div>
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:4px">
@@ -9584,22 +9604,29 @@ function renderWAChatsContent(leads){
     </div>`;
   };
 
-  // Действующие клиенты
-  if(withStudent.length){
-    html += `<div style="padding:6px 12px;font-size:10px;font-weight:700;color:var(--gn);background:rgba(63,216,142,.06);border-bottom:1px solid rgba(63,216,142,.1);letter-spacing:.04em">🎓 ДЕЙСТВУЮЩИЕ КЛИЕНТЫ · ${withStudent.length}</div>`;
-    withStudent.forEach(l=>{ html += renderChatItem(l); });
+  if(_wachatsTab==='all'){
+    const clients = filtered.filter(l=>l._isClient);
+    const newLeads = filtered.filter(l=>!l._isClient&&!l._isStaff);
+    const staff = filtered.filter(l=>l._isStaff);
+    if(clients.length){
+      html += `<div style="padding:5px 12px;font-size:9px;font-weight:700;color:var(--gn);background:rgba(63,216,142,.06);border-bottom:1px solid rgba(63,216,142,.1);letter-spacing:.05em">🎓 ДЕЙСТВУЮЩИЕ КЛИЕНТЫ · ${clients.length}</div>`;
+      clients.forEach(l=>{ html += renderItem(l); });
+    }
+    if(newLeads.length){
+      html += `<div style="padding:5px 12px;font-size:9px;font-weight:700;color:var(--t3);background:var(--bg3);border-bottom:1px solid var(--b1);letter-spacing:.05em">💬 НОВЫЕ · ${newLeads.length}</div>`;
+      newLeads.forEach(l=>{ html += renderItem(l); });
+    }
+    if(staff.length){
+      html += `<div style="padding:5px 12px;font-size:9px;font-weight:700;color:var(--ac2);background:rgba(168,127,255,.06);border-bottom:1px solid rgba(168,127,255,.1);letter-spacing:.05em">👩‍🏫 СОТРУДНИКИ · ${staff.length}</div>`;
+      staff.forEach(l=>{ html += renderItem(l); });
+    }
+  } else {
+    filtered.forEach(l=>{ html += renderItem(l); });
   }
 
-  // Новые / потенциальные
-  if(withoutStudent.length){
-    html += `<div style="padding:6px 12px;font-size:10px;font-weight:700;color:var(--t3);background:var(--bg3);border-bottom:1px solid var(--b1);letter-spacing:.04em">💬 НОВЫЕ · ${withoutStudent.length}</div>`;
-    withoutStudent.forEach(l=>{ html += renderChatItem(l); });
-  }
-
-  if(!leads.length) html += '<div style="padding:40px 20px;text-align:center;color:var(--t3);font-size:12px">Нет диалогов</div>';
+  if(!filtered.length) html += '<div style="padding:40px 20px;text-align:center;color:var(--t3);font-size:12px">Нет диалогов</div>';
 
   html += `</div></div>
-    <!-- Область чата -->
     <div id="wachat-area" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
       <div style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:13px">
         👈 Выберите диалог
@@ -9609,7 +9636,6 @@ function renderWAChatsContent(leads){
 
   el.innerHTML = html;
 
-  // Если был открыт чат — переоткрываем
   if(_wachatOpenId && leads.find(l=>l.id===_wachatOpenId)){
     openWAChat(_wachatOpenId, true);
   }
@@ -9732,7 +9758,25 @@ function initWAUnreadListener(){
 // (патчим функцию — она уже определена выше, перезаписываем)
 const _origBuildCRMCard = buildCRMCard;
 
-// ── Создание ученика из CRM-сделки ───────────────────────────────
+// ── Stage pipeline bar ───────────────────────────────────────────
+function renderCRMStageBar(activeId){
+  const bar = document.getElementById('crm-stage-bar');
+  if(!bar) return;
+  const currentId = activeId || document.getElementById('crm-f-stage')?.value || 'new';
+  bar.innerHTML = '';
+  CRM_STAGES.forEach((stage, i)=>{
+    const isActive = stage.id === currentId;
+    const btn = document.createElement('button');
+    btn.style.cssText = `flex:1;padding:9px 4px;border:none;border-right:${i<CRM_STAGES.length-1?'1px solid rgba(255,255,255,.08)':'none'};cursor:pointer;font-family:var(--fb);font-size:11px;font-weight:${isActive?'700':'500'};color:${isActive?'#fff':stage.hex};background:${isActive?stage.hex+'cc':'transparent'};transition:background .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis`;
+    btn.textContent = stage.label;
+    btn.title = stage.label;
+    btn.addEventListener('click', ()=>{
+      document.getElementById('crm-f-stage').value = stage.id;
+      renderCRMStageBar(stage.id);
+    });
+    bar.appendChild(btn);
+  });
+}
 let _crmLeadForStudent = null; // leadId при создании ученика из CRM
 
 function openStudentFromLead(){
@@ -9918,10 +9962,15 @@ function addCRMLinkToStudent(studentEl, phone){
 <!-- ── CRM: CARD MODAL ──────────────────────────────────────── -->
 <div class="mo" id="m-crm-card">
   <div class="modal modal-xl" style="max-height:94vh;overflow-y:auto;max-width:960px;width:96vw">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px">
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px">
       <div class="mt" id="crm-card-ttl" style="margin-bottom:0">Новый лид</div>
       <button class="btn btn-xs btn-r" onclick="deleteCRMCard()" id="crm-del-btn">🗑 Удалить</button>
     </div>
+
+    <!-- STAGE PIPELINE BAR -->
+    <div id="crm-stage-bar" style="display:flex;gap:0;margin-bottom:16px;border:1px solid var(--b1);border-radius:var(--r);overflow:hidden"></div>
+    <input type="hidden" id="crm-f-stage"/>
 
     <!-- TOP ROW: поля + чат -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
@@ -9954,17 +10003,13 @@ function addCRMLinkToStudent(studentEl, phone){
           <div class="fr"><label>💰 Бюджет</label><input id="crm-f-budget" placeholder="20 000 тг/мес"/></div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-          <div class="fr">
-            <label>Стадия</label>
-            <select id="crm-f-stage" style="background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:13px;padding:8px 11px;width:100%"></select>
-          </div>
           <div class="fr"><label>📅 Дата пробного урока</label><input id="crm-f-trialdate" type="date"/></div>
-        </div>
-        <div class="fr">
-          <label>👤 Ответственный</label>
-          <select id="crm-f-assignee" style="background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:13px;padding:8px 11px;width:100%">
-            <option value="">— Не назначен —</option>
-          </select>
+          <div class="fr">
+            <label>👤 Ответственный</label>
+            <select id="crm-f-assignee" style="background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:13px;padding:8px 11px;width:100%">
+              <option value="">— Не назначен —</option>
+            </select>
+          </div>
         </div>
         <div class="fr"><label>📝 Заметки</label><textarea id="crm-f-notes" placeholder="Важные детали..." rows="2"></textarea></div>
         <div style="display:flex;gap:8px;margin-top:4px">
