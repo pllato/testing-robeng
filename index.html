@@ -9215,7 +9215,7 @@ function renderCRMContent(leads){
   const counts={};
   leads.forEach(l=>{ counts[l.stage]=(counts[l.stage]||0)+1; });
 
-  const vBtn=(v,lbl)=>`<button onclick="_crmView='${v}';renderCRMContent(leads)" style="padding:5px 12px;font-size:12px;border-radius:6px;border:1px solid;cursor:pointer;font-family:var(--fb);${_crmView===v?'background:var(--ac);border-color:var(--ac);color:#fff':'background:var(--bg3);border-color:var(--b2);color:var(--t2)'}">${lbl}</button>`;
+  const vBtn=(v,lbl)=>`<button onclick="_crmView='${v}';renderCRM()" style="padding:5px 12px;font-size:12px;border-radius:6px;border:1px solid;cursor:pointer;font-family:var(--fb);${_crmView===v?'background:var(--ac);border-color:var(--ac);color:#fff':'background:var(--bg3);border-color:var(--b2);color:var(--t2)'}">${lbl}</button>`;
 
   let html = `
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
@@ -10378,6 +10378,8 @@ function renderTrialCalendar(){
 }
 
 function buildTrialCalendarHTML(el, leads, raw){
+  const now2 = new Date();
+  if(!_trialCalMonth) _trialCalMonth = {year: now2.getFullYear(), month: now2.getMonth()};
   const {year, month} = _trialCalMonth;
   const today = new Date().toISOString().slice(0,10);
 
