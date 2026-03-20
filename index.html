@@ -9106,21 +9106,30 @@ let _crmSearchMsgs = {}; // cache: leadId → joined text
 let _crmSearchPending = false;
 
 async function crmSearchInMessages(q, leads){
-  // Загружаем тексты сообщений параллельно для лидов без кэша
   const toFetch = leads.filter(l=>l.id && !_crmSearchMsgs[l.id]);
   if(toFetch.length){
     await Promise.all(toFetch.map(async l=>{
       try{
         const snap = await crmChatRef.child(l.id).once('value');
         const msgs = snap.val()||{};
-        _crmSearchMsgs[l.id] = Object.values(msgs).map(m=>m.text||'').join(' ').toLowerCase();
+        // Build text: messages + linked student full data
+        let extra = '';
+        const linkedIds = l.linkedEnrollments || [];
+        const linkedArr = Array.isArray(linkedIds) ? linkedIds : Object.values(linkedIds);
+        linkedArr.forEach(enrollId=>{
+          const enroll = (S.enrollments||[]).find(e=>String(e.id)===String(enrollId));
+          const stu = enroll && (S.students||[]).find(s=>s.id===enroll.studentId);
+          if(stu) extra += [stu.name,stu.parent,stu.phone,stu.parentPhone,stu.notes].filter(Boolean).join(' ')+' ';
+        });
+        _crmSearchMsgs[l.id] = (Object.values(msgs).map(m=>m.text||'').join(' ')+' '+extra).toLowerCase();
       }catch(e){ _crmSearchMsgs[l.id]=''; }
     }));
   }
   const qL = q.toLowerCase();
+  const qDigits = normalizePhone(q);
   return new Set(leads.filter(l=>{
-    const hay = [l.name||'',l.phone||'',l.notes||'',l.interest||'',l.budget||'',_crmSearchMsgs[l.id]||''].join(' ').toLowerCase();
-    return hay.includes(qL);
+    const hay = _crmSearchMsgs[l.id]||'';
+    return hay.includes(qL) || (qDigits.length>=4 && hay.replace(/\D/g,'').includes(qDigits));
   }).map(l=>l.id));
 }
 
@@ -9134,14 +9143,47 @@ function renderCRMContent(leads){
       const q = _crmFilter.search.toLowerCase();
       const qDigits = normalizePhone(_crmFilter.search);
       const lPhoneNorm = normalizePhone(l.phone||'');
+
+      // Basic lead fields
       const basicMatch =
         (l.name||'').toLowerCase().includes(q) ||
         (qDigits.length>=4 && lPhoneNorm.includes(qDigits)) ||
         (l.notes||'').toLowerCase().includes(q) ||
         (l.interest||'').toLowerCase().includes(q) ||
         (l.budget||'').toLowerCase().includes(q);
-      if(_crmHighlightIds) return basicMatch || _crmHighlightIds.has(l.id);
-      return basicMatch;
+      if(basicMatch) return true;
+
+      // Search in linked enrollments + students
+      const linkedIds = l.linkedEnrollments || [];
+      const linkedEnrollArr = Array.isArray(linkedIds) ? linkedIds : Object.values(linkedIds);
+      const studentMatch = linkedEnrollArr.some(enrollId=>{
+        const enroll = (S.enrollments||[]).find(e=>String(e.id)===String(enrollId));
+        if(!enroll) return false;
+        const stu = (S.students||[]).find(s=>s.id===enroll.studentId);
+        if(!stu) return false;
+        const stuPhoneNorm = normalizePhone(stu.phone||'');
+        const parentPhoneNorm = normalizePhone(stu.parentPhone||'');
+        return (
+          (stu.name||'').toLowerCase().includes(q) ||
+          (stu.parent||'').toLowerCase().includes(q) ||
+          (qDigits.length>=4 && stuPhoneNorm.includes(qDigits)) ||
+          (qDigits.length>=4 && parentPhoneNorm.includes(qDigits)) ||
+          (stu.notes||'').toLowerCase().includes(q)
+        );
+      });
+      if(studentMatch) return true;
+
+      // Also check if any student phone matches lead phone (not yet linked but same number)
+      const stuByPhone = (S.enrollments||[]).some(e=>{
+        const stu = (S.students||[]).find(s=>s.id===e.studentId);
+        if(!stu) return false;
+        return normalizePhone(stu.phone||'')=== lPhoneNorm ||
+               normalizePhone(stu.parentPhone||'')=== lPhoneNorm;
+      });
+      if(stuByPhone && qDigits.length>=4 && lPhoneNorm.includes(qDigits)) return true;
+
+      if(_crmHighlightIds) return _crmHighlightIds.has(l.id);
+      return false;
     }
     return true;
   });
@@ -9803,6 +9845,21 @@ function renderWAChatsContent(leads){
       (wqDigits.length>=4 && pNorm.includes(wqDigits)) ||
       (l.notes||'').toLowerCase().includes(wq);
     if(basic) return true;
+
+    // Search in linked students
+    const linkedIds = l.linkedEnrollments || [];
+    const linkedArr = Array.isArray(linkedIds) ? linkedIds : Object.values(linkedIds);
+    const stuMatch = linkedArr.some(enrollId=>{
+      const enroll = (S.enrollments||[]).find(e=>String(e.id)===String(enrollId));
+      const stu = enroll && (S.students||[]).find(s=>s.id===enroll.studentId);
+      if(!stu) return false;
+      return (stu.name||'').toLowerCase().includes(wq) ||
+             (stu.parent||'').toLowerCase().includes(wq) ||
+             (wqDigits.length>=4 && normalizePhone(stu.phone||'').includes(wqDigits)) ||
+             (wqDigits.length>=4 && normalizePhone(stu.parentPhone||'').includes(wqDigits));
+    });
+    if(stuMatch) return true;
+
     return !!(_wachatSearchMsgIndex[l.id]||'').includes(wq);
   });
 
