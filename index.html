@@ -4613,6 +4613,11 @@ function saveStudent(){
   const actSt=S.students.find(s=>s.id===stu.id);const actT=teacher(tid);
   logAction('enroll',editSId?`Изменена запись: ${name}`:`Записан: ${name}`,`${actT?.name||'—'} · ${slots.map(s=>DS[s.day]).join(' ')} ${TIMES[ti]} · ${fmtDate(dateStart)}–${fmtDate(dateEnd)}`);
   save();close1('m-student');renderStudents();renderSchedule();toast('Ученик записан');
+  // Если создаём ученика из CRM-сделки — привязываем
+  if(!editSId && _crmLeadForStudent){
+    const newEnrollId = S.enrollments[S.enrollments.length-1]?.id;
+    linkStudentToLead(newEnrollId, stu.id);
+  }
 }
 
 // ── STUDENTS LIST — one card per student ──────────────────────────
@@ -9073,6 +9078,7 @@ function openCRMCard(id){
       document.getElementById('crm-card-ttl').textContent = 'Карточка клиента';
       // Load chat preview
       loadCRMChatPreview(id);
+      renderCRMStudents(id);
       modal.classList.add('open');
     });
   } else {
@@ -9504,6 +9510,116 @@ function initWAUnreadListener(){
 // (патчим функцию — она уже определена выше, перезаписываем)
 const _origBuildCRMCard = buildCRMCard;
 
+// ── Создание ученика из CRM-сделки ───────────────────────────────
+let _crmLeadForStudent = null; // leadId при создании ученика из CRM
+
+function openStudentFromLead(){
+  if(!_crmEditId){ toast('Сначала сохраните карточку',true); return; }
+  _crmLeadForStudent = _crmEditId;
+
+  // Берём данные из формы лида для предзаполнения
+  const parentName  = document.getElementById('crm-f-name').value.trim();
+  const parentPhone = document.getElementById('crm-f-phone').value.trim();
+  const childAge    = document.getElementById('crm-f-age').value.trim();
+
+  // Закрываем карточку CRM, открываем форму ученика
+  close1('m-crm-card');
+  openStudentModal(null);
+
+  // Предзаполняем поля ученика данными из лида
+  setTimeout(()=>{
+    // Имя ученика пустое — пусть сотрудник введёт
+    document.getElementById('s-parent').value = parentName;
+    document.getElementById('s-parent-phone').value = parentPhone;
+    if(childAge) document.getElementById('s-age').value = childAge;
+    // Подсказка в заголовке
+    const ttl = document.getElementById('m-stu-ttl');
+    if(ttl) ttl.textContent = '🎓 Новый ученик из сделки';
+  }, 50);
+}
+
+// Вызывается после saveStudent() — записываем связь ученик → лид
+function linkStudentToLead(enrollmentId, studentId){
+  if(!_crmLeadForStudent) return;
+  const leadId = _crmLeadForStudent;
+  _crmLeadForStudent = null;
+
+  // Сохраняем в лиде список id записей (enrollments) связанных учеников
+  crmRef.child(leadId+'/linkedEnrollments').once('value').then(snap=>{
+    const existing = snap.val() || [];
+    if(!existing.includes(enrollmentId)){
+      crmRef.child(leadId+'/linkedEnrollments').set([...existing, enrollmentId]);
+    }
+  });
+
+  // Логируем в чат лида
+  const st = (S.students||[]).find(s=>s.id===studentId);
+  const now = new Date().toISOString();
+  crmChatRef.child(leadId).push({
+    type:'system',
+    text:`🎓 Создан ученик: ${st?.name||'—'} (телефон: ${st?.phone||st?.parentPhone||'—'})`,
+    ts: now, uid: fbAuth.currentUser?.uid||'', name:'Система'
+  });
+
+  // Переключаем стадию лида на "Стал учеником" если была меньше
+  crmRef.child(leadId+'/stage').once('value').then(snap=>{
+    const stage = snap.val();
+    const stageOrder = CRM_STAGES.map(s=>s.id);
+    const activeIdx = stageOrder.indexOf('active');
+    if(stageOrder.indexOf(stage) < activeIdx){
+      crmRef.child(leadId).update({stage:'active', updatedAt:now});
+      toast('✓ Ученик создан, сделка → «Стал учеником»');
+    } else {
+      toast('✓ Ученик создан и привязан к сделке');
+    }
+  });
+
+  // Возвращаемся в карточку CRM
+  setTimeout(()=>openCRMCard(leadId), 300);
+}
+
+// Показываем учеников привязанных к лиду
+function renderCRMStudents(leadId){
+  const el = document.getElementById('crm-students-list');
+  if(!el) return;
+
+  crmRef.child(leadId+'/linkedEnrollments').once('value').then(snap=>{
+    const enrollIds = snap.val() || [];
+
+    // Также ищем по совпадению телефона
+    const leadPhone = (document.getElementById('crm-f-phone')?.value||'').replace(/\D/g,'');
+    const byPhone = (S.enrollments||[]).filter(e=>{
+      const st = (S.students||[]).find(s=>s.id===e.studentId);
+      return st && ((st.phone||'').replace(/\D/g,'')=== leadPhone || (st.parentPhone||'').replace(/\D/g,'')=== leadPhone);
+    });
+
+    // Объединяем
+    const allEnrollIds = [...new Set([...enrollIds, ...byPhone.map(e=>e.id)])];
+    const enrollments = (S.enrollments||[]).filter(e=>allEnrollIds.includes(e.id));
+
+    if(!enrollments.length){
+      el.innerHTML = '<div style="color:var(--t3);font-size:11px;text-align:center;padding:20px 0">Нет учеников — нажмите «+ Ученик»</div>';
+      return;
+    }
+
+    el.innerHTML = enrollments.map(e=>{
+      const st = (S.students||[]).find(s=>s.id===e.studentId);
+      const t = (S.teachers||[]).find(t=>String(t.id)===String(e.teacherId));
+      const slots = (e.slots||[]).map(sl=>DS[sl.day]).join(', ');
+      const inactive = e.inactive;
+      return `<div style="background:var(--bg2);border:1px solid var(--b1);border-radius:8px;padding:9px 11px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px;opacity:${inactive?'.5':'1'}">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:600;color:var(--t1);margin-bottom:2px">${st?.name||'—'} ${inactive?'<span style="font-size:9px;color:var(--rd)">(неактивен)</span>':''}</div>
+          <div style="font-size:10px;color:var(--t3)">${t?'👩‍🏫 '+t.name:''} ${slots?'· '+slots:''}</div>
+          <div style="font-size:10px;color:var(--t3)">${e.dateStart||''} → ${e.dateEnd||''}</div>
+        </div>
+        <button onclick="close1('m-crm-card');openStudentModal('${e.id}')"
+          style="background:var(--bg3);border:1px solid var(--b2);border-radius:5px;color:var(--t2);cursor:pointer;padding:3px 7px;font-size:10px;flex-shrink:0">✏️</button>
+      </div>`;
+    }).join('');
+  });
+}
+
 // ── Связь Ученик ↔ Лид ──────────────────────────────────────────
 // По кнопке в карточке ученика открываем CRM лид если есть совпадение по телефону
 function findCRMLeadByPhone(phone){
@@ -9577,15 +9693,15 @@ function addCRMLinkToStudent(studentEl, phone){
 <!-- ── ONBOARDING OVERLAY ───────────────────────────────────────── -->
 <!-- ── CRM: CARD MODAL ──────────────────────────────────────── -->
 <div class="mo" id="m-crm-card">
-  <div class="modal modal-xl" style="max-height:92vh;overflow-y:auto">
+  <div class="modal modal-xl" style="max-height:92vh;overflow-y:auto;max-width:1100px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:10px">
       <div class="mt" id="crm-card-ttl" style="margin-bottom:0">Новый лид</div>
       <button class="btn btn-xs btn-r" onclick="deleteCRMCard()" id="crm-del-btn">🗑 Удалить</button>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px">
-      <!-- Left: fields -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px">
+      <!-- Col 1: fields -->
       <div>
-        <div class="fr"><label>ФИО / Имя</label><input id="crm-f-name" placeholder="Иванова Татьяна"/></div>
+        <div class="fr"><label>ФИО / Имя клиента</label><input id="crm-f-name" placeholder="Иванова Татьяна"/></div>
         <div class="fr"><label>📱 Телефон WhatsApp</label><input id="crm-f-phone" placeholder="+7 700 000 00 00"/></div>
         <div class="fr">
           <label>Источник</label>
@@ -9619,10 +9735,22 @@ function addCRMLinkToStudent(studentEl, phone){
           <button class="btn btn-a" onclick="saveCRMCard()">💾 Сохранить</button>
         </div>
       </div>
-      <!-- Right: mini chat -->
+      <!-- Col 2: students -->
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:12px;font-weight:700;color:var(--t1)">🎓 Ученики по этой сделке</div>
+          <button id="crm-add-student-btn" onclick="openStudentFromLead()"
+            style="background:var(--gn);border:none;border-radius:6px;color:var(--bg);font-size:11px;font-weight:700;padding:5px 10px;cursor:pointer;font-family:var(--fb)">+ Ученик</button>
+        </div>
+        <div id="crm-students-list" style="flex:1;background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);padding:10px;min-height:120px;display:flex;flex-direction:column;gap:8px">
+          <div style="color:var(--t3);font-size:11px;text-align:center;padding:20px 0">Нет учеников — нажмите «+ Ученик»</div>
+        </div>
+        <div style="font-size:10px;color:var(--t3)">Один клиент может записать нескольких детей</div>
+      </div>
+      <!-- Col 3: mini chat -->
       <div style="display:flex;flex-direction:column;gap:8px">
         <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:2px">💬 Переписка</div>
-        <div id="crm-chat-preview" style="flex:1;min-height:260px;max-height:380px;overflow-y:auto;background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);padding:10px"></div>
+        <div id="crm-chat-preview" style="flex:1;min-height:260px;max-height:340px;overflow-y:auto;background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);padding:10px"></div>
         <div style="display:flex;gap:6px">
           <textarea id="crm-chat-inp" placeholder="Внутренняя заметка или ответ..." rows="2"
             style="flex:1;background:var(--bg3);border:1px solid var(--b2);border-radius:8px;color:var(--t1);font-family:var(--fb);font-size:12px;padding:7px 10px;resize:none"
