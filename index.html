@@ -8799,7 +8799,11 @@ function renderCRM(){
   if(!el) return;
   el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--t3)">Загрузка...</div>';
   crmRef.once('value').then(snap=>{
-    const leads = Object.values(snap.val()||{}).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+    const raw = snap.val()||{};
+    // Важно: сохраняем Firebase-ключ как поле id
+    const leads = Object.entries(raw)
+      .map(([key, val])=>({...val, id:key}))
+      .sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
     renderCRMContent(leads);
   });
 }
@@ -9026,14 +9030,16 @@ function saveCRMCard(){
     updatedAt: now,
   };
   if(_crmEditId){
+    data.id = _crmEditId;
     crmRef.child(_crmEditId).update(data).then(()=>{
       close1('m-crm-card'); renderCRM(); toast('Карточка сохранена');
     });
   } else {
     data.createdAt = now;
     data.msgCount = 0;
-    const ref = crmRef.push(data);
-    ref.then(()=>{ close1('m-crm-card'); renderCRM(); toast('Лид создан'); });
+    const ref = crmRef.push();   // сначала получаем ключ
+    data.id = ref.key;           // пишем id в данные
+    ref.set(data).then(()=>{ close1('m-crm-card'); renderCRM(); toast('Лид создан'); });
   }
 }
 
