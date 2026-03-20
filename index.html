@@ -9106,30 +9106,23 @@ let _crmSearchMsgs = {}; // cache: leadId → joined text
 let _crmSearchPending = false;
 
 async function crmSearchInMessages(q, leads){
-  const toFetch = leads.filter(l=>l.id && !_crmSearchMsgs[l.id]);
+  // Load message text for leads not yet cached
+  const toFetch = leads.filter(l=>l.id && _crmSearchMsgs[l.id]===undefined);
   if(toFetch.length){
     await Promise.all(toFetch.map(async l=>{
       try{
         const snap = await crmChatRef.child(l.id).once('value');
         const msgs = snap.val()||{};
-        // Build text: messages + linked student full data
-        let extra = '';
-        const linkedIds = l.linkedEnrollments || [];
-        const linkedArr = Array.isArray(linkedIds) ? linkedIds : Object.values(linkedIds);
-        linkedArr.forEach(enrollId=>{
-          const enroll = (S.enrollments||[]).find(e=>String(e.id)===String(enrollId));
-          const stu = enroll && (S.students||[]).find(s=>s.id===enroll.studentId);
-          if(stu) extra += [stu.name,stu.parent,stu.phone,stu.parentPhone,stu.notes].filter(Boolean).join(' ')+' ';
-        });
-        _crmSearchMsgs[l.id] = (Object.values(msgs).map(m=>m.text||'').join(' ')+' '+extra).toLowerCase();
+        _crmSearchMsgs[l.id] = Object.values(msgs).map(m=>m.text||'').join(' ').toLowerCase();
       }catch(e){ _crmSearchMsgs[l.id]=''; }
     }));
   }
+  // Return leads that match via messages (sync index via buildLeadIndex picks up _crmSearchMsgs)
   const qL = q.toLowerCase();
-  const qDigits = normalizePhone(q);
+  const qDigits = qL.replace(/\D/g,'');
   return new Set(leads.filter(l=>{
     const hay = _crmSearchMsgs[l.id]||'';
-    return hay.includes(qL) || (qDigits.length>=4 && hay.replace(/\D/g,'').includes(qDigits));
+    return hay.includes(qL) || (qDigits.length>=3 && hay.replace(/\D/g,'').includes(qDigits));
   }).map(l=>l.id));
 }
 
@@ -9137,55 +9130,82 @@ function renderCRMContent(leads){
   const el = document.getElementById('crm-body');
   if(!el) return;
 
+  // ── Build full-text index per lead (synchronous, all local data) ──
+  function buildLeadIndex(l){
+    const parts = [];
+
+    // Lead own fields
+    parts.push(l.name||'', l.phone||'', l.notes||'', l.interest||'',
+               l.budget||'', l.source||'', l.assignee||'');
+
+    // Normalized phone digits
+    const lPhoneNorm = normalizePhone(l.phone||'');
+    parts.push(lPhoneNorm);
+
+    // Assigned teacher
+    const assignedTeacher = (S.teachers||[]).find(t=>String(t.id)===String(l.assignee));
+    if(assignedTeacher) parts.push(assignedTeacher.name||'');
+
+    // Trial teacher
+    const trialTeacher = (S.teachers||[]).find(t=>String(t.id)===String(l.trialTeacherId));
+    if(trialTeacher) parts.push(trialTeacher.name||'');
+
+    // All students matching by phone (direct link by number)
+    const matchedByPhone = (S.students||[]).filter(s=>{
+      const sp = normalizePhone(s.phone||'');
+      const pp = normalizePhone(s.parentPhone||'');
+      return (sp && sp===lPhoneNorm) || (pp && pp===lPhoneNorm);
+    });
+    matchedByPhone.forEach(s=>{
+      parts.push(s.name||'', s.parent||'', s.phone||'', s.parentPhone||'',
+                 normalizePhone(s.phone||''), normalizePhone(s.parentPhone||''), s.notes||'');
+      // Their enrollments
+      const enrs = (S.enrollments||[]).filter(e=>e.studentId===s.id);
+      enrs.forEach(e=>{
+        const tch = (S.teachers||[]).find(t=>String(t.id)===String(e.teacherId));
+        if(tch) parts.push(tch.name||'');
+        const sj = (S.subjects||[]).find(sj=>sj.id===e.subjId);
+        if(sj) parts.push(sj.name||'');
+      });
+    });
+
+    // Explicitly linked enrollments
+    const linkedIds = l.linkedEnrollments||[];
+    const linkedArr = Array.isArray(linkedIds)?linkedIds:Object.values(linkedIds);
+    linkedArr.forEach(enrollId=>{
+      const enroll = (S.enrollments||[]).find(e=>String(e.id)===String(enrollId));
+      if(!enroll) return;
+      const stu = (S.students||[]).find(s=>s.id===enroll.studentId);
+      if(stu){
+        parts.push(stu.name||'', stu.parent||'', stu.phone||'', stu.parentPhone||'',
+                   normalizePhone(stu.phone||''), normalizePhone(stu.parentPhone||''), stu.notes||'');
+      }
+      const tch = (S.teachers||[]).find(t=>String(t.id)===String(enroll.teacherId));
+      if(tch) parts.push(tch.name||'');
+    });
+
+    // Messages (from async cache if already loaded)
+    if(_crmSearchMsgs[l.id]) parts.push(_crmSearchMsgs[l.id]);
+
+    return parts.join(' ').toLowerCase();
+  }
+
   const filtered = leads.filter(l=>{
     if(_crmFilter.stage && l.stage!==_crmFilter.stage) return false;
-    if(_crmFilter.search){
-      const q = _crmFilter.search.toLowerCase();
-      const qDigits = normalizePhone(_crmFilter.search);
-      const lPhoneNorm = normalizePhone(l.phone||'');
+    if(!_crmFilter.search) return true;
 
-      // Basic lead fields
-      const basicMatch =
-        (l.name||'').toLowerCase().includes(q) ||
-        (qDigits.length>=4 && lPhoneNorm.includes(qDigits)) ||
-        (l.notes||'').toLowerCase().includes(q) ||
-        (l.interest||'').toLowerCase().includes(q) ||
-        (l.budget||'').toLowerCase().includes(q);
-      if(basicMatch) return true;
+    const q = _crmFilter.search.toLowerCase().trim();
+    if(!q) return true;
 
-      // Search in linked enrollments + students
-      const linkedIds = l.linkedEnrollments || [];
-      const linkedEnrollArr = Array.isArray(linkedIds) ? linkedIds : Object.values(linkedIds);
-      const studentMatch = linkedEnrollArr.some(enrollId=>{
-        const enroll = (S.enrollments||[]).find(e=>String(e.id)===String(enrollId));
-        if(!enroll) return false;
-        const stu = (S.students||[]).find(s=>s.id===enroll.studentId);
-        if(!stu) return false;
-        const stuPhoneNorm = normalizePhone(stu.phone||'');
-        const parentPhoneNorm = normalizePhone(stu.parentPhone||'');
-        return (
-          (stu.name||'').toLowerCase().includes(q) ||
-          (stu.parent||'').toLowerCase().includes(q) ||
-          (qDigits.length>=4 && stuPhoneNorm.includes(qDigits)) ||
-          (qDigits.length>=4 && parentPhoneNorm.includes(qDigits)) ||
-          (stu.notes||'').toLowerCase().includes(q)
-        );
-      });
-      if(studentMatch) return true;
+    const idx = buildLeadIndex(l);
+    // Text match
+    if(idx.includes(q)) return true;
 
-      // Also check if any student phone matches lead phone (not yet linked but same number)
-      const stuByPhone = (S.enrollments||[]).some(e=>{
-        const stu = (S.students||[]).find(s=>s.id===e.studentId);
-        if(!stu) return false;
-        return normalizePhone(stu.phone||'')=== lPhoneNorm ||
-               normalizePhone(stu.parentPhone||'')=== lPhoneNorm;
-      });
-      if(stuByPhone && qDigits.length>=4 && lPhoneNorm.includes(qDigits)) return true;
+    // Partial phone — any run of digits ≥3
+    const qDigits = q.replace(/\D/g,'');
+    if(qDigits.length>=3 && idx.replace(/\D/g,'').includes(qDigits)) return true;
 
-      if(_crmHighlightIds) return _crmHighlightIds.has(l.id);
-      return false;
-    }
-    return true;
+    return false;
   });
 
   // Count by stage for badges
@@ -9219,25 +9239,24 @@ function renderCRMContent(leads){
   el.innerHTML = html;
 
   // Search on Enter only
-  let _crmSearchTimer = null;
   const searchInp = document.getElementById('crm-search-inp');
   if(searchInp){
     searchInp.addEventListener('keydown', async (e)=>{
-      if(e.key !== 'Enter') return;
+      if(e.key==='Escape'){
+        _crmFilter.search=''; _crmHighlightIds=null;
+        searchInp.value=''; renderCRMContent(leads); return;
+      }
+      if(e.key!=='Enter') return;
       _crmFilter.search = searchInp.value.trim();
       if(!_crmFilter.search){ _crmHighlightIds=null; renderCRMContent(leads); return; }
-      // Immediate basic filter
+      // Immediate sync render (name/phone/students)
       renderCRMContent(leads);
-      // Deep search in messages
+      // Then async load messages and re-render
       _crmHighlightIds = await crmSearchInMessages(_crmFilter.search, leads);
       renderCRMContent(leads);
-      // Restore cursor in input
+      // Restore focus
       const inp2 = document.getElementById('crm-search-inp');
       if(inp2){ inp2.value=_crmFilter.search; inp2.focus(); inp2.setSelectionRange(inp2.value.length,inp2.value.length); }
-    });
-    // Clear on Escape
-    searchInp.addEventListener('keydown', (e)=>{
-      if(e.key==='Escape'){ _crmFilter.search=''; _crmHighlightIds=null; searchInp.value=''; renderCRMContent(leads); }
     });
   }
 
