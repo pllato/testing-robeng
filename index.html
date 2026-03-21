@@ -9981,35 +9981,100 @@ function crmCall(id){
   crmRef.child(id).once('value').then(async snap=>{
     const l = snap.val();
     if(!l?.phone){ toast('Нет телефона',true); return; }
-    const phone = (l.phone||'').replace(/[^\d]/g,'');
-    // Получаем ext напрямую из Firebase (чтобы не зависеть от кэша S.appUsers)
+    const clientPhone = '+' + (l.phone||'').replace(/[^\d]/g,'');
+    const clientName  = l.name || clientPhone;
+
+    // Определяем чья линия: ответственный за сделку, иначе — текущий пользователь
     const myUid = fbAuth.currentUser?.uid;
     if(!myUid){ toast('Не авторизован',true); return; }
-    const userSnap = await usersRef.child(myUid).once('value');
-    const userData = userSnap.val()||{};
-    // Обновляем локальный кэш
-    if(S.appUsers) S.appUsers[myUid] = {...(S.appUsers[myUid]||{}), ...userData};
-    const myExt = userData.binotelExt;
-    if(!myExt){
-      toast('⚠ Укажите линию Binotel в своём профиле (раздел Пользователи → ✎ Редактировать)',true);
+
+    const assigneeUid = l.assigneeUid || myUid;
+    // Читаем данные ответственного напрямую из Firebase
+    const assigneeSnap = await usersRef.child(assigneeUid).once('value');
+    const assigneeData = assigneeSnap.val()||{};
+    if(S.appUsers) S.appUsers[assigneeUid] = {...(S.appUsers[assigneeUid]||{}), ...assigneeData};
+
+    const ext = assigneeData.binotelExt;
+    const assigneeName = assigneeData.name || assigneeData.email || 'Ответственный';
+
+    if(!ext){
+      // Если у ответственного нет линии — пробуем текущего пользователя
+      const meSnap = await usersRef.child(myUid).once('value');
+      const meData = meSnap.val()||{};
+      if(!meData.binotelExt){
+        toast(`⚠ У ${assigneeName} не указана линия Binotel. Укажите в профиле пользователя.`, true);
+        return;
+      }
+      // Используем линию текущего пользователя с предупреждением
+      showCallModal({
+        ext: meData.binotelExt,
+        operatorName: meData.name||'Вы',
+        clientName, clientPhone, leadId: id,
+        warning: `⚠ У ответственного (${assigneeName}) нет линии — звоним с вашей`
+      });
       return;
     }
-    try{
-      const resp = await fetch('https://flat-pond-6e68.uurraa.workers.dev/binotel-call',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ext_number:myExt, phone_number:phone, leadId:id})
-      });
-      const data = await resp.json().catch(()=>({}));
-      if(data.ok){
-        toast('📞 Звоним! Сначала ваш телефон, потом клиент');
-      } else {
-        // Показываем полный ответ для диагностики
-        const errDetail = data.raw ? JSON.stringify(data.raw) : (data.error||'ошибка');
-        console.error('Binotel error:', data);
-        toast('⚠ Binotel: '+data.error+' | '+errDetail, true);
-      }
-    }catch(e){ toast('⚠ Ошибка звонка: '+e.message,true); }
+
+    showCallModal({ ext, operatorName: assigneeName, clientName, clientPhone, leadId: id });
+  });
+}
+
+function showCallModal({ ext, operatorName, clientName, clientPhone, leadId, warning }){
+  // Показываем модал с деталями звонка
+  const existing = document.getElementById('m-call-status');
+  if(existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'm-call-status';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;display:flex;align-items:center;justify-content:center';
+  modal.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--b2);border-radius:var(--rl);padding:28px 32px;min-width:320px;max-width:420px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)">
+      <div style="font-size:40px;margin-bottom:12px" id="call-modal-icon">📞</div>
+      <div style="font-size:15px;font-weight:700;color:var(--t1);margin-bottom:6px" id="call-modal-title">Инициируем звонок...</div>
+      <div style="font-size:12px;color:var(--t3);margin-bottom:16px;line-height:1.6">
+        <div>👤 Оператор: <b style="color:var(--t2)">${operatorName}</b> (линия <b style="color:var(--ac2)">${ext}</b>)</div>
+        <div>📱 Клиент: <b style="color:var(--t2)">${clientName}</b> ${clientPhone !== clientName ? `<span style="color:var(--t3)">${clientPhone}</span>` : ''}</div>
+      </div>
+      ${warning ? `<div style="font-size:11px;color:var(--am);background:var(--ambg);border:1px solid rgba(245,200,66,.3);border-radius:6px;padding:7px 10px;margin-bottom:14px">${warning}</div>` : ''}
+      <div id="call-modal-status" style="font-size:12px;color:var(--t3);margin-bottom:18px">⏳ Отправляем команду в Binotel...</div>
+      <button onclick="document.getElementById('m-call-status').remove()"
+        style="background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t2);font-family:var(--fb);font-size:12px;padding:8px 20px;cursor:pointer">
+        Закрыть
+      </button>
+    </div>`;
+  document.body.appendChild(modal);
+  // Закрыть по клику вне
+  modal.addEventListener('click', e=>{ if(e.target===modal) modal.remove(); });
+
+  // Делаем звонок
+  const phone = clientPhone.replace(/[^\d]/g,'');
+  fetch('https://flat-pond-6e68.uurraa.workers.dev/binotel-call',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ ext_number: ext, phone_number: phone, leadId })
+  })
+  .then(r=>r.json().catch(()=>({})))
+  .then(data=>{
+    const statusEl = document.getElementById('call-modal-status');
+    const iconEl   = document.getElementById('call-modal-icon');
+    const titleEl  = document.getElementById('call-modal-title');
+    if(!statusEl) return;
+    if(data.ok){
+      iconEl.textContent   = '✅';
+      titleEl.textContent  = 'Звонок инициирован!';
+      statusEl.innerHTML   = `<span style="color:var(--gn)">Сначала зазвонит телефон <b>${operatorName}</b> (линия ${ext}),<br>затем автоматически соединит с клиентом ${clientPhone}</span>`;
+      // Автозакрытие через 5 сек
+      setTimeout(()=>{ document.getElementById('m-call-status')?.remove(); }, 5000);
+    } else {
+      iconEl.textContent  = '❌';
+      titleEl.textContent = 'Ошибка звонка';
+      statusEl.innerHTML  = `<span style="color:var(--rd)">${data.error||'Неизвестная ошибка'}</span><br><span style="color:var(--t3);font-size:10px">${data.raw ? JSON.stringify(data.raw) : ''}</span>`;
+      console.error('Binotel call error:', data);
+    }
+  })
+  .catch(e=>{
+    const statusEl = document.getElementById('call-modal-status');
+    if(statusEl) statusEl.innerHTML = `<span style="color:var(--rd)">Ошибка сети: ${e.message}</span>`;
   });
 }
 
