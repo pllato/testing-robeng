@@ -10056,7 +10056,7 @@ function showCallModal({ operatorPhone, operatorName, clientName, clientPhone, l
         operator_phone: operatorPhone, 
         phone_number: phone, 
         leadId,
-        internal_ext: assigneeData?.binotelExt || null
+        internal_ext: assigneeData?.binotelExt || '1918'
       };
       console.log('[CRM Call] sending to worker:', JSON.stringify(payload));
       return JSON.stringify(payload);
@@ -10079,6 +10079,7 @@ function showCallModal({ operatorPhone, operatorName, clientName, clientPhone, l
       titleEl.textContent = 'Ошибка звонка';
       statusEl.innerHTML  = `<span style="color:var(--rd)">${data.error||'Неизвестная ошибка'}</span><br><span style="color:var(--t3);font-size:10px">${data.raw ? JSON.stringify(data.raw) : ''}</span>`;
       console.error('Binotel call error:', data);
+      console.error('Binotel raw:', JSON.stringify(data.raw));
     }
   })
   .catch(e=>{
