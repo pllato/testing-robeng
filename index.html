@@ -10009,16 +10009,17 @@ function crmCall(id){
         operatorPhone: meData.phone,
         operatorName: meData.name||'Вы',
         clientName, clientPhone, leadId: id,
+        assigneeData: meData,
         warning: `⚠ У ответственного (${assigneeName}) нет телефона — звоним с вашего`
       });
       return;
     }
 
-    showCallModal({ operatorPhone: assigneePhone, operatorName: assigneeName, clientName, clientPhone, leadId: id });
+    showCallModal({ operatorPhone: assigneePhone, operatorName: assigneeName, clientName, clientPhone, leadId: id, assigneeData });
   });
 }
 
-function showCallModal({ operatorPhone, operatorName, clientName, clientPhone, leadId, warning }){
+function showCallModal({ operatorPhone, operatorName, clientName, clientPhone, leadId, warning, assigneeData }){
   // Показываем модал с деталями звонка
   const existing = document.getElementById('m-call-status');
   if(existing) existing.remove();
@@ -10050,7 +10051,16 @@ function showCallModal({ operatorPhone, operatorName, clientName, clientPhone, l
   fetch('https://flat-pond-6e68.uurraa.workers.dev/binotel-call',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ operator_phone: operatorPhone, phone_number: phone, leadId })
+    body: (() => {
+      const payload = { 
+        operator_phone: operatorPhone, 
+        phone_number: phone, 
+        leadId,
+        internal_ext: assigneeData?.binotelExt || null
+      };
+      console.log('[CRM Call] sending to worker:', JSON.stringify(payload));
+      return JSON.stringify(payload);
+    })()
   })
   .then(r=>r.json().catch(()=>({})))
   .then(data=>{
