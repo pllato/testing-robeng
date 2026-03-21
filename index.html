@@ -374,6 +374,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
     <div class="ni admin-only" data-p="freeSlots" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">✦</span>Свободные слоты</div>
     <div class="nav-sec">Ученики и работа</div>
     <div class="ni" data-p="students" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">🎓</span>Ученики</div>
+    <div class="ni admin-only" data-p="crm" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">💼</span>CRM <span id="crm-badge" style="display:none;background:var(--ac);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
     <div class="ni admin-only" data-p="wachats" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">💬</span>Чаты <span id="wachats-badge" style="display:none;background:var(--gn);color:var(--bg);font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
     <div class="ni" data-p="teamchat" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">💬</span>Командный чат <span id="chat-badge" style="display:none;background:var(--gn);color:var(--bg);font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
     <div class="ni" data-p="tasks" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">✅</span>Задачи <span id="tasks-badge" style="display:none;background:var(--rd);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
@@ -382,7 +383,6 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
     <div class="ni" data-p="reports" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">📊</span>Отчёты</div>
     <div class="ni" data-p="videoreviews" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">🎥</span>Видео уроков <span id="video-badge" style="display:none;background:var(--am);color:var(--bg);font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
     <div class="ni" data-p="surveys" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">📋</span>Опросы <span id="surveys-badge" style="display:none;background:var(--gn);color:var(--bg);font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
-    <div class="ni admin-only" data-p="crm" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">💼</span>CRM <span id="crm-badge" style="display:none;background:var(--ac);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
     <div class="ni admin-only" id="ni-more" onclick="toggleMore(this)"><span style="font-size:14px;width:18px;text-align:center">•••</span>Ещё</div>
     <div id="more-menu" style="display:none">
       <div class="ni admin-only" data-p="subjects" onclick="nav(this)" style="padding-left:30px"><span style="font-size:13px;width:18px;text-align:center">📚</span>Предметы</div>
@@ -7927,15 +7927,33 @@ function renderCRMDistribSettings(){
     const pct = Math.round(w/(total||1)*100);
     return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);padding:10px 13px">
       <div style="flex:1;font-size:13px;font-weight:600;color:var(--t1)">${u.name||u.email||uid}</div>
-      <div style="font-size:11px;color:var(--t3);min-width:40px;text-align:right">~${pct}%</div>
+      <div id="distrib-pct-${uid}" style="font-size:11px;color:var(--t3);min-width:40px;text-align:right">~${pct}%</div>
       <div style="display:flex;align-items:center;gap:6px">
         <span style="font-size:11px;color:var(--t2)">Коэф:</span>
-        <input type="number" id="distrib-w-${uid}" value="${w}" min="1" max="99" onchange="renderCRMDistribSettings()"
+        <input type="number" id="distrib-w-${uid}" value="${w}" min="1" max="99" oninput="updateDistribPct()"
           style="width:56px;background:var(--bg);border:1px solid var(--b2);border-radius:6px;color:var(--t1);font-family:var(--fb);font-size:13px;padding:4px 8px;text-align:center">
       </div>
     </div>`;
   }).join('');
   el.innerHTML += `<button class="btn btn-sm btn-a" onclick="saveCRMDistribSettings()" style="margin-top:4px">💾 Сохранить коэффициенты</button>`;
+}
+
+function updateDistribPct(){
+  // Recalculate % labels live without re-rendering inputs
+  const registrars = Object.entries(S.appUsers||{})
+    .filter(([,u]) => u.role==='admin' && u.crmRole==='registrar');
+  const total = registrars.reduce((s,[uid])=>{
+    const el = document.getElementById('distrib-w-'+uid);
+    return s + Math.max(1, parseInt(el?.value)||1);
+  }, 0);
+  registrars.forEach(([uid])=>{
+    const el = document.getElementById('distrib-w-'+uid);
+    const pctEl = document.getElementById('distrib-pct-'+uid);
+    if(el && pctEl){
+      const w = Math.max(1, parseInt(el.value)||1);
+      pctEl.textContent = '~'+Math.round(w/(total||1)*100)+'%';
+    }
+  });
 }
 
 function saveCRMDistribSettings(){
