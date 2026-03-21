@@ -10104,7 +10104,7 @@ function renderWAChatsContent(leads){
       </div>
       <!-- Search + Assignee filter -->
       <div style="padding:7px 10px;border-bottom:1px solid var(--b1);flex-shrink:0">
-        <input id="wachat-search" placeholder="🔍 Поиск по имени, номеру, тексту..." value="${_wachatSearch||\'\'}"
+        <input id="wachat-search" placeholder="🔍 Поиск по имени, номеру, тексту..." value="${_wachatSearch||''}"
           style="width:100%;background:var(--bg4);border:1px solid var(--b2);border-radius:6px;color:var(--t1);font-family:var(--fb);font-size:11px;padding:5px 8px;box-sizing:border-box"/>
         ${!isCRMRegistrar()?(()=>{
           const regs=Object.entries(S.appUsers||{}).filter(([,u])=>u.role==='admin');
