@@ -594,7 +594,7 @@ body{font-family:var(--fb);background:var(--bg);color:var(--t1);min-height:100vh
     <!-- USERS -->
     <div class="panel" id="panel-users">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
-        <div style="font-size:12px;color:var(--t3)">Управление доступом. Пользователи входят через email и пароль.</div>
+        <div style="font-size:12px;color:var(--t3)">Управление доступом. Пользователи входят через email и пароль. &nbsp;·&nbsp; 🗂 <b>Регистратор CRM</b> — администратор, который видит только свои CRM-сделки.</div>
         <button class="btn btn-a btn-sm" onclick="openAddUser()">+ Добавить пользователя</button>
       </div>
       <div id="users-list"></div>
@@ -719,6 +719,14 @@ body{font-family:var(--fb);background:var(--bg);color:var(--t1);min-height:100vh
           <button class="btn btn-sm btn-a" onclick="saveCRMSettings()" style="margin-top:12px">💾 Сохранить</button>
           <div id="crm-settings-saved" style="display:none;font-size:12px;color:var(--gn);margin-top:8px">✓ Сохранено</div>
         </div>
+
+        <!-- CRM DISTRIBUTION SETTINGS -->
+        <div style="margin-top:28px;padding-top:20px;border-top:1px solid var(--b1)">
+          <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:4px">⚖️ Распределение лидов</div>
+          <div style="font-size:11px;color:var(--t3);margin-bottom:14px">Новые лиды из WhatsApp автоматически назначаются регистраторам по очереди с учётом коэффициентов. Например, коэффициент 3 означает 3 лида из 4 (3:1).</div>
+          <div id="crm-distrib-settings"></div>
+          <div id="crm-distrib-saved" style="display:none;font-size:12px;color:var(--gn);margin-top:8px">✓ Сохранено</div>
+        </div>
       </div>
     </div>
     <!-- REPORTS -->
@@ -755,6 +763,7 @@ body{font-family:var(--fb);background:var(--bg);color:var(--t1);min-height:100vh
         <select id="new-user-role" onchange="onNewUserRoleChange()">
           <option value="admin">👑 Администратор — полный доступ</option>
           <option value="teacher">👨‍🏫 Преподаватель — расписание и отчёты</option>
+          <!-- Роль Регистратора добавляется отдельно в Пользователях -->
         </select>
       </div>
     </div>
@@ -1546,7 +1555,11 @@ function applyRole(role, teacherId){
 
   // Update role badge
   const badge = document.getElementById('current-role-badge');
-  if(badge) badge.textContent = role==='admin' ? '👑 Администратор' : '👨‍🏫 Преподаватель';
+  if(badge){
+    const uid = fbAuth.currentUser?.uid;
+    const isCRMReg = uid && S.appUsers?.[uid]?.crmRole === 'registrar';
+    badge.textContent = role==='admin' ? (isCRMReg ? '🗂 Регистратор CRM' : '👑 Администратор') : '👨‍🏫 Преподаватель';
+  }
 
   // Teacher: update availability tab label
   const newTabBtn = document.getElementById('avt-new');
@@ -1621,7 +1634,7 @@ fbAuth.onAuthStateChanged(user=>{
         usersRef.once('value').then(uSnap=>{
           S.appUsers = uSnap.val()||{};
         });
-        usersRef.on('value', uSnap=>{ S.appUsers = uSnap.val()||{}; });
+        usersRef.on('value', uSnap=>{ S.appUsers = uSnap.val()||{}; renderUsers && document.getElementById('panel-users')?.classList.contains('active') && renderUsers(); const b=document.getElementById('current-role-badge'); if(b&&currentRole==='admin'){const uid=fbAuth.currentUser?.uid;const isCRMReg=uid&&S.appUsers?.[uid]?.crmRole==='registrar';b.textContent=isCRMReg?'🗂 Регистратор CRM':'👑 Администратор';} });
         startTeamChatBadgeListener();
         tasksRef.on('value',()=>{updateTasksBadge();updateTodayBadge();if(curPanel()==='tasks')renderTasks();if(curPanel()==='today')renderToday();});
         startDbListener();
@@ -5762,6 +5775,10 @@ function renderUsers(){
           <span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:10px;${isAdmin?'background:var(--acbg);border:1px solid var(--acb);color:var(--ac2)':'background:var(--gnbg);border:1px solid rgba(63,216,142,.25);color:var(--gn)'}">
             ${isAdmin?'👑 Админ':'👨‍🏫 Преподаватель'}
           </span>
+          ${isAdmin?`<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;color:var(--t2);background:var(--bg3);border:1px solid var(--b1);border-radius:8px;padding:3px 10px" title="Регистратор видит только свои CRM-сделки">
+            <input type="checkbox" ${u.crmRole==='registrar'?'checked':''} onchange="toggleCRMRole('${uid}',this.checked)" style="accent-color:var(--ac);cursor:pointer">
+            🗂 Регистратор CRM
+          </label>`:''}
           ${isTeacher&&tRec?`<button class="btn btn-xs" style="${isActive?'background:var(--gnbg);border:1px solid rgba(63,216,142,.3);color:var(--gn)':'background:var(--rdbg);border:1px solid rgba(240,89,117,.3);color:var(--rd)'}" onclick="toggleTeacherActive('${uid}',${isActive})">
             ${isActive?'✓ Активен':'✗ Неактивен'}
           </button>`:''}
@@ -6599,6 +6616,50 @@ let taskTab='all', editTaskId=null, currentTaskId=null, chatListener=null;
 
 function getMyUid(){return fbAuth.currentUser?.uid||'';}
 function getMyName(){return fbAuth.currentUser?.email||'—';}
+
+// ── CRM ROLES ─────────────────────────────────────────────────────
+// Returns true if current user is a Registrar (sees only own leads)
+function isCRMRegistrar(){
+  const uid = fbAuth.currentUser?.uid;
+  return !!(uid && S.appUsers?.[uid]?.crmRole === 'registrar');
+}
+
+// Weighted round-robin: pick next assignee from active registrars
+// Weights stored in settings.crmWeights = { uid: number }
+// Counter stored in settings.crmDistribCounter (persisted in Firebase)
+async function getNextCRMAssignee(){
+  const registrars = Object.entries(S.appUsers||{})
+    .filter(([,u]) => u.role === 'admin' && u.crmRole === 'registrar');
+  if(!registrars.length) return null;
+
+  const weights = S.settings?.crmWeights || {};
+
+  // Build weighted array
+  const weighted = [];
+  registrars.forEach(([uid, u]) => {
+    const w = Math.max(1, parseInt(weights[uid]) || 1);
+    for(let i = 0; i < w; i++) weighted.push({uid, name: u.name || u.email || uid});
+  });
+
+  // Atomically read + increment counter in Firebase
+  const counterRef = fbDb.ref('settings/crmDistribCounter');
+  const snap = await counterRef.once('value');
+  const counter = snap.val() || 0;
+  counterRef.set(counter + 1); // fire-and-forget
+
+  const pick = weighted[counter % weighted.length];
+  return pick;
+}
+
+function toggleCRMRole(uid, isRegistrar){
+  usersRef.child(uid + '/crmRole').set(isRegistrar ? 'registrar' : null)
+    .then(() => {
+      toast(isRegistrar ? '✓ Роль Регистратора добавлена' : 'Роль Регистратора снята');
+      renderUsers();
+      renderCRMDistribSettings();
+    })
+    .catch(err => toast('Ошибка: ' + err.message, true));
+}
 function getMyDisplayName(){
   // Try to find in appUsers
   const uid=getMyUid();
@@ -7680,6 +7741,7 @@ function renderAppSettings(){
   document.querySelectorAll("input[name=\"video-freq\"]").forEach(r=>{r.checked=r.value===freq;});
   renderCRMStagesEditor();
   renderCRMStageSettings();
+  renderCRMDistribSettings();
 }
 
 function renderCRMStageSettings(){
@@ -7787,6 +7849,52 @@ async function dedupMergeGroup(phone, gi){
   crmDedup();
   renderCRM();
 }
+// ── CRM DISTRIBUTION SETTINGS ────────────────────────────────────
+function renderCRMDistribSettings(){
+  const el = document.getElementById('crm-distrib-settings');
+  if(!el) return;
+  const registrars = Object.entries(S.appUsers||{})
+    .filter(([,u]) => u.role==='admin' && u.crmRole==='registrar');
+  if(!registrars.length){
+    el.innerHTML = '<div style="font-size:12px;color:var(--t3);padding:10px 0">Нет регистраторов. Добавьте роль 🗂 Регистратор CRM в разделе Пользователи.</div>';
+    return;
+  }
+  const weights = S.settings?.crmWeights || {};
+  el.innerHTML = registrars.map(([uid,u])=>{
+    const w = weights[uid]||1;
+    const total = registrars.reduce((s,[id])=>s+(weights[id]||1),0);
+    const pct = Math.round(w/(total||1)*100);
+    return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);padding:10px 13px">
+      <div style="flex:1;font-size:13px;font-weight:600;color:var(--t1)">${u.name||u.email||uid}</div>
+      <div style="font-size:11px;color:var(--t3);min-width:40px;text-align:right">~${pct}%</div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:11px;color:var(--t2)">Коэф:</span>
+        <input type="number" id="distrib-w-${uid}" value="${w}" min="1" max="99" onchange="renderCRMDistribSettings()"
+          style="width:56px;background:var(--bg);border:1px solid var(--b2);border-radius:6px;color:var(--t1);font-family:var(--fb);font-size:13px;padding:4px 8px;text-align:center">
+      </div>
+    </div>`;
+  }).join('');
+  el.innerHTML += `<button class="btn btn-sm btn-a" onclick="saveCRMDistribSettings()" style="margin-top:4px">💾 Сохранить коэффициенты</button>`;
+}
+
+function saveCRMDistribSettings(){
+  const registrars = Object.entries(S.appUsers||{})
+    .filter(([,u]) => u.role==='admin' && u.crmRole==='registrar');
+  const weights = {};
+  registrars.forEach(([uid])=>{
+    const el = document.getElementById('distrib-w-'+uid);
+    weights[uid] = Math.max(1, parseInt(el?.value)||1);
+  });
+  if(!S.settings) S.settings={};
+  S.settings.crmWeights = weights;
+  fbDb.ref('settings').update({crmWeights: weights}).then(()=>{
+    const saved = document.getElementById('crm-distrib-saved');
+    if(saved){ saved.style.display='block'; setTimeout(()=>saved.style.display='none',2500); }
+    toast('Коэффициенты сохранены');
+    renderCRMDistribSettings();
+  });
+}
+
 function renderCRMStagesEditor(){
   const el = document.getElementById('crm-stages-editor');
   if(!el) return;
@@ -9111,7 +9219,7 @@ let _crmChatId = null; // ID карточки в чате
 let _crmChatListener = null;
 let _crmDragId = null;
 let _crmView = 'kanban'; // 'kanban' | 'list'
-let _crmFilter = {stage:'', search:''};
+let _crmFilter = {stage:'', search:'', assignee:''};
 let _crmHighlightIds = null; // Set of leadIds matching message search
 
 // ── Helpers ───────────────────────────────────────────────────────
@@ -9135,9 +9243,14 @@ function renderCRM(){
   // Подписываемся на real-time обновления
   _crmRealtimeListener = crmRef.on('value', snap=>{
     const raw = snap.val()||{};
-    const leads = Object.entries(raw)
+    let leads = Object.entries(raw)
       .map(([key, val])=>({...val, id: key}))
       .sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+    // Регистратор видит только свои сделки
+    if(isCRMRegistrar()){
+      const myUid = getMyUid();
+      leads = leads.filter(l => l.assigneeUid === myUid);
+    }
     renderCRMContent(leads);
   });
 }
@@ -9177,6 +9290,8 @@ function renderCRMContent(leads){
     // Lead own fields
     parts.push(l.name||'', l.phone||'', l.notes||'', l.interest||'',
                l.budget||'', l.source||'', l.assignee||'');
+    // Assignee name from appUsers (new uid-based field)
+    if(l.assigneeUid && S.appUsers?.[l.assigneeUid]) parts.push(S.appUsers[l.assigneeUid].name||'');
 
     // Normalized phone digits
     const lPhoneNorm = normalizePhone(l.phone||'');
@@ -9232,6 +9347,7 @@ function renderCRMContent(leads){
 
   const filtered = leads.filter(l=>{
     if(_crmFilter.stage && l.stage!==_crmFilter.stage) return false;
+    if(_crmFilter.assignee && l.assigneeUid!==_crmFilter.assignee) return false;
     if(!_crmFilter.search) return true;
 
     const q = _crmFilter.search.toLowerCase().trim();
@@ -9262,11 +9378,19 @@ function renderCRMContent(leads){
         <option value="">Все стадии</option>
         ${CRM_STAGES.map(s=>`<option value="${s.id}" ${_crmFilter.stage===s.id?'selected':''}>${s.label} (${counts[s.id]||0})</option>`).join('')}
       </select>
+      ${!isCRMRegistrar()?(()=>{
+        const admins=Object.entries(S.appUsers||{}).filter(([,u])=>u.role==='admin');
+        if(!admins.length) return '';
+        return `<select onchange="_crmFilter.assignee=this.value;renderCRM()" style="background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:12px;padding:5px 9px">
+          <option value="">Все ответственные</option>
+          ${admins.map(([uid,u])=>`<option value="${uid}" ${_crmFilter.assignee===uid?'selected':''}>${u.name||u.email||uid}${u.crmRole==='registrar'?' 🗂':''}</option>`).join('')}
+        </select>`;
+      })():''}
       <input id="crm-search-inp" placeholder="🔍 Поиск по имени, телефону, переписке..." value="${_crmFilter.search}"
         style="background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:12px;padding:5px 10px;min-width:220px"/>
     </div>
-    <button onclick="crmDedup()" title="Объединить дублирующиеся сделки по телефону" style="font-size:11px;padding:4px 11px;border-radius:6px;border:1px solid rgba(240,89,117,.3);cursor:pointer;background:rgba(240,89,117,.08);color:var(--rd);font-family:var(--fb)">🔀 Убрать дубли</button>
-    <button onclick="openCRMCard()" style="background:var(--ac);border:none;border-radius:var(--r);color:#fff;font-family:var(--fd);font-size:11px;font-weight:600;padding:8px 16px;cursor:pointer;letter-spacing:.03em">+ Новый лид</button>
+    ${!isCRMRegistrar()?`<button onclick="crmDedup()" title="Объединить дублирующиеся сделки по телефону" style="font-size:11px;padding:4px 11px;border-radius:6px;border:1px solid rgba(240,89,117,.3);cursor:pointer;background:rgba(240,89,117,.08);color:var(--rd);font-family:var(--fb)">🔀 Убрать дубли</button>`:''}
+    ${!isCRMRegistrar()?`<button onclick="openCRMCard()" style="background:var(--ac);border:none;border-radius:var(--r);color:#fff;font-family:var(--fd);font-size:11px;font-weight:600;padding:8px 16px;cursor:pointer;letter-spacing:.03em">+ Новый лид</button>`:''}
   </div>`;
 
   if(_crmView === 'kanban'){
@@ -9414,6 +9538,7 @@ function buildCRMCard(l){
     ${l.phone?`<div style="font-size:11px;color:var(--t3);margin-bottom:4px">📱 ${l.phone}</div>`:''}
     ${l.interest?`<div style="font-size:11px;color:var(--t2);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📖 ${l.interest}</div>`:''}
     ${l.notes?`<div style="font-size:10px;color:var(--t3);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-style:italic">💬 ${l.notes}</div>`:''}
+    ${(()=>{ const aUid=l.assigneeUid; const aName=aUid?(S.appUsers?.[aUid]?.name||l.assignee||''):l.assignee||''; return aName?`<div style="font-size:10px;color:var(--ac2);margin-bottom:2px">👤 ${aName}</div>`:''; })()}
     <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">
       <span style="font-size:10px;color:var(--t3)">${crmFmt(l.createdAt)}</span>
       ${staleWarn?`<span style="font-size:9px;color:var(--rd);font-weight:600">${daysSince}д без связи</span>`:''}
@@ -9437,6 +9562,7 @@ function buildCRMList(leads){
         <th style="padding:8px 12px;text-align:left;color:var(--t3);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Телефон</th>
         <th style="padding:8px 12px;text-align:left;color:var(--t3);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Интерес</th>
         <th style="padding:8px 12px;text-align:left;color:var(--t3);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Стадия</th>
+        <th style="padding:8px 12px;text-align:left;color:var(--t3);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Ответственный</th>
         <th style="padding:8px 12px;text-align:left;color:var(--t3);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Дата</th>
         <th style="padding:8px 12px;text-align:left;color:var(--t3);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Действия</th>
       </tr></thead>
@@ -9448,6 +9574,7 @@ function buildCRMList(leads){
             <td style="padding:9px 12px;color:var(--t2)">${l.phone||'—'}</td>
             <td style="padding:9px 12px;color:var(--t2)">${l.interest||'—'}</td>
             <td style="padding:9px 12px"><span style="font-size:10px;font-weight:600;color:${stage.color};background:${stage.hex}22;border:1px solid ${stage.hex}44;padding:2px 8px;border-radius:8px">${stage.label}</span></td>
+            <td style="padding:9px 12px;color:var(--ac2);font-size:11px">${(()=>{ const aUid=l.assigneeUid; return aUid?(S.appUsers?.[aUid]?.name||l.assignee||'—'):l.assignee||'—'; })()}</td>
             <td style="padding:9px 12px;color:var(--t3)">${crmFmt(l.createdAt)}</td>
             <td style="padding:9px 12px">
               <div style="display:flex;gap:5px">
@@ -9516,12 +9643,14 @@ function openCRMCard(id){
     if(curVal) interestEl.value = curVal;
   }
 
-  // Заполняем ответственных из преподавателей + appUsers
+  // Заполняем ответственных — только администраторы (по uid)
   const assigneeEl = document.getElementById('crm-f-assignee');
   if(assigneeEl){
-    const staff = (S.teachers||[]).filter(t=>t.status==='active').map(t=>t.name);
+    const admins = Object.entries(S.appUsers||{})
+      .filter(([,u]) => u.role === 'admin')
+      .map(([uid, u]) => ({uid, name: u.name || u.email || uid}));
     assigneeEl.innerHTML = '<option value="">— Не назначен —</option>' +
-      staff.map(n=>`<option value="${n}">${n}</option>`).join('');
+      admins.map(a=>`<option value="${a.uid}">${a.name}</option>`).join('');
   }
   if(id){
     crmRef.child(id).once('value').then(snap=>{
@@ -9535,7 +9664,7 @@ function openCRMCard(id){
       document.getElementById('crm-f-notes').value = l.notes||'';
       document.getElementById('crm-f-stage').value = l.stage||'new';
       renderCRMStageBar(l.stage||'new');
-      document.getElementById('crm-f-assignee').value = l.assignee||'';
+      document.getElementById('crm-f-assignee').value = l.assigneeUid||l.assignee||'';
       document.getElementById('crm-f-trialdate').value = l.trialDate||'';
       const ttEl = document.getElementById('crm-f-trialtime');
       if(ttEl) ttEl.value = l.trialTime||'14:00';
@@ -9551,6 +9680,12 @@ function openCRMCard(id){
       renderCRMStudents(id);
       modal.classList.add('open');
       modal.style.zIndex = '210';
+      // Регистратор не может менять ответственного и удалять
+      const isReg = isCRMRegistrar();
+      const assigneeEl2 = document.getElementById('crm-f-assignee');
+      if(assigneeEl2) assigneeEl2.disabled = isReg;
+      const delBtn = document.getElementById('crm-del-btn');
+      if(delBtn) delBtn.style.display = isReg ? 'none' : '';
     });
   } else {
     document.getElementById('crm-f-name').value='';
@@ -9584,7 +9719,8 @@ function saveCRMCard(){
     childAge: document.getElementById('crm-f-age').value.trim(),
     notes: document.getElementById('crm-f-notes').value.trim(),
     stage: document.getElementById('crm-f-stage').value,
-    assignee: document.getElementById('crm-f-assignee').value.trim(),
+    assigneeUid: document.getElementById('crm-f-assignee').value.trim(),
+    assignee: (()=>{ const uid=document.getElementById('crm-f-assignee').value.trim(); const u=S.appUsers?.[uid]; return u?(u.name||u.email||uid):''; })(),
     trialDate: document.getElementById('crm-f-trialdate').value,
     trialTime: document.getElementById('crm-f-trialtime')?.value||'',
     trialTeacherId: document.getElementById('crm-f-trialteacher')?.value||'',
@@ -9802,10 +9938,15 @@ function renderWAChats(){
 
   _wachatsListener = crmRef.on('value', snap=>{
     const raw = snap.val()||{};
-    const leads = Object.entries(raw)
+    let leads = Object.entries(raw)
       .map(([key,val])=>({...val,id:key}))
       .filter(l=>l.phone)
       .sort((a,b)=>(b.lastContact||b.createdAt||'').localeCompare(a.lastContact||a.createdAt||''));
+    // Регистратор видит только свои чаты
+    if(isCRMRegistrar()){
+      const myUid = getMyUid();
+      leads = leads.filter(l => l.assigneeUid === myUid);
+    }
     renderWAChatsContent(leads);
   });
 }
@@ -10144,12 +10285,18 @@ async function openNewWAChat(){
   const now = new Date().toISOString();
   const ref = crmRef.push();
   const id = ref.key;
-  ref.set({id, name:'+'+clean, phone:'+'+clean, source:'whatsapp', stage:'new',
-    createdAt:now, updatedAt:now, lastContact:now, msgCount:0}).then(()=>{
+  // Авто-назначение на регистратора
+  const assigneePick = await getNextCRMAssignee();
+  const leadData = {id, name:'+'+clean, phone:'+'+clean, source:'whatsapp', stage:'new',
+    createdAt:now, updatedAt:now, lastContact:now, msgCount:0,
+    assigneeUid: assigneePick?.uid || '',
+    assignee: assigneePick?.name || '',
+  };
+  ref.set(leadData).then(()=>{
     _wachatsTab = 'new'; // новый человек → вкладка Новые
     renderWAChats();
     setTimeout(()=>openWAChat(id), 400);
-    toast('Чат создан');
+    toast(assigneePick ? `Чат создан → ${assigneePick.name}` : 'Чат создан');
   });
 }
 
