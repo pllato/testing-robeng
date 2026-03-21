@@ -21,7 +21,34 @@
   --tl:#3fc8d8;--tlbg:rgba(63,200,216,0.1);
   --r:10px;--rl:14px;
   --fd:'Unbounded',sans-serif;--fb:'Manrope',sans-serif;
+  --shadow:0 4px 24px rgba(0,0,0,.45);
 }
+
+/* ── LIGHT THEME ───────────────────────────────────────────────── */
+body.theme-light{
+  --bg:#f2f3f7;--bg2:#ffffff;--bg3:#eceef5;--bg4:#e2e4ed;
+  --b1:rgba(0,0,0,0.08);--b2:rgba(0,0,0,0.14);
+  --t1:#1a1828;--t2:#4a4868;--t3:#9896b0;
+  --ac:#7c5cfc;--ac2:#6244e0;--acbg:rgba(124,92,252,0.10);--acb:rgba(124,92,252,0.30);
+  --gn:#1db870;--gnbg:rgba(29,184,112,0.10);
+  --am:#c9920a;--ambg:rgba(201,146,10,0.10);
+  --rd:#d63355;--rdbg:rgba(214,51,85,0.10);
+  --tl:#0e9fb5;--tlbg:rgba(14,159,181,0.10);
+  --shadow:0 4px 24px rgba(0,0,0,.10);
+}
+body.theme-light .auth-card{box-shadow:0 8px 40px rgba(0,0,0,.12);}
+body.theme-light input,body.theme-light textarea,body.theme-light select{color:var(--t1)!important;background:var(--bg2)!important;border-color:var(--b2)!important;}
+body.theme-light .topbar{box-shadow:0 1px 0 var(--b1);}
+body.theme-light .card{box-shadow:0 2px 12px rgba(0,0,0,.07);}
+
+/* ── THEME TOGGLE BUTTON ───────────────────────────────────────── */
+.theme-toggle{
+  display:flex;align-items:center;justify-content:center;
+  width:32px;height:32px;border-radius:50%;border:1px solid var(--b2);
+  background:var(--bg3);cursor:pointer;transition:all .2s;
+  font-size:15px;flex-shrink:0;
+}
+.theme-toggle:hover{background:var(--bg4);border-color:var(--ac);transform:rotate(20deg);}
 
 /* ── ATTENDANCE BUTTONS ──────────────────────────────────────── */
 .att-btn{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;font-size:10px;font-weight:600;font-family:var(--fb);border-radius:5px;border:1px solid transparent;cursor:pointer;transition:all .12s;white-space:nowrap;line-height:1.4}
@@ -251,6 +278,7 @@ body{font-family:var(--fb);background:var(--bg);color:var(--t1);min-height:100vh
 .vt-btn.active{background:var(--ac);color:#fff}
 /* modals */
 .mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(5px)}
+body.theme-light .mo{background:rgba(30,28,60,.45);}
 .mo.open{display:flex}
 .modal{background:var(--bg2);border:1px solid var(--b2);border-radius:var(--rl);padding:22px;width:480px;max-width:96vw;max-height:92vh;overflow-y:auto;box-shadow:0 28px 70px rgba(0,0,0,.65)}
 .modal-lg{width:600px}
@@ -383,6 +411,7 @@ body{font-family:var(--fb);background:var(--bg);color:var(--t1);min-height:100vh
         <span class="user-email" id="user-email">...</span>
       </div>
       <span id="reminder-fail-badge" class="admin-only" onclick="nav(document.querySelector('[data-p=dashboard]'))" title="Ошибки напоминаний — нажмите для перехода" style="display:none;font-size:11px;color:var(--am);background:var(--ambg);border:1px solid rgba(245,200,66,.3);border-radius:8px;padding:3px 9px;cursor:pointer"></span>
+      <button class="theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" title="Переключить тему"></button>
       <button class="btn btn-sm" id="hint-mode-btn" onclick="toggleHintMode()" title="Режим подсказок — наведи на любой элемент" style="padding:5px 9px">💡</button>
       <button class="btn btn-sm" id="tour-btn" onclick="startTour()" title="Обучение — пошаговый тур по порталу" style="padding:5px 9px">🎓</button>
 
@@ -6616,6 +6645,38 @@ let taskTab='all', editTaskId=null, currentTaskId=null, chatListener=null;
 
 function getMyUid(){return fbAuth.currentUser?.uid||'';}
 function getMyName(){return fbAuth.currentUser?.email||'—';}
+
+// ── THEME ────────────────────────────────────────────────────────
+function applyTheme(theme){
+  document.body.classList.toggle('theme-light', theme === 'light');
+  const btn = document.getElementById('theme-toggle-btn');
+  if(btn) btn.textContent = theme === 'light' ? '🌙' : '☀️';
+  btn && (btn.title = theme === 'light' ? 'Тёмная тема' : 'Светлая тема');
+}
+
+function toggleTheme(){
+  const isLight = document.body.classList.contains('theme-light');
+  const next = isLight ? 'dark' : 'light';
+  try{ localStorage.setItem('robeng-theme', next); }catch(e){}
+  applyTheme(next);
+}
+
+// Load saved theme immediately (class on body only — button not ready yet)
+(function(){
+  try{
+    const saved = localStorage.getItem('robeng-theme') ||
+      (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.body.classList.toggle('theme-light', saved === 'light');
+  }catch(e){}
+})();
+// Sync button icon after DOM is ready
+document.addEventListener('DOMContentLoaded', ()=>{
+  try{
+    const saved = localStorage.getItem('robeng-theme') ||
+      (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    applyTheme(saved);
+  }catch(e){ applyTheme('dark'); }
+});
 
 // ── CRM ROLES ─────────────────────────────────────────────────────
 // Returns true if current user is a Registrar (sees only own leads)
