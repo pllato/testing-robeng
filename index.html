@@ -5800,6 +5800,7 @@ function renderUsers(){
             <div style="font-size:14px;font-weight:600;color:var(--t1)">${u.name||'—'} ${isSelf?'<span style="font-size:10px;color:var(--t3)">(вы)</span>':''}</div>
             <div style="font-size:12px;color:var(--t3);margin-top:2px">${u.email||'—'}</div>
             ${u.phone?`<div style="font-size:11px;color:var(--t3);margin-top:1px">📱 ${u.phone}</div>`:'<div style="font-size:11px;color:var(--rd);margin-top:1px">📱 Телефон не указан</div>'}
+            ${u.binotelExt?`<div style="font-size:11px;color:var(--ac2);margin-top:1px">☎ Binotel: ${u.binotelExt}</div>`:''}
           </div>
           <span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:10px;${isAdmin?'background:var(--acbg);border:1px solid var(--acb);color:var(--ac2)':'background:var(--gnbg);border:1px solid rgba(63,216,142,.25);color:var(--gn)'}">
             ${isAdmin?'👑 Админ':'👨‍🏫 Преподаватель'}
@@ -5811,7 +5812,7 @@ function renderUsers(){
           ${isTeacher&&tRec?`<button class="btn btn-xs" style="${isActive?'background:var(--gnbg);border:1px solid rgba(63,216,142,.3);color:var(--gn)':'background:var(--rdbg);border:1px solid rgba(240,89,117,.3);color:var(--rd)'}" onclick="toggleTeacherActive('${uid}',${isActive})">
             ${isActive?'✓ Активен':'✗ Неактивен'}
           </button>`:''}
-          <button class="btn btn-xs" onclick="editUserProfile('${uid}','${(u.name||'').replace(/'/g,"\\'")}','${u.phone||''}')">✎ Редактировать</button>
+          <button class="btn btn-xs" onclick="editUserProfile('${uid}','${(u.name||'').replace(/'/g,"\\'")}','${u.phone||''}','${u.binotelExt||''}')">✎ Редактировать</button>
           ${isTeacher&&tRec?`<button class="btn btn-xs btn-r" onclick="deleteTeacherFromUsers('${uid}')" title="Удалить преподавателя из системы">✕ Удалить преподавателя</button>`:''}
           ${!isSelf?`
           <select onchange="changeUserRole('${uid}',this.value)" style="background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:12px;padding:5px 8px">
@@ -5838,14 +5839,17 @@ function deleteTeacherFromUsers(uid){
   save();fillTSel();toast(`${tRec.name} удалён из преподавателей`);renderUsers();
 }
 
-function editUserProfile(uid, currentName, currentPhone){
+function editUserProfile(uid, currentName, currentPhone, currentExt){
   const name=prompt('Имя:', currentName);
   if(name===null)return;
   const phone=prompt('Телефон WhatsApp (формат: +7XXXXXXXXXX):', currentPhone);
   if(phone===null)return;
+  const ext=prompt('📞 Внутренняя линия Binotel (например: 1905)\nОставьте пустым если не используете телефонию:', currentExt||'');
+  if(ext===null)return;
   const updates={};
   if(name.trim())updates.name=name.trim();
   updates.phone=phone.trim();
+  updates.binotelExt=ext.trim()||null;
   usersRef.child(uid).update(updates)
     .then(()=>{toast('Профиль обновлён');renderUsers();})
     .catch(err=>toast('Ошибка: '+err.message,true));
@@ -9977,24 +9981,25 @@ function crmCall(id){
   crmRef.child(id).once('value').then(async snap=>{
     const l = snap.val();
     if(!l?.phone){ toast('Нет телефона',true); return; }
-    // Binotel extToPhone — звоним через Worker
     const phone = (l.phone||'').replace(/[^\d]/g,'');
-    const ext = prompt('Ваш добавочный номер Binotel (ext):','');
-    if(!ext) return;
+    // Получаем ext из профиля текущего пользователя
+    const myUid = fbAuth.currentUser?.uid;
+    const myExt = S.appUsers?.[myUid]?.binotelExt;
+    if(!myExt){
+      toast('⚠ Укажите линию Binotel в своём профиле (раздел Пользователи → ✎ Редактировать)',true);
+      return;
+    }
     try{
       const resp = await fetch('https://flat-pond-6e68.uurraa.workers.dev/binotel-call',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ext_number:ext, phone_number:phone, leadId:id})
+        body: JSON.stringify({ext_number:myExt, phone_number:phone, leadId:id})
       });
       const data = await resp.json().catch(()=>({}));
-      if(data.ok||resp.ok){
-        toast('📞 Звоним: сначала ваш телефон, потом клиент');
-        const now = new Date().toISOString();
-        crmChatRef.child(id).push({type:'system',text:`📞 Исходящий звонок на ${l.phone}`,ts:now,uid:fbAuth.currentUser?.uid||'',name:'Система'});
-        crmRef.child(id+'/lastContact').set(now);
+      if(data.ok){
+        toast('📞 Звоним! Сначала ваш телефон, потом клиент');
       } else {
-        toast('⚠ Binotel: '+( data.error||'ошибка. Проверь Worker'),true);
+        toast('⚠ Binotel: '+(data.error||'ошибка'),true);
       }
     }catch(e){ toast('⚠ Ошибка звонка: '+e.message,true); }
   });
