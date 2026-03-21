@@ -9999,7 +9999,10 @@ function crmCall(id){
       if(data.ok){
         toast('📞 Звоним! Сначала ваш телефон, потом клиент');
       } else {
-        toast('⚠ Binotel: '+(data.error||'ошибка'),true);
+        // Показываем полный ответ для диагностики
+        const errDetail = data.raw ? JSON.stringify(data.raw) : (data.error||'ошибка');
+        console.error('Binotel error:', data);
+        toast('⚠ Binotel: '+data.error+' | '+errDetail, true);
       }
     }catch(e){ toast('⚠ Ошибка звонка: '+e.message,true); }
   });
