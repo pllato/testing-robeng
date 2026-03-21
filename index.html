@@ -9994,32 +9994,31 @@ function crmCall(id){
     const assigneeData = assigneeSnap.val()||{};
     if(S.appUsers) S.appUsers[assigneeUid] = {...(S.appUsers[assigneeUid]||{}), ...assigneeData};
 
-    const ext = assigneeData.binotelExt;
-    const assigneeName = assigneeData.name || assigneeData.email || 'Ответственный';
+    const assigneeName  = assigneeData.name || assigneeData.email || 'Ответственный';
+    const assigneePhone = assigneeData.phone; // мобильный телефон из профиля
 
-    if(!ext){
-      // Если у ответственного нет линии — пробуем текущего пользователя
+    if(!assigneePhone){
+      // Если у ответственного нет телефона — пробуем текущего пользователя
       const meSnap = await usersRef.child(myUid).once('value');
       const meData = meSnap.val()||{};
-      if(!meData.binotelExt){
-        toast(`⚠ У ${assigneeName} не указана линия Binotel. Укажите в профиле пользователя.`, true);
+      if(!meData.phone){
+        toast(`⚠ У ${assigneeName} не указан телефон WhatsApp в профиле портала.`, true);
         return;
       }
-      // Используем линию текущего пользователя с предупреждением
       showCallModal({
-        ext: meData.binotelExt,
+        operatorPhone: meData.phone,
         operatorName: meData.name||'Вы',
         clientName, clientPhone, leadId: id,
-        warning: `⚠ У ответственного (${assigneeName}) нет линии — звоним с вашей`
+        warning: `⚠ У ответственного (${assigneeName}) нет телефона — звоним с вашего`
       });
       return;
     }
 
-    showCallModal({ ext, operatorName: assigneeName, clientName, clientPhone, leadId: id });
+    showCallModal({ operatorPhone: assigneePhone, operatorName: assigneeName, clientName, clientPhone, leadId: id });
   });
 }
 
-function showCallModal({ ext, operatorName, clientName, clientPhone, leadId, warning }){
+function showCallModal({ operatorPhone, operatorName, clientName, clientPhone, leadId, warning }){
   // Показываем модал с деталями звонка
   const existing = document.getElementById('m-call-status');
   if(existing) existing.remove();
@@ -10032,7 +10031,7 @@ function showCallModal({ ext, operatorName, clientName, clientPhone, leadId, war
       <div style="font-size:40px;margin-bottom:12px" id="call-modal-icon">📞</div>
       <div style="font-size:15px;font-weight:700;color:var(--t1);margin-bottom:6px" id="call-modal-title">Инициируем звонок...</div>
       <div style="font-size:12px;color:var(--t3);margin-bottom:16px;line-height:1.6">
-        <div>👤 Оператор: <b style="color:var(--t2)">${operatorName}</b> (линия <b style="color:var(--ac2)">${ext}</b>)</div>
+        <div>👤 Оператор: <b style="color:var(--t2)">${operatorName}</b> (<b style="color:var(--ac2)">${operatorPhone}</b>)</div>
         <div>📱 Клиент: <b style="color:var(--t2)">${clientName}</b> ${clientPhone !== clientName ? `<span style="color:var(--t3)">${clientPhone}</span>` : ''}</div>
       </div>
       ${warning ? `<div style="font-size:11px;color:var(--am);background:var(--ambg);border:1px solid rgba(245,200,66,.3);border-radius:6px;padding:7px 10px;margin-bottom:14px">${warning}</div>` : ''}
@@ -10051,7 +10050,7 @@ function showCallModal({ ext, operatorName, clientName, clientPhone, leadId, war
   fetch('https://flat-pond-6e68.uurraa.workers.dev/binotel-call',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ ext_number: ext, phone_number: phone, leadId })
+    body: JSON.stringify({ operator_phone: operatorPhone, phone_number: phone, leadId })
   })
   .then(r=>r.json().catch(()=>({})))
   .then(data=>{
@@ -10062,7 +10061,7 @@ function showCallModal({ ext, operatorName, clientName, clientPhone, leadId, war
     if(data.ok){
       iconEl.textContent   = '✅';
       titleEl.textContent  = 'Звонок инициирован!';
-      statusEl.innerHTML   = `<span style="color:var(--gn)">Сначала зазвонит телефон <b>${operatorName}</b> (линия ${ext}),<br>затем автоматически соединит с клиентом ${clientPhone}</span>`;
+      statusEl.innerHTML   = `<span style="color:var(--gn)">Сначала зазвонит телефон <b>${operatorName}</b><br><b style="color:var(--ac2)">${operatorPhone}</b>,<br>затем автоматически соединит с клиентом<br><b>${clientPhone}</b></span>`;
       // Автозакрытие через 5 сек
       setTimeout(()=>{ document.getElementById('m-call-status')?.remove(); }, 5000);
     } else {
