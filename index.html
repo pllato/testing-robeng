@@ -9982,9 +9982,14 @@ function crmCall(id){
     const l = snap.val();
     if(!l?.phone){ toast('Нет телефона',true); return; }
     const phone = (l.phone||'').replace(/[^\d]/g,'');
-    // Получаем ext из профиля текущего пользователя
+    // Получаем ext напрямую из Firebase (чтобы не зависеть от кэша S.appUsers)
     const myUid = fbAuth.currentUser?.uid;
-    const myExt = S.appUsers?.[myUid]?.binotelExt;
+    if(!myUid){ toast('Не авторизован',true); return; }
+    const userSnap = await usersRef.child(myUid).once('value');
+    const userData = userSnap.val()||{};
+    // Обновляем локальный кэш
+    if(S.appUsers) S.appUsers[myUid] = {...(S.appUsers[myUid]||{}), ...userData};
+    const myExt = userData.binotelExt;
     if(!myExt){
       toast('⚠ Укажите линию Binotel в своём профиле (раздел Пользователи → ✎ Редактировать)',true);
       return;
