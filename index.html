@@ -2,6 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jssip/3.10.0/jssip.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Robeng — ELC Roblox English</title>
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet">
@@ -11279,24 +11280,9 @@ const SIP_CFG = {
 
 let _sipUA = null, _sipSession = null, _sipTimer = null, _sipSec = 0;
 
-async function sipInit() {
+function sipInit() {
   if(_sipUA) return;
-  // Динамически загружаем JsSIP чтобы обойти SES/lockdown
-  if(typeof JsSIP === 'undefined') {
-    try {
-      await new Promise((res, rej) => {
-        const s = document.createElement('script');
-        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jssip/3.10.0/jssip.min.js';
-        s.onload = res; s.onerror = rej;
-        document.head.appendChild(s);
-      });
-    } catch(e) {
-      console.warn('JsSIP load failed:', e);
-      sipSetStatus('', '1906 · ошибка загрузки');
-      return;
-    }
-  }
-  if(typeof JsSIP === 'undefined'){ console.warn('JsSIP still not loaded'); return; }
+  if(typeof JsSIP === 'undefined'){ console.warn('JsSIP not loaded'); return; }
   JsSIP.debug.disable('JsSIP:*');
   const sock = new JsSIP.WebSocketInterface(SIP_CFG.ws);
   _sipUA = new JsSIP.UA({
