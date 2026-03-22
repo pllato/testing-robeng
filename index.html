@@ -6729,7 +6729,7 @@ function isCRMRegistrar(){
 // Counter stored in settings.crmDistribCounter (persisted in Firebase)
 async function getNextCRMAssignee(){
   const registrars = Object.entries(S.appUsers||{})
-    .filter(([,u]) => u.role === 'admin' && u.crmRole === 'registrar');
+    .filter(([,u]) => u.crmRole === 'registrar');
   if(!registrars.length) return null;
 
   const weights = S.settings?.crmWeights || {};
@@ -7956,7 +7956,7 @@ function renderCRMDistribSettings(){
   const el = document.getElementById('crm-distrib-settings');
   if(!el) return;
   const registrars = Object.entries(S.appUsers||{})
-    .filter(([,u]) => u.role==='admin' && u.crmRole==='registrar');
+    .filter(([,u]) => u.crmRole==='registrar');
   if(!registrars.length){
     el.innerHTML = '<div style="font-size:12px;color:var(--t3);padding:10px 0">Нет регистраторов. Добавьте роль 🗂 Регистратор CRM в разделе Пользователи.</div>';
     return;
@@ -7982,7 +7982,7 @@ function renderCRMDistribSettings(){
 function updateDistribPct(){
   // Recalculate % labels live without re-rendering inputs
   const registrars = Object.entries(S.appUsers||{})
-    .filter(([,u]) => u.role==='admin' && u.crmRole==='registrar');
+    .filter(([,u]) => u.crmRole==='registrar');
   const total = registrars.reduce((s,[uid])=>{
     const el = document.getElementById('distrib-w-'+uid);
     return s + Math.max(1, parseInt(el?.value)||1);
@@ -7999,7 +7999,7 @@ function updateDistribPct(){
 
 function saveCRMDistribSettings(){
   const registrars = Object.entries(S.appUsers||{})
-    .filter(([,u]) => u.role==='admin' && u.crmRole==='registrar');
+    .filter(([,u]) => u.crmRole==='registrar');
   const weights = {};
   registrars.forEach(([uid])=>{
     const el = document.getElementById('distrib-w-'+uid);
@@ -9675,9 +9675,23 @@ function buildCRMCard(l){
 // ── LIST VIEW ─────────────────────────────────────────────────────
 function buildCRMList(leads){
   if(!leads.length) return '<div class="empty"><div class="empty-icon">💼</div><div class="empty-text">Нет лидов</div></div>';
-  return `<div style="background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden">
+  // Build users options for bulk reassign
+  const userOpts = S.appUsers ? Object.entries(S.appUsers).map(([uid,u])=>`<option value="${uid}">${u.name||u.email||uid}</option>`).join('') : '';
+  return `
+  <div id="crm-bulk-bar" style="display:none;align-items:center;gap:10px;padding:10px 14px;background:var(--acbg);border:1px solid var(--acb);border-radius:var(--rl);margin-bottom:8px;flex-wrap:wrap">
+    <span id="crm-bulk-count" style="font-size:13px;font-weight:600;color:var(--t1)">0 выбрано</span>
+    <span style="color:var(--t3);font-size:12px">Переназначить на:</span>
+    <select id="crm-bulk-assignee" style="padding:5px 10px;border-radius:6px;border:1px solid var(--b2);background:var(--bg3);color:var(--t1);font-size:12px;cursor:pointer">
+      <option value="">— выберите —</option>
+      ${userOpts}
+    </select>
+    <button onclick="crmBulkAssign()" style="padding:5px 14px;background:var(--ac);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600">Применить</button>
+    <button onclick="crmBulkClear()" style="padding:5px 12px;background:var(--bg3);border:1px solid var(--b2);color:var(--t2);border-radius:6px;cursor:pointer;font-size:12px">Снять выбор</button>
+  </div>
+  <div style="background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden">
     <table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr style="background:var(--bg3)">
+        <th style="padding:8px 12px;width:32px"><input type="checkbox" id="crm-check-all" onchange="crmCheckAll(this.checked)" style="cursor:pointer;width:14px;height:14px"></th>
         <th style="padding:8px 12px;text-align:left;color:var(--t3);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Клиент</th>
         <th style="padding:8px 12px;text-align:left;color:var(--t3);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Телефон</th>
         <th style="padding:8px 12px;text-align:left;color:var(--t3);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Интерес</th>
@@ -9689,13 +9703,14 @@ function buildCRMList(leads){
       <tbody>
         ${leads.map(l=>{
           const stage=crmStage(l.stage);
-          return`<tr style="border-bottom:1px solid var(--b1);cursor:pointer" onclick="openCRMCard('${l.id}')" onmouseenter="this.style.background='var(--bg3)'" onmouseleave="this.style.background=''">
-            <td style="padding:9px 12px;font-weight:600;color:var(--t1)">${l.name||'—'}</td>
-            <td style="padding:9px 12px;color:var(--t2)">${l.phone||'—'}</td>
-            <td style="padding:9px 12px;color:var(--t2)">${l.interest||'—'}</td>
-            <td style="padding:9px 12px"><span style="font-size:10px;font-weight:600;color:${stage.color};background:${stage.hex}22;border:1px solid ${stage.hex}44;padding:2px 8px;border-radius:8px">${stage.label}</span></td>
-            <td style="padding:9px 12px;color:var(--ac2);font-size:11px">${(()=>{ const aUid=l.assigneeUid; return aUid?(S.appUsers?.[aUid]?.name||l.assignee||'—'):l.assignee||'—'; })()}</td>
-            <td style="padding:9px 12px;color:var(--t3)">${crmFmt(l.createdAt)}</td>
+          return`<tr style="border-bottom:1px solid var(--b1)" onmouseenter="this.style.background='var(--bg3)'" onmouseleave="this.style.background=''">
+            <td style="padding:9px 12px" onclick="event.stopPropagation()"><input type="checkbox" class="crm-row-check" data-id="${l.id}" onchange="crmUpdateBulkBar()" style="cursor:pointer;width:14px;height:14px"></td>
+            <td style="padding:9px 12px;font-weight:600;color:var(--t1);cursor:pointer" onclick="openCRMCard('${l.id}')">${l.name||'—'}</td>
+            <td style="padding:9px 12px;color:var(--t2);cursor:pointer" onclick="openCRMCard('${l.id}')">${l.phone||'—'}</td>
+            <td style="padding:9px 12px;color:var(--t2);cursor:pointer" onclick="openCRMCard('${l.id}')">${l.interest||'—'}</td>
+            <td style="padding:9px 12px;cursor:pointer" onclick="openCRMCard('${l.id}')"><span style="font-size:10px;font-weight:600;color:${stage.color};background:${stage.hex}22;border:1px solid ${stage.hex}44;padding:2px 8px;border-radius:8px">${stage.label}</span></td>
+            <td style="padding:9px 12px;color:var(--ac2);font-size:11px;cursor:pointer" onclick="openCRMCard('${l.id}')">${(()=>{ const aUid=l.assigneeUid; return aUid?(S.appUsers?.[aUid]?.name||l.assignee||'—'):l.assignee||'—'; })()}</td>
+            <td style="padding:9px 12px;color:var(--t3);cursor:pointer" onclick="openCRMCard('${l.id}')">${crmFmt(l.createdAt)}</td>
             <td style="padding:9px 12px">
               <div style="display:flex;gap:5px">
                 ${l.phone?`<button onclick="event.stopPropagation();crmWhatsApp('${l.id}')" style="background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.2);border-radius:5px;color:var(--gn);cursor:pointer;padding:3px 7px;font-size:11px">💬 WA</button>`:''}
@@ -9707,6 +9722,49 @@ function buildCRMList(leads){
       </tbody>
     </table>
   </div>`;
+}
+
+function crmCheckAll(checked){
+  document.querySelectorAll('.crm-row-check').forEach(cb => cb.checked = checked);
+  crmUpdateBulkBar();
+}
+
+function crmUpdateBulkBar(){
+  const checked = document.querySelectorAll('.crm-row-check:checked');
+  const bar = document.getElementById('crm-bulk-bar');
+  const cnt = document.getElementById('crm-bulk-count');
+  const all = document.getElementById('crm-check-all');
+  const total = document.querySelectorAll('.crm-row-check').length;
+  if(bar) bar.style.display = checked.length ? 'flex' : 'none';
+  if(cnt) cnt.textContent = checked.length + ' выбрано';
+  if(all) all.indeterminate = checked.length > 0 && checked.length < total;
+  if(all && checked.length === total && total > 0) all.checked = true;
+  if(all && checked.length === 0) all.checked = false;
+}
+
+function crmBulkClear(){
+  document.querySelectorAll('.crm-row-check').forEach(cb => cb.checked = false);
+  const all = document.getElementById('crm-check-all');
+  if(all){ all.checked = false; all.indeterminate = false; }
+  crmUpdateBulkBar();
+}
+
+async function crmBulkAssign(){
+  const sel = document.getElementById('crm-bulk-assignee');
+  const uid = sel?.value;
+  if(!uid){ toast('Выберите ответственного'); return; }
+  const userName = S.appUsers?.[uid]?.name || uid;
+  const checked = [...document.querySelectorAll('.crm-row-check:checked')];
+  if(!checked.length){ toast('Выберите лиды'); return; }
+  const ids = checked.map(cb => cb.dataset.id);
+  const now = new Date().toISOString();
+  let done = 0;
+  for(const id of ids){
+    await crmRef.child(id).update({ assigneeUid: uid, assignee: userName, updatedAt: now });
+    done++;
+  }
+  toast(`✓ ${done} лидов переназначено на ${userName}`);
+  crmBulkClear();
 }
 
 // ── DRAG & DROP ───────────────────────────────────────────────────
@@ -11274,7 +11332,7 @@ function addCRMLinkToStudent(studentEl, phone){
 const SIP_CFG = {
   uri:    'sip:saht8brd@sip52.binotel.com',
   pass:   'T6QmMeC9cjp6iOE',
-  ws:     'wss://sip52.binotel.com',
+  ws:     'wss://sip52.binotel.com:8089/ws',
   realm:  'sip52.binotel.com',
 };
 
