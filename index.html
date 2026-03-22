@@ -11283,9 +11283,17 @@ let _sipUA = null, _sipSession = null, _sipTimer = null, _sipSec = 0;
 function sipInit() {
   if(_sipUA) return;
   if(typeof JsSIP === 'undefined'){ console.warn('JsSIP not loaded'); return; }
+  console.log('[SIP] Initializing UA, ws=', SIP_CFG.ws);
   JsSIP.debug.disable('JsSIP:*');
-  const sock = new JsSIP.WebSocketInterface(SIP_CFG.ws);
-  _sipUA = new JsSIP.UA({
+  let sock;
+  try {
+    sock = new JsSIP.WebSocketInterface(SIP_CFG.ws);
+    console.log('[SIP] WebSocketInterface created');
+  } catch(e) {
+    console.error('[SIP] WebSocketInterface error:', e);
+    return;
+  }
+  try { _sipUA = new JsSIP.UA({
     sockets: [sock],
     uri: SIP_CFG.uri,
     password: SIP_CFG.pass,
@@ -11310,6 +11318,8 @@ function sipInit() {
   });
 
   _sipUA.start();
+  console.log('[SIP] UA started');
+  } catch(e) { console.error('[SIP] UA error:', e); }
 }
 
 function sipSetStatus(cls, label) {
