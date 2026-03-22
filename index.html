@@ -11423,16 +11423,15 @@ function sipTogglePanel() {
   toast('📞 SIP: ' + lbl);
 }
 
-// Запускаем SIP после авторизации
-document.addEventListener('DOMContentLoaded', () => {
-  setTimeout(() => {
-    if(typeof fbAuth !== 'undefined') {
-      fbAuth.onAuthStateChanged(u => {
-        if(u) setTimeout(sipInit, 1500);
-      });
+// Запускаем SIP после авторизации — прямой вызов
+if(typeof fbAuth !== 'undefined') {
+  fbAuth.onAuthStateChanged(u => {
+    if(u) {
+      console.log('[SIP] User logged in, starting SIP in 2s...');
+      setTimeout(sipInit, 2000);
     }
-  }, 500);
-});
+  });
+}
 </script>
 
 </body>
