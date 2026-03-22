@@ -39,6 +39,25 @@ body.theme-light{
 body.theme-light .auth-card{box-shadow:0 8px 40px rgba(0,0,0,.12);}
 body.theme-light input,body.theme-light textarea,body.theme-light select{color:var(--t1)!important;background:var(--bg2)!important;border-color:var(--b2)!important;}
 body.theme-light .topbar{box-shadow:0 1px 0 var(--b1);}
+/* ── SIP Phone ──────────────────────────────────────── */
+.sip-btn{display:flex;align-items:center;gap:5px;font-size:11px;padding:5px 10px;border-radius:8px;border:1px solid var(--b2);background:var(--bg3);color:var(--t2);cursor:pointer;transition:all .2s}
+.sip-btn:hover{background:var(--bg4)}
+.sip-dot-ui{width:7px;height:7px;border-radius:50%;background:var(--t3);flex-shrink:0}
+.sip-dot-ui.reg{background:#3B6D11}
+.sip-dot-ui.ring{background:#BA7517;animation:sipring .6s infinite}
+.sip-dot-ui.call{background:#3B6D11;animation:sipring 1.2s infinite}
+@keyframes sipring{0%,100%{opacity:1}50%{opacity:.25}}
+#sip-incoming{position:fixed;top:70px;right:20px;z-index:600;background:var(--bg2);border:1px solid var(--b2);border-radius:14px;padding:16px 20px;min-width:280px;box-shadow:0 8px 32px rgba(0,0,0,.3);display:none}
+#sip-incoming .si-name{font-size:15px;font-weight:700;color:var(--t1);margin-bottom:3px}
+#sip-incoming .si-sub{font-size:12px;color:var(--t3);margin-bottom:14px}
+#sip-incoming .si-btns{display:flex;gap:8px}
+#sip-incoming .si-ans{flex:1;background:#EAF3DE;color:#3B6D11;border:1px solid #C0DD97;border-radius:8px;padding:8px;font-size:13px;cursor:pointer;font-family:var(--fb)}
+#sip-incoming .si-rej{flex:1;background:#FCEBEB;color:#A32D2D;border:1px solid #F7C1C1;border-radius:8px;padding:8px;font-size:13px;cursor:pointer;font-family:var(--fb)}
+#sip-active{position:fixed;bottom:24px;right:20px;z-index:600;background:var(--bg2);border:1px solid var(--b2);border-radius:14px;padding:14px 18px;min-width:240px;box-shadow:0 8px 32px rgba(0,0,0,.3);display:none}
+#sip-active .sa-name{font-size:13px;font-weight:600;color:var(--t1);margin-bottom:2px}
+#sip-active .sa-timer{font-size:12px;color:var(--t3);margin-bottom:12px;font-variant-numeric:tabular-nums}
+#sip-active .sa-end{width:100%;background:#FCEBEB;color:#A32D2D;border:1px solid #F7C1C1;border-radius:8px;padding:8px;font-size:13px;cursor:pointer;font-family:var(--fb)}
+
 body.theme-light .card{box-shadow:0 2px 12px rgba(0,0,0,.07);}
 
 /* ── THEME TOGGLE BUTTON ───────────────────────────────────────── */
@@ -411,6 +430,10 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
         <span class="user-email" id="user-email">...</span>
       </div>
       <span id="reminder-fail-badge" class="admin-only" onclick="nav(document.querySelector('[data-p=dashboard]'))" title="Ошибки напоминаний — нажмите для перехода" style="display:none;font-size:11px;color:var(--am);background:var(--ambg);border:1px solid rgba(245,200,66,.3);border-radius:8px;padding:3px 9px;cursor:pointer"></span>
+      <button class="sip-btn admin-only" id="sip-status-btn" onclick="sipTogglePanel()" title="Телефония Binotel">
+        <span class="sip-dot-ui" id="sip-dot"></span>
+        <span id="sip-label">1906</span>
+      </button>
       <button class="theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" title="Переключить тему"></button>
       <button class="btn btn-sm" id="hint-mode-btn" onclick="toggleHintMode()" title="Режим подсказок — наведи на любой элемент" style="padding:5px 9px">💡</button>
       <button class="btn btn-sm" id="tour-btn" onclick="startTour()" title="Обучение — пошаговый тур по порталу" style="padding:5px 9px">🎓</button>
@@ -11197,8 +11220,198 @@ function addCRMLinkToStudent(studentEl, phone){
   <div id="hint-text"></div>
 </div>
 
+
+<!-- SIP Phone UI -->
+<div id="sip-incoming">
+  <div class="si-name" id="si-caller">Входящий звонок</div>
+  <div class="si-sub" id="si-sub">Binotel · линия 1906</div>
+  <div class="si-btns">
+    <button class="si-ans" onclick="sipAnswer()">✓ Ответить</button>
+    <button class="si-rej" onclick="sipReject()">✕ Отклонить</button>
+  </div>
+</div>
+<div id="sip-active">
+  <div class="sa-name" id="sa-name">Разговор</div>
+  <div class="sa-timer" id="sa-timer">00:00</div>
+  <button class="sa-end" onclick="sipHangup()">Завершить разговор</button>
+</div>
+<audio id="sip-audio" autoplay></audio>
+<audio id="sip-ring" loop>
+  <source src="https://cdn.jsdelivr.net/gh/mobilusoss/jssip-webrtc@master/test/audio/ringing.ogg">
+</audio>
+
 <!-- Tooltip element -->
 <div id="tooltip" style="display:none;position:fixed;background:var(--bg);border:1px solid var(--b2);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--t2);max-width:240px;line-height:1.5;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.4);pointer-events:none"></div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/jssip@3.10.0/dist/jssip.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════
+//  WebRTC SIP — Binotel линия 1906
+// ═══════════════════════════════════════════════════════
+const SIP_CFG = {
+  uri:    'sip:saht8brd@sip52.binotel.com',
+  pass:   'T6QmMeC9cjp6iOE',
+  ws:     'wss://sip52.binotel.com:443',
+  realm:  'sip52.binotel.com',
+};
+
+let _sipUA = null, _sipSession = null, _sipTimer = null, _sipSec = 0;
+
+function sipInit() {
+  if(_sipUA) return;
+  if(typeof JsSIP === 'undefined'){ console.warn('JsSIP not loaded'); return; }
+  JsSIP.debug.disable('JsSIP:*');
+  const sock = new JsSIP.WebSocketInterface(SIP_CFG.ws);
+  _sipUA = new JsSIP.UA({
+    sockets: [sock],
+    uri: SIP_CFG.uri,
+    password: SIP_CFG.pass,
+    realm: SIP_CFG.realm,
+    register: true,
+    register_expires: 60,
+    connection_recovery_min_interval: 2,
+    connection_recovery_max_interval: 30,
+  });
+
+  _sipUA.on('registered',   () => sipSetStatus('reg', 'Линия 1906 · активна'));
+  _sipUA.on('unregistered', () => sipSetStatus('', '1906 · не активна'));
+  _sipUA.on('registrationFailed', (e) => sipSetStatus('', '1906 · ошибка: '+e.cause));
+  _sipUA.on('connected',    () => sipSetStatus('', 'Подключение...'));
+  _sipUA.on('disconnected', () => sipSetStatus('', '1906 · нет связи'));
+
+  _sipUA.on('newRTCSession', (e) => {
+    const session = e.session;
+    if(session.direction === 'incoming') {
+      sipHandleIncoming(session);
+    }
+  });
+
+  _sipUA.start();
+}
+
+function sipSetStatus(cls, label) {
+  const dot = document.getElementById('sip-dot');
+  const lbl = document.getElementById('sip-label');
+  if(dot){ dot.className = 'sip-dot-ui' + (cls ? ' '+cls : ''); }
+  if(lbl) lbl.textContent = label;
+}
+
+function sipHandleIncoming(session) {
+  _sipSession = session;
+  const num = session.remote_identity.uri.user || 'Неизвестный';
+  const name = session.remote_identity.display_name || num;
+
+  // Ищем лид по номеру
+  const normNum = num.replace(/\D/g,'');
+  let leadName = name;
+  if(S.crmLeads) {
+    const found = Object.values(S.crmLeads).find(l => {
+      const p = (l.phone||'').replace(/\D/g,'');
+      return p === normNum || p.slice(-9) === normNum.slice(-9);
+    });
+    if(found) leadName = found.name || name;
+  }
+
+  sipSetStatus('ring', 'Входящий звонок...');
+  document.getElementById('si-caller').textContent = leadName;
+  document.getElementById('si-sub').textContent = '+' + normNum + ' · линия 1906';
+  document.getElementById('sip-incoming').style.display = 'block';
+
+  // Рингтон
+  const ring = document.getElementById('sip-ring');
+  if(ring) ring.play().catch(()=>{});
+
+  session.on('failed',    () => sipCloseIncoming());
+  session.on('ended',     () => sipEndCall());
+  session.on('confirmed', () => sipCallConnected(leadName));
+}
+
+function sipAnswer() {
+  if(!_sipSession) return;
+  document.getElementById('sip-incoming').style.display = 'none';
+  const ring = document.getElementById('sip-ring');
+  if(ring){ ring.pause(); ring.currentTime = 0; }
+  _sipSession.answer({
+    mediaConstraints: { audio: true, video: false },
+    pcConfig: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] },
+  });
+}
+
+function sipReject() {
+  if(_sipSession) _sipSession.terminate();
+  sipCloseIncoming();
+}
+
+function sipCloseIncoming() {
+  document.getElementById('sip-incoming').style.display = 'none';
+  const ring = document.getElementById('sip-ring');
+  if(ring){ ring.pause(); ring.currentTime = 0; }
+  sipSetStatus('reg', 'Линия 1906 · активна');
+  _sipSession = null;
+}
+
+function sipCallConnected(name) {
+  document.getElementById('sip-incoming').style.display = 'none';
+  document.getElementById('sa-name').textContent = name || 'Разговор';
+  document.getElementById('sip-active').style.display = 'block';
+  sipSetStatus('call', 'Разговор...');
+  _sipSec = 0;
+  _sipTimer = setInterval(() => {
+    _sipSec++;
+    const m = Math.floor(_sipSec/60).toString().padStart(2,'0');
+    const s = (_sipSec%60).toString().padStart(2,'0');
+    const el = document.getElementById('sa-timer');
+    if(el) el.textContent = m + ':' + s;
+  }, 1000);
+
+  // Аудио
+  if(_sipSession) {
+    _sipSession.connection.addEventListener('addstream', (e) => {
+      const audio = document.getElementById('sip-audio');
+      if(audio) { audio.srcObject = e.stream; audio.play().catch(()=>{}); }
+    });
+    _sipSession.connection.addEventListener('track', (e) => {
+      const audio = document.getElementById('sip-audio');
+      if(audio && e.streams[0]) { audio.srcObject = e.streams[0]; audio.play().catch(()=>{}); }
+    });
+  }
+}
+
+function sipEndCall() {
+  clearInterval(_sipTimer);
+  document.getElementById('sip-active').style.display = 'none';
+  sipSetStatus('reg', 'Линия 1906 · активна');
+  _sipSession = null;
+  // Логируем в CRM если был открыт лид
+  if(_sipSec > 3) {
+    const dur = Math.floor(_sipSec/60)+'мин '+(_sipSec%60)+'сек';
+    toast('📞 Звонок завершён · ' + dur);
+  }
+}
+
+function sipHangup() {
+  if(_sipSession) _sipSession.terminate();
+  sipEndCall();
+}
+
+function sipTogglePanel() {
+  // Показываем мини-статус
+  const lbl = document.getElementById('sip-label').textContent;
+  toast('📞 SIP: ' + lbl);
+}
+
+// Запускаем SIP после авторизации
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    if(typeof fbAuth !== 'undefined') {
+      fbAuth.onAuthStateChanged(u => {
+        if(u) setTimeout(sipInit, 1500);
+      });
+    }
+  }, 500);
+});
+</script>
 
 </body>
 </html>
