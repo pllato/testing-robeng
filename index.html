@@ -11438,6 +11438,13 @@ if(typeof fbAuth !== 'undefined') {
   fbAuth.onAuthStateChanged(u => {
     if(u) {
       console.log('[SIP] User logged in, starting SIP in 2s...');
+      // Тест прямого WebSocket
+      setTimeout(() => {
+        const testWs = new WebSocket('wss://sip52.binotel.com', 'sip');
+        testWs.onopen = () => { console.log('[WS TEST] Connected!'); testWs.close(); };
+        testWs.onerror = (e) => console.error('[WS TEST] Error:', e);
+        testWs.onclose = (e) => console.log('[WS TEST] Closed:', e.code, e.reason);
+      }, 500);
       setTimeout(sipInit, 2000);
     }
   });
