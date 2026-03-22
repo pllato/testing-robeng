@@ -11298,9 +11298,9 @@ function sipInit() {
 
   _sipUA.on('registered',   () => sipSetStatus('reg', 'Линия 1906 · активна'));
   _sipUA.on('unregistered', () => sipSetStatus('', '1906 · не активна'));
-  _sipUA.on('registrationFailed', (e) => sipSetStatus('', '1906 · ошибка: '+e.cause));
-  _sipUA.on('connected',    () => sipSetStatus('', 'Подключение...'));
-  _sipUA.on('disconnected', () => sipSetStatus('', '1906 · нет связи'));
+  _sipUA.on('registrationFailed', (e) => { console.error('SIP reg failed', e); sipSetStatus('', '1906 · ошибка: '+e.cause); });
+  _sipUA.on('connected',    () => { console.log('SIP connected'); sipSetStatus('', 'Подключение...'); });
+  _sipUA.on('disconnected', (e) => { console.warn('SIP disconnected', e); sipSetStatus('', '1906 · нет связи'); });
 
   _sipUA.on('newRTCSession', (e) => {
     const session = e.session;
