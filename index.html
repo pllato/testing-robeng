@@ -6734,12 +6734,14 @@ async function getNextCRMAssignee(){
 
   const weights = S.settings?.crmWeights || {};
 
-  // Build weighted array
+  // Build weighted array (skip those with weight 0)
   const weighted = [];
   registrars.forEach(([uid, u]) => {
-    const w = Math.max(1, parseInt(weights[uid]) || 1);
+    const w = uid in weights ? parseInt(weights[uid]) : 1;
+    if(w <= 0) return; // выключен
     for(let i = 0; i < w; i++) weighted.push({uid, name: u.name || u.email || uid});
   });
+  if(!weighted.length) return null;
 
   // Atomically read + increment counter in Firebase
   const counterRef = fbDb.ref('settings/crmDistribCounter');
@@ -7963,15 +7965,16 @@ function renderCRMDistribSettings(){
   }
   const weights = S.settings?.crmWeights || {};
   el.innerHTML = registrars.map(([uid,u])=>{
-    const w = weights[uid]||1;
-    const total = registrars.reduce((s,[id])=>s+(weights[id]||1),0);
-    const pct = Math.round(w/(total||1)*100);
-    return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);padding:10px 13px">
-      <div style="flex:1;font-size:13px;font-weight:600;color:var(--t1)">${u.name||u.email||uid}</div>
+    const w = uid in weights ? weights[uid] : 1;
+    const total = registrars.reduce((s,[id])=>s+(id in weights ? weights[id] : 1),0);
+    const pct = total > 0 ? Math.round(w/total*100) : 0;
+    const isOff = w === 0;
+    return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);padding:10px 13px;opacity:${isOff?'0.5':'1'}">
+      <div style="flex:1;font-size:13px;font-weight:600;color:var(--t1)">${u.name||u.email||uid}${isOff?' <span style="font-size:10px;color:var(--t3)">(выключен)</span>':''}</div>
       <div id="distrib-pct-${uid}" style="font-size:11px;color:var(--t3);min-width:40px;text-align:right">~${pct}%</div>
       <div style="display:flex;align-items:center;gap:6px">
         <span style="font-size:11px;color:var(--t2)">Коэф:</span>
-        <input type="number" id="distrib-w-${uid}" value="${w}" min="1" max="99" oninput="updateDistribPct()"
+        <input type="number" id="distrib-w-${uid}" value="${w}" min="0" max="99" oninput="updateDistribPct()"
           style="width:56px;background:var(--bg);border:1px solid var(--b2);border-radius:6px;color:var(--t1);font-family:var(--fb);font-size:13px;padding:4px 8px;text-align:center">
       </div>
     </div>`;
@@ -7985,13 +7988,13 @@ function updateDistribPct(){
     .filter(([,u]) => u.crmRole==='registrar');
   const total = registrars.reduce((s,[uid])=>{
     const el = document.getElementById('distrib-w-'+uid);
-    return s + Math.max(1, parseInt(el?.value)||1);
+    return s + (parseInt(el?.value)||0);
   }, 0);
   registrars.forEach(([uid])=>{
     const el = document.getElementById('distrib-w-'+uid);
     const pctEl = document.getElementById('distrib-pct-'+uid);
     if(el && pctEl){
-      const w = Math.max(1, parseInt(el.value)||1);
+      const w = parseInt(el.value)||0;
       pctEl.textContent = '~'+Math.round(w/(total||1)*100)+'%';
     }
   });
@@ -8003,7 +8006,7 @@ function saveCRMDistribSettings(){
   const weights = {};
   registrars.forEach(([uid])=>{
     const el = document.getElementById('distrib-w-'+uid);
-    weights[uid] = Math.max(1, parseInt(el?.value)||1);
+    weights[uid] = Math.max(0, parseInt(el?.value)||0);
   });
   if(!S.settings) S.settings={};
   S.settings.crmWeights = weights;
