@@ -1723,6 +1723,7 @@ fbAuth.onAuthStateChanged(user=>{
         if(S.settings?.crmStageMsgs) Object.assign(CRM_STAGE_MSGS, S.settings.crmStageMsgs);
         if(S.settings?.chartMax) Object.assign(_chartMax, S.settings.chartMax);
         if(S.settings?.chartQuota) Object.assign(_chartQuota, S.settings.chartQuota);
+        if(!_chartMax.trials) _chartMax.trials=10; // default
         // Загружаем сохранённые стадии CRM
         if(S.settings?.crmStages && Array.isArray(S.settings.crmStages) && S.settings.crmStages.length>=2){
           CRM_STAGES.length = 0;
@@ -1991,8 +1992,8 @@ let dashMode='days'; // 'days' | 'thu'
 
 // ── CHART STATE ───────────────────────────────────────────────────
 let _chartMode='week'; // 'day' | 'week' | 'today'
-let _chartMax={active:100,starts:20,restarts:20,leads:20};
-let _chartQuota={active:0,starts:0,restarts:0,leads:0}; // 0=не задана
+let _chartMax={active:100,starts:20,restarts:20,leads:20,trials:10};
+let _chartQuota={active:0,starts:0,restarts:0,leads:0,trials:0}; // 0=не задана
 let _chartDayDate=new Date().toISOString().slice(0,10); // для режима 'today'
 
 function setDashPeriod(days){
@@ -2855,10 +2856,20 @@ function getMetricForPeriod(metric,from,to){
   } else if(metric==='restarts'){
     return (S.journal||[]).filter(j=>j.type==='extend'&&j.isoDate&&j.isoDate>=from&&j.isoDate<=to).length;
   } else if(metric==='leads'){
-    // Новые обращения в CRM за период — считаем из кэша S.crmLeads если есть
     if(!window._crmLeadsCache) return 0;
     return Object.values(window._crmLeadsCache)
       .filter(l=>l.createdAt&&l.createdAt.slice(0,10)>=from&&l.createdAt.slice(0,10)<=to).length;
+  } else if(metric==='trials'){
+    // Пробные занятия: trialDate попадает в период И стадия содержит "пробный" + "оплач"/"провед"
+    if(!window._crmLeadsCache) return 0;
+    const trialStageIds = CRM_STAGES
+      .filter(s=>{
+        const lbl=(s.label||'').toLowerCase();
+        return lbl.includes('пробн') && (lbl.includes('оплач')||lbl.includes('провед')||lbl.includes('paid')||lbl.includes('done'));
+      })
+      .map(s=>s.id);
+    return Object.values(window._crmLeadsCache)
+      .filter(l=>l.trialDate&&l.trialDate>=from&&l.trialDate<=to&&trialStageIds.includes(l.stage)).length;
   }
   return 0;
 }
@@ -2971,6 +2982,7 @@ function renderDashboardCharts(){
     {key:'starts',  label:'Старты',             color:'var(--ac2)', hex:'#a87fff', icon:'🚀'},
     {key:'restarts',label:'Перестарты',          color:'var(--am)',  hex:'#f5c842', icon:'🔄'},
     {key:'leads',   label:'Новые обращения',     color:'var(--tl)',  hex:'#3fc8d8', icon:'📥'},
+    {key:'trials',  label:'Пробные занятия',     color:'#ff7eb3',    hex:'#ff7eb3', icon:'🧪'},
   ];
   // Load CRM leads for 'leads' metric (async, then re-render if needed)
   if(!window._crmLeadsCache){
@@ -3022,7 +3034,7 @@ function renderDashboardCharts(){
     const rawMax=_chartMax[key];
     // active — это снимок (сколько учеников сейчас), не накапливается → max не умножаем
     // starts/restarts/leads — события за период → на неделе ×7
-    const isSnapshot = key==='active';
+    const isSnapshot = key==='active'; // active = снимок, остальные = события за период
     const max = (!isSnapshot && _chartMode==='week') ? rawMax*7 : rawMax;
     const rawQuota=_chartQuota[key]||0;
     const quotaScaled = rawQuota<=0 ? 0
