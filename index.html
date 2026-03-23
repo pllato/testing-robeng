@@ -1721,6 +1721,8 @@ fbAuth.onAuthStateChanged(user=>{
         }
         // Загружаем сохранённые шаблоны CRM
         if(S.settings?.crmStageMsgs) Object.assign(CRM_STAGE_MSGS, S.settings.crmStageMsgs);
+        if(S.settings?.chartMax) Object.assign(_chartMax, S.settings.chartMax);
+        if(S.settings?.chartQuota) Object.assign(_chartQuota, S.settings.chartQuota);
         // Загружаем сохранённые стадии CRM
         if(S.settings?.crmStages && Array.isArray(S.settings.crmStages) && S.settings.crmStages.length>=2){
           CRM_STAGES.length = 0;
@@ -1988,8 +1990,10 @@ let dashWeekOffset=0; // 0 = current Thu→Thu, -1 = prev week, etc.
 let dashMode='days'; // 'days' | 'thu'
 
 // ── CHART STATE ───────────────────────────────────────────────────
-let _chartMode='week'; // 'day' | 'week'
-let _chartMax={active:100,starts:20,restarts:20};
+let _chartMode='week'; // 'day' | 'week' | 'today'
+let _chartMax={active:100,starts:20,restarts:20,leads:20};
+let _chartQuota={active:0,starts:0,restarts:0,leads:0}; // 0=не задана
+let _chartDayDate=new Date().toISOString().slice(0,10); // для режима 'today'
 
 function setDashPeriod(days){
   dashPeriod=days;
@@ -2761,7 +2765,24 @@ function setChartMode(mode){
 
 function setChartMax(metric,val){
   const n=parseInt(val);
-  if(n>0){_chartMax[metric]=n;renderDashboardCharts();}
+  if(n>0){
+    _chartMax[metric]=n;
+    if(!S.settings) S.settings={};
+    if(!S.settings.chartMax) S.settings.chartMax={};
+    S.settings.chartMax[metric]=n;
+    dbRef.child('settings/chartMax').set(S.settings.chartMax);
+    renderDashboardCharts();
+  }
+}
+
+function setChartQuota(metric,val){
+  const n=parseInt(val)||0;
+  _chartQuota[metric]=n;
+  if(!S.settings) S.settings={};
+  if(!S.settings.chartQuota) S.settings.chartQuota={};
+  S.settings.chartQuota[metric]=n;
+  dbRef.child('settings/chartQuota').set(S.settings.chartQuota);
+  renderDashboardCharts();
 }
 
 function getDatesInRange(from,to){
@@ -2782,6 +2803,15 @@ function chChartWeek(dir){
 function getChartPeriods(mode,n=7){
   const periods=[];
   const today=new Date();today.setHours(0,0,0,0);
+  if(mode==='today'){
+    // Один период — выбранный день
+    const ds=_chartDayDate;
+    const d=new Date(ds);
+    const lbl=`${d.getDate()}.${String(d.getMonth()+1).padStart(2,'0')}`;
+    const dow=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'][d.getDay()];
+    periods.push({from:ds,to:ds,label:lbl,sub:dow,isCurrent:true});
+    return periods;
+  }
   if(mode==='day'){
     for(let i=n-1;i>=0;i--){
       const d=new Date(today);d.setDate(d.getDate()-i);
@@ -2824,11 +2854,16 @@ function getMetricForPeriod(metric,from,to){
     return S.enrollments.filter(e=>e.dateStart>=from&&e.dateStart<=to&&!e.inactive).length;
   } else if(metric==='restarts'){
     return (S.journal||[]).filter(j=>j.type==='extend'&&j.isoDate&&j.isoDate>=from&&j.isoDate<=to).length;
+  } else if(metric==='leads'){
+    // Новые обращения в CRM за период — считаем из кэша S.crmLeads если есть
+    if(!window._crmLeadsCache) return 0;
+    return Object.values(window._crmLeadsCache)
+      .filter(l=>l.createdAt&&l.createdAt.slice(0,10)>=from&&l.createdAt.slice(0,10)<=to).length;
   }
   return 0;
 }
 
-function buildLineChartSVG(data,max,colorHex){
+function buildLineChartSVG(data,max,colorHex,quota=0){
   const W=420,H=420;
   const padL=36,padR=12,padT=26,padB=52;
   const cW=W-padL-padR,cH=H-padT-padB;
@@ -2914,6 +2949,13 @@ function buildLineChartSVG(data,max,colorHex){
     }
   });
 
+  // ── Quota line (дашный ориентир)
+  if(quota>0&&quota<=safeMax){
+    const qy=padT+cH*(1-quota/safeMax);
+    svg+=`<line x1="${padL}" y1="${qy}" x2="${W-padR}" y2="${qy}" stroke="#f05975" stroke-width="1.5" stroke-dasharray="5,3" opacity="0.7"/>`;
+    svg+=`<text x="${W-padR+2}" y="${qy+4}" font-size="8" fill="#f05975" font-family="Manrope,sans-serif" opacity="0.85">${quota}</text>`;
+  }
+
   svg+='</svg>';
   return svg;
 }
@@ -2928,7 +2970,15 @@ function renderDashboardCharts(){
     {key:'active',  label:'Активных учеников', color:'var(--gn)',  hex:'#3fd88e', icon:'🎓'},
     {key:'starts',  label:'Старты',             color:'var(--ac2)', hex:'#a87fff', icon:'🚀'},
     {key:'restarts',label:'Перестарты',          color:'var(--am)',  hex:'#f5c842', icon:'🔄'},
+    {key:'leads',   label:'Новые обращения',     color:'var(--tl)',  hex:'#3fc8d8', icon:'📥'},
   ];
+  // Load CRM leads for 'leads' metric (async, then re-render if needed)
+  if(!window._crmLeadsCache){
+    crmRef.once('value').then(snap=>{
+      window._crmLeadsCache=snap.val()||{};
+      renderDashboardCharts();
+    });
+  }
 
   const mBtn=(m,lbl)=>`<button style="font-size:11px;padding:4px 11px;border-radius:6px;border:1px solid;cursor:pointer;font-family:var(--fb);${_chartMode===m?'background:var(--ac);border-color:var(--ac);color:#fff':'background:var(--bg3);border-color:var(--b2);color:var(--t2)'}" onclick="setChartMode('${m}')">${lbl}</button>`;
 
@@ -2956,20 +3006,34 @@ function renderDashboardCharts(){
       </div>
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
         ${weekNav}
-        <div style="display:flex;gap:4px">${mBtn('day','По дням')}${mBtn('week','По неделям (Чт→Чт)')}</div>
+        <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
+          ${mBtn('today','Сегодня')}
+          ${mBtn('day','По дням')}
+          ${mBtn('week','По неделям (Чт→Чт)')}
+          ${_chartMode==='today'?`<input type="date" value="${_chartDayDate}" max="${new Date().toISOString().slice(0,10)}"
+            onchange="_chartDayDate=this.value;renderDashboardCharts()"
+            style="background:var(--bg3);border:1px solid var(--b2);border-radius:6px;color:var(--t1);font-family:var(--fb);font-size:11px;padding:3px 7px">`:''}
+        </div>
       </div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px">`;
 
   defs.forEach(({key,label,color,hex,icon})=>{
     const max=_chartMax[key];
+    // For 'today' mode quota scales to 1 day, for 'day' it's per-day, for 'week' multiply by 7
+    const rawQuota=_chartQuota[key]||0;
+    const quotaScaled = rawQuota<=0 ? 0
+      : _chartMode==='week' ? rawQuota*7
+      : rawQuota; // day/today: daily quota
     const data=periods.map(p=>({label:p.label,sub:p.sub,value:getMetricForPeriod(key,p.from,p.to),isCurrent:!!p.isCurrent}));
     const lastVal=data[data.length-1]?.value??0;
     const pct=Math.round(lastVal/max*100);
+    const quotaPct=quotaScaled>0?Math.round(lastVal/quotaScaled*100):null;
     const trend=data.length>=2?data[data.length-1].value-data[data.length-2].value:0;
     const trendHtml=trend>0?`<span style="color:var(--gn);font-size:10px">▲${trend}</span>`:
                     trend<0?`<span style="color:var(--rd);font-size:10px">▼${Math.abs(trend)}</span>`:
                     `<span style="color:var(--t3);font-size:10px">—</span>`;
+    const quotaHtml=quotaPct!==null?`<span style="font-size:10px;color:${quotaPct>=100?'var(--gn)':quotaPct>=70?'var(--am)':'var(--rd)'}">${quotaPct}% от квоты</span>`:'';
 
     html+=`
     <div style="background:var(--bg3);border:1px solid var(--b1);border-radius:12px;padding:12px 12px 6px">
@@ -2981,16 +3045,26 @@ function renderDashboardCharts(){
             <span style="font-size:11px;color:var(--t3)">/ ${max}</span>
             ${trendHtml}
           </div>
+          ${quotaHtml?`<div style="margin-top:2px">${quotaHtml}</div>`:''}
           <div style="height:2px;width:${Math.min(100,pct)}%;background:${hex};border-radius:2px;margin-top:4px;max-width:80px;opacity:.6"></div>
         </div>
-        <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
-          <span style="font-size:9px;color:var(--t3)">max:</span>
-          <input type="number" min="1" value="${max}"
-            onchange="setChartMax('${key}',this.value)"
-            style="width:50px;background:var(--bg4);border:1px solid var(--b2);border-radius:6px;color:var(--t1);font-size:11px;padding:3px 6px;text-align:center;font-family:var(--fb)"/>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+          <div style="display:flex;align-items:center;gap:4px">
+            <span style="font-size:9px;color:var(--t3)">max:</span>
+            <input type="number" min="1" value="${max}"
+              onchange="setChartMax('${key}',this.value)"
+              style="width:48px;background:var(--bg4);border:1px solid var(--b2);border-radius:6px;color:var(--t1);font-size:11px;padding:3px 5px;text-align:center;font-family:var(--fb)"/>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px">
+            <span style="font-size:9px;color:var(--rd);opacity:.8">квота/д:</span>
+            <input type="number" min="0" value="${rawQuota||''}" placeholder="—"
+              onchange="setChartQuota('${key}',this.value)"
+              title="Дневная квота. На недельном графике умножается ×7"
+              style="width:48px;background:var(--bg4);border:1px solid rgba(240,89,117,.3);border-radius:6px;color:var(--t1);font-size:11px;padding:3px 5px;text-align:center;font-family:var(--fb)"/>
+          </div>
         </div>
       </div>
-      ${buildLineChartSVG(data,max,hex)}
+      ${buildLineChartSVG(data,max,hex,quotaScaled)}
     </div>`;
   });
 
