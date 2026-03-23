@@ -409,6 +409,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
     <div id="more-menu" style="display:none">
       <div class="ni admin-only" data-p="subjects" onclick="nav(this)" style="padding-left:30px"><span style="font-size:13px;width:18px;text-align:center">📚</span>Предметы</div>
       <div class="ni admin-only" data-p="journal" onclick="nav(this)" style="padding-left:30px"><span style="font-size:13px;width:18px;text-align:center">📋</span>Журнал</div>
+      <div class="ni admin-only" data-p="notifylog" onclick="nav(this)" style="padding-left:30px"><span style="font-size:13px;width:18px;text-align:center">📨</span>Уведомления <span id="notifylog-badge" style="display:none;background:var(--rd);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
       <div class="ni admin-only" data-p="trash" onclick="nav(this)" style="padding-left:30px"><span style="font-size:13px;width:18px;text-align:center">🗑</span>Корзина <span id="trash-badge" style="display:none;background:var(--rd);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
       <div class="ni admin-only" data-p="backups" onclick="nav(this)" style="padding-left:30px"><span style="font-size:13px;width:18px;text-align:center">💾</span>Резервные копии</div>
       <div class="ni admin-only" data-p="appsettings" onclick="nav(this)" style="padding-left:30px"><span style="font-size:13px;width:18px;text-align:center">⚙️</span>Настройки</div>
@@ -645,6 +646,31 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
         </select>
       </div>
       <div id="jrn-list"></div>
+    </div>
+    <!-- NOTIFY LOG -->
+    <div class="panel" id="panel-notifylog">
+      <div class="filters" style="gap:8px;flex-wrap:wrap">
+        <span class="fl">Тип:</span>
+        <select class="fsel" id="nlog-type" onchange="renderNotifyLog()">
+          <option value="">Все</option>
+          <option value="reminder">⏰ Напоминание до урока</option>
+          <option value="teacher_before">🧑‍🏫 Препод. за 15 мин</option>
+          <option value="eod">📋 Итог дня</option>
+          <option value="survey">📋 Опрос родителю</option>
+          <option value="report">🎥 Видео-отчёт</option>
+          <option value="crm">💼 CRM сообщение</option>
+          <option value="wa_auto">🤖 Авто-сообщение</option>
+          <option value="other">Прочее</option>
+        </select>
+        <select class="fsel" id="nlog-date" onchange="renderNotifyLog()">
+          <option value="7">За 7 дней</option>
+          <option value="30">За 30 дней</option>
+          <option value="all">Все время</option>
+        </select>
+        <button class="btn btn-sm" onclick="renderNotifyLog()" style="margin-left:auto">🔄 Обновить</button>
+      </div>
+      <div id="nlog-stats" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px"></div>
+      <div id="nlog-list"></div>
     </div>
     <!-- USERS -->
     <div class="panel" id="panel-users">
@@ -1871,8 +1897,8 @@ function countFree(){
 }
 
 // ── NAVIGATION ───────────────────────────────────────────────────
-const TITLES={today:'Сегодня ☀️',tasks:'Задачи',teamchat:'Командный чат',dashboard:'Главная',subjects:'Предметы',teachers:'Преподаватели',availability:'Время работы',schedule:'Расписание',freeSlots:'Свободные слоты',students:'Ученики',reports:'Отчёты по преподавателям',journal:'Журнал действий',trash:'Корзина',backups:'Резервные копии',users:'Пользователи',videoreviews:'Видео уроков',surveys:'Опросы',crm:'CRM — Клиенты',wachats:'Чаты',callslog:'Журнал звонков'};
-const ACTS={today:'',tasks:'',teamchat:'',dashboard:'+',subjects:'',teachers:'+ Преподаватель',availability:'',schedule:'',freeSlots:'',students:'+ Ученик',reports:'',journal:'',trash:'',backups:'',users:'',videoreviews:'',surveys:'',crm:'',wachats:'',callslog:''};
+const TITLES={today:'Сегодня ☀️',tasks:'Задачи',teamchat:'Командный чат',dashboard:'Главная',subjects:'Предметы',teachers:'Преподаватели',availability:'Время работы',schedule:'Расписание',freeSlots:'Свободные слоты',students:'Ученики',reports:'Отчёты по преподавателям',journal:'Журнал действий',notifylog:'📨 Журнал уведомлений',trash:'Корзина',backups:'Резервные копии',users:'Пользователи',videoreviews:'Видео уроков',surveys:'Опросы',crm:'CRM — Клиенты',wachats:'Чаты',callslog:'Журнал звонков'};
+const ACTS={today:'',tasks:'',teamchat:'',dashboard:'+',subjects:'',teachers:'+ Преподаватель',availability:'',schedule:'',freeSlots:'',students:'+ Ученик',reports:'',journal:'',notifylog:'',trash:'',backups:'',users:'',videoreviews:'',surveys:'',crm:'',wachats:'',callslog:''};
 function curPanel(){return document.querySelector('.ni.active')?.dataset.p||'dashboard';}
 function nav(el){
   // Close more menu on nav
@@ -1944,6 +1970,7 @@ function renderPanel(p){
   else if(p==='students'){fillSubjSel();renderStudents();}
   else if(p==='reports'){renderReports();}
   else if(p==='journal'){renderJournal();}
+  else if(p==='notifylog'){renderNotifyLog();}
   else if(p==='trash'){renderTrash();}
   else if(p==='backups'){renderBackups();}
   else if(p==='users'){renderUsers();}
@@ -4124,8 +4151,8 @@ function setAtt(enrollId,dateStr,val,user){
     const teacherName=t?.name||'—';
     const studentName=st.name||'—';
     const msg='❌ Пропуск урока\n\n👤 Ученик: '+studentName+'\n👩‍🏫 Преподаватель: '+teacherName+'\n📅 Дата: '+dateRu+'\n\nСвяжитесь с нами для переноса урока.';
-    if(parentPhone) notifyWhatsApp(parentPhone,msg);
-    if(studentPhone&&studentPhone!==parentPhone) notifyWhatsApp(studentPhone,msg);
+    if(parentPhone){ notifyWhatsApp(parentPhone,msg).then(r=>{ if(r?.ok) logNotify('crm',lead.name||'—',parentPhone,msg,{stage:newStage}); }); }
+    if(studentPhone&&studentPhone!==parentPhone){ notifyWhatsApp(studentPhone,msg).then(r=>{ if(r?.ok) logNotify('crm',lead.name||'—',studentPhone,msg,{stage:newStage}); }); }
   }
 }
 function weekKey(dateStr){
@@ -4194,8 +4221,8 @@ function saveMakeup(){
     const [my,mm,md]=mkDate.split('-');
     const mkDateRu=md+' '+mkMonths[parseInt(mm)-1];
     const msg='🔄 Перенос урока\n\n👤 Ученик: '+st.name+'\n📅 Пропущен: '+dateRu+'\n📅 Отработка: '+mkDateRu+' в '+TIMES[mkTi]+'\n\nЕсли есть вопросы — свяжитесь с нами.';
-    if(parentPhone) notifyWhatsApp(parentPhone,msg);
-    if(studentPhone&&studentPhone!==parentPhone) notifyWhatsApp(studentPhone,msg);
+    if(parentPhone){ notifyWhatsApp(parentPhone,msg).then(r=>{ if(r?.ok) logNotify('crm',lead.name||'—',parentPhone,msg,{stage:newStage}); }); }
+    if(studentPhone&&studentPhone!==parentPhone){ notifyWhatsApp(studentPhone,msg).then(r=>{ if(r?.ok) logNotify('crm',lead.name||'—',studentPhone,msg,{stage:newStage}); }); }
   }
   save();close1('m-makeup');renderSchedule();toast('Отработка сохранена');
 }
@@ -7800,6 +7827,7 @@ function checkLessonReminders(){
         if(studentPhone){
           notifyWhatsApp('+'+studentPhone, msg).then(res=>{
             if(!res||!res.ok) logReminderFailure(e.id, st.name, studentPhone, 'student', res?.error||'unknown');
+            else logNotify('reminder', st.name, '+'+studentPhone, msg, {teacherName:t?.name||''});
           });
           _sentPhones.add(studentPhone);
         }
@@ -7812,6 +7840,7 @@ function checkLessonReminders(){
         if(parentPhone && !_sentPhones.has(parentPhone)){
           notifyWhatsApp('+'+parentPhone, msg).then(res=>{
             if(!res||!res.ok) logReminderFailure(e.id, st.name, parentPhone, 'parent', res?.error||'unknown');
+            else logNotify('reminder', `${st.name} (родитель)`, '+'+parentPhone, msg, {teacherName:t?.name||''});
           });
         } else if(!parentPhone && !studentPhone){
           // Логируем ошибку только если оба номера отсутствуют
@@ -7825,7 +7854,9 @@ function checkLessonReminders(){
         const tEntry=Object.entries(udata).find(([uid,u])=>u.name===t?.name||uid===String(t?.id)||uid===String(t?.uid));
         if(tEntry&&tEntry[1].phone){
           const tMsg=`⏰ Через 5 минут урок!\n\n👤 Ученик: ${st.name}\n🕐 ${lessonTime} · ${dateRu}\n📖 ${e.topic||'Английский'}`;
-          notifyWhatsApp(tEntry[1].phone, tMsg);
+          notifyWhatsApp(tEntry[1].phone, tMsg).then(r=>{
+            if(r?.ok) logNotify('reminder', `Преподаватель: ${t?.name||'—'}`, tEntry[1].phone, tMsg, {studentName:st.name});
+          });
         }
       });
     }); // end transaction
@@ -7834,6 +7865,108 @@ function checkLessonReminders(){
 
 
 
+
+
+// ═══════════════════════════════════════════════════════
+//  NOTIFY LOG — журнал всех WA уведомлений
+// ═══════════════════════════════════════════════════════
+
+const notifyLogRef = fbDb.ref('notifyLog');
+
+// Типы уведомлений с иконками и цветами
+const NOTIFY_TYPES = {
+  reminder:       {label:'⏰ Напоминание до урока',  color:'var(--ac2)'},
+  teacher_before: {label:'🧑‍🏫 Препод. за 15 мин',   color:'var(--tl)'},
+  eod:            {label:'📋 Итог дня',               color:'var(--am)'},
+  survey:         {label:'📋 Опрос родителю',         color:'#ff7eb3'},
+  report:         {label:'🎥 Видео-отчёт',            color:'var(--gn)'},
+  crm:            {label:'💼 CRM сообщение',          color:'var(--ac2)'},
+  wa_auto:        {label:'🤖 Авто-сообщение',         color:'var(--tl)'},
+  other:          {label:'📩 Уведомление',            color:'var(--t3)'},
+};
+
+// Логируем WA сообщение в Firebase notifyLog
+// type: ключ из NOTIFY_TYPES
+// recipient: имя получателя (ученик, преподаватель...)
+// phone: номер телефона
+// preview: первые ~80 символов сообщения
+// meta: доп. поля (teacherName, studentName и т.д.)
+function logNotify(type, recipient, phone, preview, meta){
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  notifyLogRef.child(todayStr).push({
+    type: type||'other',
+    recipient: recipient||'',
+    phone: phone||'',
+    preview: (preview||'').slice(0,120),
+    ts: now.toISOString(),
+    tsLocal: now.toLocaleString('ru',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),
+    ...(meta||{})
+  }).catch(()=>{});
+}
+
+// Рендер журнала уведомлений
+async function renderNotifyLog(){
+  const el = document.getElementById('nlog-list');
+  const statsEl = document.getElementById('nlog-stats');
+  if(!el) return;
+  el.innerHTML = '<div style="text-align:center;padding:30px;color:var(--t3)">Загрузка...</div>';
+
+  const typeF  = document.getElementById('nlog-type')?.value||'';
+  const dateF  = parseInt(document.getElementById('nlog-date')?.value||'7');
+
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - (isNaN(dateF)?9999:dateF));
+  const cutoffStr = `${cutoff.getFullYear()}-${String(cutoff.getMonth()+1).padStart(2,'0')}-${String(cutoff.getDate()).padStart(2,'0')}`;
+
+  const snap = await notifyLogRef.once('value');
+  const raw = snap.val()||{};
+
+  // Flatten: {date: {pushId: entry}} → flat array
+  const all = [];
+  Object.entries(raw).forEach(([date, entries])=>{
+    if(date < cutoffStr) return;
+    Object.values(entries||{}).forEach(e=>all.push(e));
+  });
+
+  all.sort((a,b)=>(b.ts||'').localeCompare(a.ts||''));
+  const filtered = typeF ? all.filter(e=>e.type===typeF) : all;
+
+  // Stats
+  const counts = {};
+  all.forEach(e=>{ counts[e.type]=(counts[e.type]||0)+1; });
+  if(statsEl){
+    statsEl.innerHTML = Object.entries(counts)
+      .sort((a,b)=>b[1]-a[1])
+      .map(([t,n])=>{
+        const def = NOTIFY_TYPES[t]||NOTIFY_TYPES.other;
+        return `<div style="background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:8px 14px;display:flex;gap:8px;align-items:center">
+          <span style="font-size:11px;color:${def.color}">${def.label}</span>
+          <span style="font-family:var(--fd);font-size:16px;font-weight:700;color:var(--t1)">${n}</span>
+        </div>`;
+      }).join('');
+  }
+
+  if(!filtered.length){
+    el.innerHTML='<div class="empty"><div class="empty-icon">📨</div><div class="empty-text">Уведомлений нет</div></div>';
+    return;
+  }
+
+  el.innerHTML = filtered.map(e=>{
+    const def = NOTIFY_TYPES[e.type]||NOTIFY_TYPES.other;
+    return `<div style="background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rl);padding:12px 16px;margin-bottom:7px;display:flex;gap:12px;align-items:flex-start">
+      <div style="flex-shrink:0;margin-top:2px">
+        <span style="font-size:10px;font-weight:600;color:${def.color};background:${def.color}22;border:1px solid ${def.color}44;padding:2px 8px;border-radius:10px;white-space:nowrap">${def.label}</span>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--t1)">${e.recipient||'—'}</div>
+        ${e.phone?`<div style="font-size:11px;color:var(--t3);margin-top:1px">📱 ${e.phone}</div>`:''}
+        ${e.preview?`<div style="font-size:12px;color:var(--t2);margin-top:5px;padding:8px 10px;background:var(--bg3);border-radius:8px;border-left:3px solid ${def.color}44;white-space:pre-line;line-height:1.5">${e.preview}</div>`:''}
+      </div>
+      <div style="font-size:11px;color:var(--t3);flex-shrink:0;white-space:nowrap">${e.tsLocal||''}</div>
+    </div>`;
+  }).join('');
+}
 
 // ═══════════════════════════════════════════════════════
 //  TEACHER REMINDERS — до урока (15 мин) + итог дня
@@ -7880,7 +8013,9 @@ function checkTeacherBeforeLesson(now, today, nowMinutes){
 
       const lines = lessons.map(l=>`  👤 ${l.st?.name||'—'} · ${l.time} · ${l.e.topic||'Английский'}`).join('\n');
       const msg = `🔔 Через 15 минут ${lessons.length === 1 ? 'урок' : 'уроки'}!\n\n${lines}\n\n✅ Пожалуйста, подготовьтесь к занятию.`;
-      notifyWhatsApp(tPhone, msg);
+      notifyWhatsApp(tPhone, msg).then(r=>{
+        if(r?.ok) logNotify('teacher_before', `Преподаватель: ${t?.name||'—'}`, tPhone, msg, {lessonsCount:lessons.length});
+      });
     });
   });
 }
@@ -7966,7 +8101,9 @@ function checkEndOfDayReminders(now, today){
         msg += `👉 Загрузи видео в раздел «Отчёты» — родители ждут!`;
       }
 
-      notifyWhatsApp(tPhone, msg);
+      notifyWhatsApp(tPhone, msg).then(r=>{
+        if(r?.ok) logNotify('eod', `Преподаватель: ${t?.name||'—'}`, tPhone, msg);
+      });
     });
   });
 }
@@ -8148,7 +8285,10 @@ ${link}
 — Команда Robeng ELC`;
 
   const phones = [parentPhone, studentPhone].filter((p,i,a)=>p&&a.indexOf(p)===i);
-  for(const p of phones) await notifyWhatsApp('+'+p, msg).catch(()=>{});
+  for(const p of phones){
+    const r = await notifyWhatsApp('+'+p, msg).catch(()=>({ok:false}));
+    if(r?.ok) logNotify('survey', st.name, '+'+p, msg, {teacherName:t?.name||''});
+  }
 
   logAction('other', `Опрос отправлен: ${st.name}`, t?.name||'—');
   updateSurveysBadge();
