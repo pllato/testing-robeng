@@ -9976,6 +9976,49 @@ function openCRMCard(id){
       if(assigneeEl2) assigneeEl2.disabled = isReg;
       const delBtn = document.getElementById('crm-del-btn');
       if(delBtn) delBtn.style.display = isReg ? 'none' : '';
+
+      // Show banner if registrar opens a deal assigned to someone else
+      const banner = document.getElementById('crm-assign-banner');
+      const bannerText = document.getElementById('crm-assign-banner-text');
+      if(banner && bannerText){
+        const myUid = getMyUid();
+        const ownerUid = l.assigneeUid || '';
+        if(isReg && ownerUid && ownerUid !== myUid){
+          const ownerName = S.appUsers?.[ownerUid]?.name || l.assignee || ownerUid;
+          bannerText.textContent = `Эта сделка закреплена за: ${ownerName}. Вы просматриваете в режиме чтения.`;
+          banner.style.display = 'flex';
+          // Make all inputs read-only
+          ['crm-f-name','crm-f-phone','crm-f-source','crm-f-interest','crm-f-budget','crm-f-age','crm-f-notes','crm-f-trialdate','crm-f-trialtime'].forEach(fid=>{
+            const el = document.getElementById(fid);
+            if(el) el.readOnly = true;
+          });
+          ['crm-f-interest','crm-f-trialteacher','crm-f-assignee'].forEach(fid=>{
+            const el = document.getElementById(fid);
+            if(el) el.disabled = true;
+          });
+          // Hide save button
+          const saveBtn = document.querySelector('#m-crm-card .btn-a[onclick="saveCRMCard()"]');
+          if(saveBtn) saveBtn.style.display = 'none';
+          // Hide add student button
+          const addStu = document.getElementById('crm-add-student-btn');
+          if(addStu) addStu.style.display = 'none';
+        } else {
+          banner.style.display = 'none';
+          // Restore inputs
+          ['crm-f-name','crm-f-phone','crm-f-source','crm-f-interest','crm-f-budget','crm-f-age','crm-f-notes','crm-f-trialdate','crm-f-trialtime'].forEach(fid=>{
+            const el = document.getElementById(fid);
+            if(el) el.readOnly = false;
+          });
+          ['crm-f-interest','crm-f-trialteacher'].forEach(fid=>{
+            const el = document.getElementById(fid);
+            if(el) el.disabled = false;
+          });
+          const saveBtn = document.querySelector('#m-crm-card .btn-a[onclick="saveCRMCard()"]');
+          if(saveBtn) saveBtn.style.display = '';
+          const addStu = document.getElementById('crm-add-student-btn');
+          if(addStu) addStu.style.display = '';
+        }
+      }
     });
   } else {
     document.getElementById('crm-f-name').value='';
@@ -10392,11 +10435,7 @@ function renderWAChats(){
       .map(([key,val])=>({...val,id:key}))
       .filter(l=>l.phone)
       .sort((a,b)=>(b.lastContact||b.createdAt||'').localeCompare(a.lastContact||a.createdAt||''));
-    // Регистратор видит только свои чаты
-    if(isCRMRegistrar()){
-      const myUid = getMyUid();
-      leads = leads.filter(l => l.assigneeUid === myUid);
-    }
+    // Регистраторы видят ВСЕ чаты (фильтрация только в CRM-сделках)
     renderWAChatsContent(leads);
   });
 }
@@ -11608,6 +11647,12 @@ function addCRMLinkToStudent(studentEl, phone){
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px">
       <div class="mt" id="crm-card-ttl" style="margin-bottom:0">Новый лид</div>
       <button class="btn btn-xs btn-r" onclick="deleteCRMCard()" id="crm-del-btn">🗑 Удалить</button>
+    </div>
+
+    <!-- Assignment banner for registrars opening someone else's deal -->
+    <div id="crm-assign-banner" style="display:none;align-items:center;gap:10px;background:rgba(245,200,66,.08);border:1px solid rgba(245,200,66,.25);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:12px;color:var(--am)">
+      <span style="font-size:16px">🔒</span>
+      <span id="crm-assign-banner-text"></span>
     </div>
 
     <!-- STAGE PIPELINE BAR -->
