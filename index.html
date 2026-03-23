@@ -7860,8 +7860,16 @@ function renderCRMStageSettings(){
       </div>
       <textarea id="crm-msg-${stage.id}" rows="3" placeholder="Пусто = не отправлять..."
         style="width:100%;background:var(--bg3);border:1px solid var(--b2);border-radius:8px;color:var(--t1);font-family:var(--fb);font-size:12px;padding:7px 10px;resize:vertical;box-sizing:border-box">${msg}</textarea>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+        <input type="checkbox" id="crm-teacher-notify-${stage.id}" ${(S.settings?.crmTeacherNotifyStages||[]).includes(stage.id)?'checked':''}
+          onchange="toggleTeacherNotifyStage('${stage.id}',this.checked)"
+          style="accent-color:var(--ac);width:14px;height:14px;cursor:pointer">
+        <label for="crm-teacher-notify-${stage.id}" style="font-size:11px;color:var(--t2);cursor:pointer">
+          📩 Уведомить преподавателя (отправить детали урока в WhatsApp)
+        </label>
+      </div>
       <div style="font-size:10px;color:var(--t3);margin-top:3px;line-height:1.6">
-        Переменные: <code style="background:var(--bg4);padding:1px 4px;border-radius:4px;color:var(--ac2)">{{Имя клиента}}</code>
+        Переменные клиенту: <code style="background:var(--bg4);padding:1px 4px;border-radius:4px;color:var(--ac2)">{{Имя клиента}}</code>
         <code style="background:var(--bg4);padding:1px 4px;border-radius:4px;color:var(--ac2)">{{Дата пробного}}</code>
         <code style="background:var(--bg4);padding:1px 4px;border-radius:4px;color:var(--ac2)">{{Время пробного}}</code>
         <code style="background:var(--bg4);padding:1px 4px;border-radius:4px;color:var(--ac2)">{{Преподаватель}}</code>
@@ -8010,6 +8018,19 @@ function updateDistribPct(){
       pctEl.textContent = '~'+Math.round(w/(total||1)*100)+'%';
     }
   });
+}
+
+function toggleTeacherNotifyStage(stageId, enabled){
+  if(!S.settings) S.settings = {};
+  let stages = S.settings.crmTeacherNotifyStages || [];
+  if(enabled){
+    if(!stages.includes(stageId)) stages = [...stages, stageId];
+  } else {
+    stages = stages.filter(s => s !== stageId);
+  }
+  S.settings.crmTeacherNotifyStages = stages;
+  dbRef.child('settings/crmTeacherNotifyStages').set(stages).catch(()=>{});
+  toast(enabled ? '✅ Уведомление преподавателя включено' : 'Уведомление преподавателя выключено');
 }
 
 function saveCRMDistribSettings(){
@@ -9879,6 +9900,12 @@ function crmDrop(event, newStage){
       });
     }
 
+    // Уведомляем преподавателя если для этой стадии включено
+    const notifyStages = S.settings?.crmTeacherNotifyStages || [];
+    if(notifyStages.includes(newStage)){
+      sendTeacherStageNotify(dragId, crmStage(newStage).label);
+    }
+
     toast(`✓ ${l.name||'Лид'} → ${crmStage(newStage).label}`);
     // real-time слушатель сам обновит канбан
   });
@@ -10006,6 +10033,11 @@ function saveCRMCard(){
               crmRef.child(_crmEditId+'/msgCount').transaction(v=>(v||0)+1);
               crmRef.child(_crmEditId+'/lastContact').set(now);
             });
+          }
+          // Уведомляем преподавателя если включено для этой стадии
+          const notifyStages = S.settings?.crmTeacherNotifyStages || [];
+          if(notifyStages.includes(data.stage)){
+            sendTeacherStageNotify(_crmEditId, crmStage(data.stage).label);
           }
         }
         close1('m-crm-card'); renderCRM(); toast('Карточка сохранена');
@@ -11149,6 +11181,43 @@ function getTeacherPhone(teacher){
   }
   // 4. Direct phone field on teacher record (fallback)
   return teacher.phone || '';
+}
+
+// Уведомление преподавателя при смене стадии (настраивается в Настройках → Стадии CRM)
+async function sendTeacherStageNotify(leadId, stageLabel){
+  const snap = await crmRef.child(leadId).once('value');
+  const l = snap.val();
+  if(!l || !l.trialTeacherId) return; // нет преподавателя — молча выходим
+
+  const t = (S.teachers||[]).find(t=>String(t.id)===String(l.trialTeacherId));
+  if(!t) return;
+
+  let rawPhone = getTeacherPhone(t);
+  if(!rawPhone){
+    const usersSnap = await fbDb.ref('appUsers').once('value');
+    const allUsers = usersSnap.val()||{};
+    S.appUsers = allUsers;
+    if(t.uid && allUsers[t.uid]?.phone) rawPhone = allUsers[t.uid].phone;
+    if(!rawPhone && allUsers[String(t.id)]?.phone) rawPhone = allUsers[String(t.id)].phone;
+    if(!rawPhone){
+      const tNameLower = (t.name||'').toLowerCase();
+      const matched = Object.values(allUsers).find(u=>(u.name||'').toLowerCase()===tNameLower);
+      if(matched?.phone) rawPhone = matched.phone;
+    }
+  }
+  if(!rawPhone) return;
+
+  const phone = normalizePhone(rawPhone);
+  if(!phone) return;
+
+  const dt = l.trialDate ? new Date(l.trialDate+'T'+(l.trialTime||'12:00')).toLocaleDateString('ru',{day:'numeric',month:'long',weekday:'long'}) : '—';
+  const msg = `✅ Урок запланирован — ${stageLabel}\n\n👤 Клиент: ${l.name||'—'}\n📱 Телефон: ${l.phone||'—'}\n📅 ${dt}${l.trialTime?' в '+l.trialTime:''}\n${l.interest?'📖 '+l.interest+'\n':''}${l.notes?'💬 '+l.notes:''}`;
+  const res = await notifyWhatsApp('+'+phone, msg);
+  if(res?.ok){
+    const now = new Date().toISOString();
+    crmChatRef.child(leadId).push({type:'system', text:`📩 Преподаватель ${t.name} уведомлён о занятии`, ts:now, uid:'', name:'Система'});
+    toast(`✓ ${t.name} уведомлён о занятии`);
+  }
 }
 
 async function sendTrialNotify(leadId){
