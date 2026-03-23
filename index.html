@@ -1723,8 +1723,9 @@ fbAuth.onAuthStateChanged(user=>{
         if(S.settings?.crmStageMsgs) Object.assign(CRM_STAGE_MSGS, S.settings.crmStageMsgs);
         if(S.settings?.chartMax) Object.assign(_chartMax, S.settings.chartMax);
         if(S.settings?.chartQuota) Object.assign(_chartQuota, S.settings.chartQuota);
-        if(!_chartMax.trials)     _chartMax.trials=10;
-        if(!_chartMax.graduates) _chartMax.graduates=5;
+        if(!_chartMax.trials)       _chartMax.trials=10;
+        if(!_chartMax.graduates)   _chartMax.graduates=5;
+        if(!_chartMax.active_fact) _chartMax.active_fact=100;
         // Загружаем сохранённые стадии CRM
         if(S.settings?.crmStages && Array.isArray(S.settings.crmStages) && S.settings.crmStages.length>=2){
           CRM_STAGES.length = 0;
@@ -1993,8 +1994,8 @@ let dashMode='days'; // 'days' | 'thu'
 
 // ── CHART STATE ───────────────────────────────────────────────────
 let _chartMode='week'; // 'day' | 'week' | 'today'
-let _chartMax={active:100,starts:20,restarts:20,leads:20,trials:10,graduates:5};
-let _chartQuota={active:0,starts:0,restarts:0,leads:0,trials:0,graduates:0}; // 0=не задана
+let _chartMax={active:100,active_fact:100,starts:20,restarts:20,leads:20,trials:10,graduates:5};
+let _chartQuota={active:0,active_fact:0,starts:0,restarts:0,leads:0,trials:0,graduates:0}; // 0=не задана
 let _chartDayDate=new Date().toISOString().slice(0,10); // для режима 'today'
 
 function setDashPeriod(days){
@@ -2852,6 +2853,20 @@ function getMetricForPeriod(metric,from,to){
       }
     });
     return ids.size;
+  } else if(metric==='active_fact'){
+    // Студент активен по факту — хотя бы одна отметка done/makeup в периоде
+    const att = S.attendance || {};
+    const ids = new Set();
+    S.enrollments.forEach(e => {
+      if(!e.studentId) return;
+      Object.entries(att).forEach(([k, v]) => {
+        if((v==='done'||v==='makeup') && k.startsWith(e.id+'_')){
+          const dt = k.slice(String(e.id).length+1);
+          if(dt >= from && dt <= to) ids.add(e.studentId);
+        }
+      });
+    });
+    return ids.size;
   } else if(metric==='starts'){
     return S.enrollments.filter(e=>e.dateStart>=from&&e.dateStart<=to&&!e.inactive).length;
   } else if(metric==='restarts'){
@@ -3002,12 +3017,13 @@ function renderDashboardCharts(){
   const periods=getChartPeriods(_chartMode,7);
 
   const defs=[
-    {key:'leads',     label:'Новые обращения',  color:'var(--tl)',  hex:'#3fc8d8', icon:'📥'},
-    {key:'trials',    label:'Пробные занятия',  color:'#ff7eb3',   hex:'#ff7eb3', icon:'🧪'},
-    {key:'starts',    label:'Старты',           color:'var(--ac2)', hex:'#a87fff', icon:'🚀'},
-    {key:'active',    label:'Активных учеников',color:'var(--gn)',  hex:'#3fd88e', icon:'🎓'},
-    {key:'restarts',  label:'Перестарты',       color:'var(--am)',  hex:'#f5c842', icon:'🔄'},
-    {key:'graduates', label:'Выпускники',       color:'#e8a838',   hex:'#e8a838', icon:'🏆'},
+    {key:'leads',       label:'Новые обращения',       color:'var(--tl)',  hex:'#3fc8d8', icon:'📥'},
+    {key:'trials',      label:'Пробные занятия',       color:'#ff7eb3',   hex:'#ff7eb3', icon:'🧪'},
+    {key:'starts',      label:'Старты',                color:'var(--ac2)', hex:'#a87fff', icon:'🚀'},
+    {key:'active',      label:'Активных (в системе)',  color:'var(--gn)',  hex:'#3fd88e', icon:'🎓'},
+    {key:'active_fact', label:'Активных (факт посещ.)',color:'#3fc8d8',   hex:'#3fc8d8', icon:'📊'},
+    {key:'restarts',    label:'Перестарты',            color:'var(--am)',  hex:'#f5c842', icon:'🔄'},
+    {key:'graduates',   label:'Выпускники',            color:'#e8a838',   hex:'#e8a838', icon:'🏆'},
   ];
   // Load CRM leads for 'leads' metric (async, then re-render if needed)
   if(!window._crmLeadsCache){
@@ -3059,7 +3075,7 @@ function renderDashboardCharts(){
     const rawMax=_chartMax[key];
     // active — это снимок (сколько учеников сейчас), не накапливается → max не умножаем
     // starts/restarts/leads — события за период → на неделе ×7
-    const isSnapshot = key==='active'; // active = снимок, остальные = события за период
+    const isSnapshot = key==='active' || key==='active_fact'; // снимок, не события за период
     const max = (!isSnapshot && _chartMode==='week') ? rawMax*7 : rawMax;
     const rawQuota=_chartQuota[key]||0;
     const quotaScaled = rawQuota<=0 ? 0
