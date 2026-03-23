@@ -8190,9 +8190,11 @@ ${m.teachers.map(t=>`- ${t.name}: ${t.studentCount} уч, посещаемост
 
 Будь прямым и конкретным, избегай общих фраз.`;
   try{
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,messages:[{role:'user',content:prompt}]})});
+    // Вызов через Worker — ANTHROPIC_API_KEY хранится там как секрет
+    const resp=await fetch('https://flat-pond-6e68.uurraa.workers.dev/ai-analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,max_tokens:1500})});
     const data=await resp.json();
-    const text=data.content?.map(c=>c.text||'').join('')||'Ошибка';
+    if(!data.ok) throw new Error(data.error||'Ошибка Worker');
+    const text=data.text||'Пустой ответ';
     const html=text.replace(/\*\*(.*?)\*\*/g,'<b style="color:var(--t1)">$1</b>').replace(/\n\n/g,'</p><p style="margin:0 0 12px">').replace(/\n/g,'<br>');
     block.innerHTML=`<div style="background:var(--bg2);border:1px solid var(--acb);border-radius:var(--rl);padding:20px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--b1)">
