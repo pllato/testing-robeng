@@ -770,6 +770,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
           <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:8px;margin-top:12px">Стадии канбана</div>
           <div id="crm-stages-editor"></div>
           <button class="btn btn-sm" onclick="addCRMStage()" style="margin-top:6px;font-size:11px">+ Добавить стадию</button>
+          <button class="btn btn-sm btn-a" onclick="saveCRMStages();toast('Стадии сохранены')" style="margin-top:6px;font-size:11px;margin-left:6px">💾 Сохранить стадии</button>
 
           <!-- Message templates -->
           <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:6px;margin-top:20px">Авто-сообщения при смене стадии</div>
@@ -8172,15 +8173,24 @@ function renderCRMStagesEditor(){
       CRM_STAGES[i].color = colorInput.value;
       renderCRMStageSettings();
     });
+    colorInput.addEventListener('change', ()=>{
+      CRM_STAGES[i].hex = colorInput.value;
+      CRM_STAGES[i].color = colorInput.value;
+      saveCRMStages();
+    });
 
     // Label input
     const labelInput = document.createElement('input');
     labelInput.value = stage.label;
     labelInput.placeholder = 'Название...';
     labelInput.style.cssText = 'flex:1;background:var(--bg4);border:1px solid var(--b2);border-radius:6px;color:var(--t1);font-family:var(--fb);font-size:12px;padding:5px 8px';
+    let _labelSaveTimer = null;
     labelInput.addEventListener('input', ()=>{
       CRM_STAGES[i].label = labelInput.value;
       renderCRMStageSettings();
+      // Авто-сохранение с задержкой
+      clearTimeout(_labelSaveTimer);
+      _labelSaveTimer = setTimeout(()=>saveCRMStages(), 800);
     });
 
     // Up button
