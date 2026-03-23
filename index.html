@@ -7982,10 +7982,11 @@ function renderCRMDistribSettings(){
       el.innerHTML = '<div style="font-size:12px;color:var(--t3);padding:10px 0">Нет регистраторов. Добавьте роль 🗂 Регистратор CRM в разделе Пользователи.</div>';
       return;
     }
+    // Читаем веса свежо из Firebase (путь eduSchedule/settings/crmWeights)
     const weights = S.settings?.crmWeights || {};
     el.innerHTML = registrars.map(([uid,u])=>{
-      const w = uid in weights ? weights[uid] : 1;
-      const total = registrars.reduce((s,[id])=>s+(id in weights ? weights[id] : 1),0);
+      const w = uid in weights ? parseInt(weights[uid]) : 1;
+      const total = registrars.reduce((s,[id])=>s+(id in weights ? parseInt(weights[id]) : 1),0);
       const pct = total > 0 ? Math.round(w/total*100) : 0;
       const isOff = w === 0;
       return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);padding:10px 13px;opacity:${isOff?'0.5':'1'}">
@@ -9966,6 +9967,7 @@ function openCRMCard(id){
       // Load chat preview
       loadCRMChatPreview(id);
       renderCRMStudents(id);
+      const _iform = document.getElementById('crm-inline-student-form'); if(_iform) _iform.style.display='none'; _crmSelectedSlot=null;
       modal.classList.add('open');
       modal.style.zIndex = '210';
       // Регистратор не может менять ответственного и удалять
@@ -10899,6 +10901,256 @@ function renderCRMStageBar(activeId){
 }
 let _crmLeadForStudent = null; // leadId при создании ученика из CRM
 
+// ─── CRM INLINE STUDENT FORM ─────────────────────────────────────────
+
+let _crmSelectedSlot = null; // {teacherId, days, ti}
+
+function toggleCRMStudentForm(){
+  const form = document.getElementById('crm-inline-student-form');
+  if(!form) return;
+  const isOpen = form.style.display !== 'none';
+  if(isOpen){
+    form.style.display = 'none';
+    return;
+  }
+  if(!_crmEditId){ toast('Сначала сохраните карточку',true); return; }
+  form.style.display = 'block';
+  _crmSelectedSlot = null;
+  // Pre-fill from lead
+  const name  = document.getElementById('crm-f-name')?.value.trim() || '';
+  const phone = document.getElementById('crm-f-phone')?.value.trim() || '';
+  const age   = document.getElementById('crm-f-age')?.value.trim() || '';
+  const topic = document.getElementById('crm-f-interest')?.value.trim() || '';
+  document.getElementById('crm-stu-name').value  = '';    // student name — blank (lead name is parent)
+  document.getElementById('crm-stu-phone').value = phone;
+  document.getElementById('crm-stu-age').value   = age;
+  document.getElementById('crm-stu-topic').value = topic;
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('crm-stu-datestart').value = today;
+  document.getElementById('crm-stu-dateend').value   = addMonth(today);
+  document.getElementById('crm-slot-selected').style.display = 'none';
+  document.getElementById('crm-slot-search').value   = '';
+  document.getElementById('crm-slot-pattern').value  = '';
+  renderCRMSlotPicker();
+}
+
+function clearCRMSlot(){
+  _crmSelectedSlot = null;
+  document.getElementById('crm-slot-selected').style.display = 'none';
+  renderCRMSlotPicker();
+}
+
+function selectCRMSlot(teacherId, days, ti, teacherName, daysLabel){
+  _crmSelectedSlot = {teacherId, days, ti};
+  const selBox = document.getElementById('crm-slot-selected');
+  selBox.style.display = 'block';
+  document.getElementById('crm-slot-sel-label').textContent = daysLabel + ' · ' + TIMES[ti];
+  document.getElementById('crm-slot-sel-teacher').textContent = '👩‍🏫 ' + teacherName;
+  renderCRMSlotPicker(); // refresh to grey out selected
+}
+
+function renderCRMSlotPicker(){
+  const list = document.getElementById('crm-slot-list');
+  if(!list) return;
+
+  const search  = (document.getElementById('crm-slot-search')?.value || '').toLowerCase();
+  const patF    = document.getElementById('crm-slot-pattern')?.value || '';
+  const age     = parseInt(document.getElementById('crm-stu-age')?.value) || null;
+  const level   = document.getElementById('crm-stu-level')?.value || 'beginner';
+
+  const STANDARD_PATTERNS = [
+    {key:'mwf', days:[0,2,4], label:'Пн · Ср · Пт'},
+    {key:'tts', days:[1,3,5], label:'Вт · Чт · Сб'},
+  ];
+
+  const today = new Date().toISOString().slice(0,10);
+  const rows = [];
+
+  S.teachers.filter(t => t.status === 'active').forEach(t => {
+    if(search && !t.name.toLowerCase().includes(search)) return;
+    const av = getTeacherAvailNow(t.id);
+    const sj = subj(t.subjId);
+
+    for(let ti = 0; ti < TIMES.length; ti++){
+      const availDays = [];
+      for(let d = 0; d < 7; d++){
+        if(av[d] && av[d][ti]) availDays.push(d);
+      }
+      if(!availDays.length) continue;
+
+      const pats = patF ? STANDARD_PATTERNS.filter(p => p.key === patF) : STANDARD_PATTERNS;
+      const shownDays = new Set();
+
+      pats.forEach(pat => {
+        const coveredDays = pat.days.filter(d => availDays.includes(d));
+        if(!coveredDays.length) return;
+        const maxOcc = Math.max(...coveredDays.map(d => countAtSlot(t.id, d, ti)));
+        const free = Math.max(0, MAX_PER_SLOT - maxOcc);
+        if(free === 0) return;
+        coveredDays.forEach(d => shownDays.add(d));
+
+        // Compatibility check
+        if(age !== null && maxOcc > 0){
+          const {groups: existGroups} = checkSlotCompatibility(t.id, coveredDays, ti, null);
+          if(existGroups && existGroups.length){
+            const newGroup = {ageGroup: getAgeGroup(age), level};
+            if(existGroups.some(g => !isCompatible(newGroup, g))) return;
+          }
+        }
+
+        // Existing student names in slot
+        const slotEnrs = S.enrollments.filter(e =>
+          String(e.teacherId)===String(t.id) && !e.inactive && enrollActive(e, today) &&
+          e.slots.some(sl => coveredDays.includes(sl.day) && sl.ti === ti)
+        );
+        const names = [...new Set(slotEnrs.map(e => { const s = student(e.studentId); return s ? s.name.split(' ')[0] : '?'; }))];
+
+        const isSelected = _crmSelectedSlot &&
+          String(_crmSelectedSlot.teacherId) === String(t.id) &&
+          _crmSelectedSlot.ti === ti &&
+          JSON.stringify(_crmSelectedSlot.days.sort()) === JSON.stringify(coveredDays.slice().sort());
+
+        rows.push({t, sj, ti, days: coveredDays, free, names, label: pat.label, isStandard: true, isSelected});
+      });
+
+      // Single non-standard days not already covered
+      availDays.forEach(d => {
+        if(shownDays.has(d)) return;
+        if(patF) return; // skip single-day rows when pattern filter active
+        const occ = countAtSlot(t.id, d, ti);
+        const free = Math.max(0, MAX_PER_SLOT - occ);
+        if(free === 0) return;
+        if(age !== null && occ > 0){
+          const {groups: existGroups} = checkSlotCompatibility(t.id, [d], ti, null);
+          if(existGroups && existGroups.length){
+            const newGroup = {ageGroup: getAgeGroup(age), level};
+            if(existGroups.some(g => !isCompatible(newGroup, g))) return;
+          }
+        }
+        const slotEnrs = S.enrollments.filter(e =>
+          String(e.teacherId)===String(t.id) && !e.inactive && enrollActive(e, today) &&
+          e.slots.some(sl => sl.day === d && sl.ti === ti)
+        );
+        const names = [...new Set(slotEnrs.map(e => { const s = student(e.studentId); return s ? s.name.split(' ')[0] : '?'; }))];
+        const isSelected = _crmSelectedSlot &&
+          String(_crmSelectedSlot.teacherId) === String(t.id) &&
+          _crmSelectedSlot.ti === ti &&
+          JSON.stringify(_crmSelectedSlot.days) === JSON.stringify([d]);
+        rows.push({t, sj, ti, days: [d], free, names, label: DS[d], isStandard: false, isSelected});
+      });
+    }
+  });
+
+  // Sort: standard first, then by time
+  rows.sort((a,b) => {
+    if(a.isStandard !== b.isStandard) return a.isStandard ? -1 : 1;
+    return a.ti - b.ti || a.t.name.localeCompare(b.t.name);
+  });
+
+  if(!rows.length){
+    list.innerHTML = '<div style="font-size:11px;color:var(--t3);padding:12px;text-align:center">Нет доступных слотов</div>';
+    return;
+  }
+
+  list.innerHTML = rows.map(r => {
+    const daysLabel = r.label;
+    const pips = Array.from({length:MAX_PER_SLOT}, (_,i) =>
+      `<span style="width:8px;height:8px;border-radius:50%;display:inline-block;border:1.5px solid ${i<MAX_PER_SLOT-r.free?'rgba(240,89,117,.6)':'rgba(63,216,142,.5)'};background:${i<MAX_PER_SLOT-r.free?'rgba(240,89,117,.25)':'rgba(63,216,142,.15)'}"></span>`
+    ).join('');
+    const namesStr = r.names.length ? `<span style="font-size:10px;color:var(--t3)"> · ${r.names.join(', ')}</span>` : '';
+    const selectedStyle = r.isSelected
+      ? 'background:rgba(63,216,142,.12);border-color:rgba(63,216,142,.4);'
+      : 'background:var(--bg);border-color:var(--b2);';
+    const daysColor = r.isStandard ? 'var(--t1)' : 'var(--am)';
+
+    return `<div onclick="selectCRMSlot('${r.t.id}',${JSON.stringify(r.days)},${r.ti},'${r.t.name.replace(/'/g,"\'")}','${daysLabel.replace(/'/g,"\'")}')"
+      style="cursor:pointer;border:1px solid;border-radius:8px;padding:8px 10px;${selectedStyle}display:flex;align-items:center;justify-content:space-between;transition:all .1s">
+      <div style="min-width:0">
+        <div style="font-size:12px;font-weight:600;color:${daysColor}">
+          ${r.isStandard?'':'⚡ '}${daysLabel} &nbsp;·&nbsp; <span style="color:var(--t2)">${TIMES[r.ti]}</span>
+        </div>
+        <div style="font-size:11px;color:var(--t3);margin-top:2px">
+          👩‍🏫 ${r.t.name}${namesStr}
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:8px">
+        <div style="display:flex;gap:2px">${pips}</div>
+        <span style="font-size:10px;font-weight:700;color:${r.free>0?'var(--gn)':'var(--t3)'}">
+          ${r.free} св.
+        </span>
+        ${r.isSelected ? '<span style="font-size:12px;color:var(--gn)">✓</span>' : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function saveCRMInlineStudent(){
+  if(!_crmEditId){ toast('Сохраните карточку сделки',true); return; }
+
+  const name = document.getElementById('crm-stu-name').value.trim();
+  if(!name){ toast('Введите имя ученика',true); return; }
+
+  if(!_crmSelectedSlot){ toast('Выберите слот из списка',true); return; }
+
+  const {teacherId: tidRaw, days, ti} = _crmSelectedSlot;
+  const tid = isNaN(tidRaw) ? tidRaw : parseInt(tidRaw);
+
+  // Validate teacher availability
+  const av = getTeacherAvailNow(tid);
+  const unavail = days.filter(d => !av[d] || !av[d][ti]);
+  if(unavail.length){ toast('⚠ У преподавателя нет доступности в выбранные дни',true); return; }
+
+  const age   = parseInt(document.getElementById('crm-stu-age').value) || null;
+  const level = document.getElementById('crm-stu-level').value || 'beginner';
+
+  // Compatibility check
+  if(age !== null){
+    const newGroup = {ageGroup: getAgeGroup(age), level};
+    const {groups: existGroups} = checkSlotCompatibility(tid, days, ti, null);
+    if(existGroups && existGroups.length && existGroups.some(g => !isCompatible(newGroup, g))){
+      toast('⛔ Несовместимый ученик в этом слоте',true); return;
+    }
+  }
+
+  const phone     = document.getElementById('crm-stu-phone').value.trim();
+  const dateStart = document.getElementById('crm-stu-datestart').value;
+  const dateEnd   = document.getElementById('crm-stu-dateend').value;
+  const topic     = document.getElementById('crm-stu-topic').value.trim();
+
+  // Get parent info from lead
+  const parentName  = document.getElementById('crm-f-name')?.value.trim() || '';
+  const parentPhone = document.getElementById('crm-f-phone')?.value.trim() || '';
+
+  // Find or create student
+  const subjId = (S.teachers||[]).find(t => String(t.id) === String(tid))?.subjId || (S.subjects[0]?.id);
+  let stu = (S.students||[]).find(s => s.name.trim().toLowerCase() === name.toLowerCase() && s.subjId === subjId);
+  if(!stu){
+    stu = {id: Date.now(), name, subjId, phone, parent: parentName, parentPhone, age, level,
+      notify: {remindStudent:true, remindParent:true, videoStudent:false, videoParent:true, videoFrequency:'each'}};
+    S.students.push(stu);
+  } else {
+    if(phone) stu.phone = phone;
+    if(age) stu.age = age;
+    stu.level = level;
+  }
+
+  const slots = days.map(d => ({day: d, ti}));
+  const newEnrollId = Date.now() + 1;
+  S.enrollments.push({id: newEnrollId, studentId: stu.id, teacherId: tid, slots, dateStart, dateEnd, topic, notes: ''});
+
+  save();
+  renderStudents && renderStudents();
+  renderSchedule && renderSchedule();
+
+  // Link to lead
+  _crmLeadForStudent = _crmEditId;
+  linkStudentToLead(newEnrollId, stu.id);
+
+  // Hide form
+  document.getElementById('crm-inline-student-form').style.display = 'none';
+  _crmSelectedSlot = null;
+}
+
 function openStudentFromLead(){
   if(!_crmEditId){ toast('Сначала сохраните карточку',true); return; }
   _crmLeadForStudent = _crmEditId;
@@ -11443,11 +11695,104 @@ function addCRMLinkToStudent(studentEl, phone){
     <div style="border-top:1px solid var(--b1);padding-top:14px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <div style="font-size:12px;font-weight:700;color:var(--t1)">🎓 Ученики по этой сделке</div>
-        <button id="crm-add-student-btn" onclick="openStudentFromLead()"
-          style="background:var(--gn);border:none;border-radius:6px;color:var(--bg);font-size:11px;font-weight:700;padding:6px 14px;cursor:pointer;font-family:var(--fb)">+ Добавить ученика</button>
+        <button id="crm-add-student-btn" onclick="toggleCRMStudentForm()"
+          style="background:var(--gn);border:none;border-radius:6px;color:var(--bg);font-size:11px;font-weight:700;padding:6px 14px;cursor:pointer;font-family:var(--fb)">+ Ученик</button>
       </div>
-      <div id="crm-students-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;min-height:60px">
-        <div style="color:var(--t3);font-size:11px;padding:16px 0;grid-column:1/-1">Нет учеников — нажмите «+ Добавить ученика»</div>
+
+      <!-- Inline student creation form -->
+      <div id="crm-inline-student-form" style="display:none;background:var(--bg3);border:1px solid var(--b2);border-radius:10px;padding:14px;margin-bottom:12px">
+        <div style="font-size:12px;font-weight:700;color:var(--t1);margin-bottom:12px">🎓 Новый ученик</div>
+
+        <!-- Name + Phone row -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+          <div>
+            <label style="font-size:11px;color:var(--t2);display:block;margin-bottom:3px">Имя ученика *</label>
+            <input id="crm-stu-name" placeholder="Иван Иванов"
+              style="width:100%;background:var(--bg);border:1px solid var(--b2);border-radius:6px;color:var(--t1);font-family:var(--fb);font-size:12px;padding:7px 9px;box-sizing:border-box"/>
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--t2);display:block;margin-bottom:3px">Телефон ученика</label>
+            <input id="crm-stu-phone" placeholder="+7 700 000 00 00"
+              style="width:100%;background:var(--bg);border:1px solid var(--b2);border-radius:6px;color:var(--t1);font-family:var(--fb);font-size:12px;padding:7px 9px;box-sizing:border-box"/>
+          </div>
+        </div>
+
+        <!-- Age + Level row -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+          <div>
+            <label style="font-size:11px;color:var(--t2);display:block;margin-bottom:3px">👶 Возраст</label>
+            <input id="crm-stu-age" type="number" min="3" max="18" placeholder="7"
+              oninput="renderCRMSlotPicker()"
+              style="width:100%;background:var(--bg);border:1px solid var(--b2);border-radius:6px;color:var(--t1);font-family:var(--fb);font-size:12px;padding:7px 9px;box-sizing:border-box"/>
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--t2);display:block;margin-bottom:3px">🏅 Уровень</label>
+            <select id="crm-stu-level" onchange="renderCRMSlotPicker()"
+              style="width:100%;background:var(--bg);border:1px solid var(--b2);border-radius:6px;color:var(--t1);font-family:var(--fb);font-size:12px;padding:7px 9px;box-sizing:border-box">
+              <option value="beginner">Начальный</option>
+              <option value="continuing">Продолжающий</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Slot picker -->
+        <div style="margin-bottom:12px">
+          <label style="font-size:11px;color:var(--t2);display:block;margin-bottom:6px">📅 Выбрать слот *</label>
+          <div id="crm-slot-selected" style="display:none;background:rgba(63,216,142,.08);border:1px solid rgba(63,216,142,.25);border-radius:8px;padding:8px 12px;margin-bottom:8px;display:none">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div>
+                <div style="font-size:12px;font-weight:700;color:var(--gn)" id="crm-slot-sel-label">—</div>
+                <div style="font-size:11px;color:var(--t3);margin-top:2px" id="crm-slot-sel-teacher">—</div>
+              </div>
+              <button onclick="clearCRMSlot()" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:16px;padding:0 4px">✕</button>
+            </div>
+          </div>
+          <!-- Search/filter row -->
+          <div style="display:flex;gap:6px;margin-bottom:8px">
+            <input id="crm-slot-search" placeholder="Поиск по преподавателю..." oninput="renderCRMSlotPicker()"
+              style="flex:1;background:var(--bg);border:1px solid var(--b2);border-radius:6px;color:var(--t1);font-family:var(--fb);font-size:11px;padding:5px 9px"/>
+            <select id="crm-slot-pattern" onchange="renderCRMSlotPicker()"
+              style="background:var(--bg);border:1px solid var(--b2);border-radius:6px;color:var(--t1);font-family:var(--fb);font-size:11px;padding:5px 8px">
+              <option value="">Все дни</option>
+              <option value="mwf">Пн·Ср·Пт</option>
+              <option value="tts">Вт·Чт·Сб</option>
+            </select>
+          </div>
+          <div id="crm-slot-list" style="max-height:240px;overflow-y:auto;display:flex;flex-direction:column;gap:5px">
+            <div style="font-size:11px;color:var(--t3);padding:10px;text-align:center">Загрузка слотов...</div>
+          </div>
+        </div>
+
+        <!-- Dates row -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+          <div>
+            <label style="font-size:11px;color:var(--t2);display:block;margin-bottom:3px">📅 Дата начала</label>
+            <input id="crm-stu-datestart" type="date"
+              style="width:100%;background:var(--bg);border:1px solid var(--b2);border-radius:6px;color:var(--t1);font-family:var(--fb);font-size:12px;padding:7px 9px;box-sizing:border-box"/>
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--t2);display:block;margin-bottom:3px">📅 Дата окончания</label>
+            <input id="crm-stu-dateend" type="date"
+              style="width:100%;background:var(--bg);border:1px solid var(--b2);border-radius:6px;color:var(--t1);font-family:var(--fb);font-size:12px;padding:7px 9px;box-sizing:border-box"/>
+          </div>
+        </div>
+
+        <!-- Topic -->
+        <div style="margin-bottom:12px">
+          <label style="font-size:11px;color:var(--t2);display:block;margin-bottom:3px">📖 Тема / курс</label>
+          <input id="crm-stu-topic" placeholder="Roblox English, базовый курс"
+            style="width:100%;background:var(--bg);border:1px solid var(--b2);border-radius:6px;color:var(--t1);font-family:var(--fb);font-size:12px;padding:7px 9px;box-sizing:border-box"/>
+        </div>
+
+        <!-- Action buttons -->
+        <div style="display:flex;gap:8px">
+          <button onclick="toggleCRMStudentForm()" style="background:var(--bg4);border:1px solid var(--b2);border-radius:6px;color:var(--t2);cursor:pointer;padding:7px 14px;font-size:12px;font-family:var(--fb)">Отмена</button>
+          <button onclick="saveCRMInlineStudent()" style="background:var(--gn);border:none;border-radius:6px;color:var(--bg);cursor:pointer;padding:7px 16px;font-size:12px;font-weight:700;font-family:var(--fb)">✅ Создать ученика</button>
+        </div>
+      </div>
+
+      <div id="crm-students-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;min-height:40px">
+        <div style="color:var(--t3);font-size:11px;padding:16px 0;grid-column:1/-1;text-align:center">Нет учеников</div>
       </div>
     </div>
   </div>
