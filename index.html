@@ -9725,12 +9725,12 @@ function buildCRMCard(l){
 
   return `<div draggable="true" class="crm-card" data-id="${l.id}"
     style="background:var(--bg3);border:1px solid ${isSearchMatch?'rgba(124,92,252,.6)':staleWarn?'rgba(240,89,117,.35)':unread?'rgba(63,216,142,.35)':'var(--b1)'};border-radius:10px;padding:10px 12px;cursor:grab;transition:border-color .15s,opacity .15s;user-select:none${isSearchMatch?';box-shadow:0 0 0 2px rgba(124,92,252,.2)':''}">
-    <div style="font-size:13px;font-weight:600;color:var(--t1);margin-bottom:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+    ${l.notes?`<div style="font-size:12px;font-weight:700;color:var(--t1);margin-bottom:5px;line-height:1.45;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">${l.notes}</div>`:''}
+    <div style="font-size:11px;font-weight:400;color:var(--t2);margin-bottom:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
       ${l.name||'Без имени'}
       ${l.source?`<span style="font-size:9px;color:var(--t3);background:var(--bg4);padding:1px 5px;border-radius:4px">${l.source}</span>`:''}
       ${unread>0?`<span style="background:var(--gn);color:var(--bg);font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;margin-left:auto">${unread} 💬</span>`:''}
     </div>
-    ${l.notes?`<div style="font-size:11px;color:var(--t1);background:var(--bg4);border-left:2px solid var(--am);border-radius:0 5px 5px 0;padding:4px 8px;margin-bottom:6px;line-height:1.45;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">${l.notes}</div>`:''}
     ${linkedStudent?`<div style="font-size:10px;font-weight:600;color:var(--gn);background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.2);border-radius:5px;padding:2px 7px;margin-bottom:5px;display:inline-flex;align-items:center;gap:4px">🎓 ${linkedStudent.name}</div>`:''}
     ${l.phone?`<div style="font-size:11px;color:var(--t3);margin-bottom:3px">📱 ${l.phone}</div>`:''}
     ${l.interest?`<div style="font-size:11px;color:var(--t2);margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📖 ${l.interest}</div>`:''}
