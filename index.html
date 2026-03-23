@@ -5844,16 +5844,22 @@ function renderUsers(){
           <span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:10px;${isAdmin?'background:var(--acbg);border:1px solid var(--acb);color:var(--ac2)':'background:var(--gnbg);border:1px solid rgba(63,216,142,.25);color:var(--gn)'}">
             ${isAdmin?'👑 Админ':'👨‍🏫 Преподаватель'}
           </span>
-          ${isAdmin?`<div style="display:flex;flex-direction:column;gap:3px">
+          ${isAdmin?`<div style="display:flex;flex-direction:column;gap:4px">
             <select onchange="setCRMRegistrarLine('${uid}',this.value)"
               style="background:var(--bg3);border:1px solid var(--b1);border-radius:8px;color:var(--t1);font-family:var(--fb);font-size:11px;padding:4px 8px;cursor:pointer"
               title="Роль регистратора и линия Binotel">
               <option value="" ${!u.crmRole?'selected':''}>— Не регистратор —</option>
               <option value="1906" ${u.crmRole==='registrar'&&u.binotelExt==='1906'?'selected':''}>🗂 Регистратор · ☎ 1906</option>
               <option value="1951" ${u.crmRole==='registrar'&&u.binotelExt==='1951'?'selected':''}>🗂 Регистратор · ☎ 1951</option>
-              <option value="custom" ${u.crmRole==='registrar'&&u.binotelExt&&u.binotelExt!=='1906'&&u.binotelExt!=='1951'?'selected':''}>🗂 Регистратор · ☎ ${u.binotelExt||'?'}</option>
+              ${u.crmRole==='registrar'&&u.binotelExt&&u.binotelExt!=='1906'&&u.binotelExt!=='1951'?`<option value="custom" selected>🗂 Регистратор · ☎ ${u.binotelExt}</option>`:''}
             </select>
-            ${u.crmRole==='registrar'?`<span style="font-size:9px;color:var(--t3)">☎ Binotel: ${u.binotelExt||'не указана'}</span>`:''}
+            <div style="display:flex;align-items:center;gap:5px">
+              <span style="font-size:10px;color:var(--t3);white-space:nowrap">☎ Линия исх.:</span>
+              <input type="text" value="${u.binotelExt||''}" placeholder="1906"
+                onchange="setAdminBinotelLine('${uid}',this.value)"
+                style="width:58px;background:var(--bg);border:1px solid var(--b2);border-radius:5px;color:var(--t1);font-family:var(--fb);font-size:11px;padding:2px 6px;text-align:center"
+                title="Линия Binotel для исходящих звонков"/>
+            </div>
           </div>`:''} 
           ${isTeacher&&tRec?`<button class="btn btn-xs" style="${isActive?'background:var(--gnbg);border:1px solid rgba(63,216,142,.3);color:var(--gn)':'background:var(--rdbg);border:1px solid rgba(240,89,117,.3);color:var(--rd)'}" onclick="toggleTeacherActive('${uid}',${isActive})">
             ${isActive?'✓ Активен':'✗ Неактивен'}
@@ -6786,16 +6792,27 @@ function toggleCRMRole(uid, isRegistrar){
   setCRMRegistrarLine(uid, isRegistrar ? (S.appUsers?.[uid]?.binotelExt || '1906') : '');
 }
 
+function setAdminBinotelLine(uid, ext){
+  const trimmed = ext.trim() || null;
+  usersRef.child(uid + '/binotelExt').set(trimmed)
+    .then(() => {
+      if(S.appUsers?.[uid]) S.appUsers[uid].binotelExt = trimmed;
+      toast(trimmed ? `☎ Линия ${trimmed} сохранена` : 'Линия очищена');
+      renderUsers();
+    })
+    .catch(err => toast('Ошибка: ' + err.message, true));
+}
+
 function setCRMRegistrarLine(uid, line){
   // line = '' → remove registrar role; '1906'/'1951'/'custom' → set role + line
   const isRegistrar = line !== '' && line !== 'custom';
   const ext = isRegistrar ? line : null;
   const updates = {
     crmRole: isRegistrar ? 'registrar' : null,
-    binotelExt: ext,
   };
-  // Remove null keys (Firebase ignores them in update)
-  if(!isRegistrar) { updates.crmRole = null; updates.binotelExt = null; }
+  // Only change binotelExt when setting registrar line; preserve it when removing role
+  if(isRegistrar) updates.binotelExt = ext;
+  if(!isRegistrar) updates.crmRole = null;
 
   usersRef.child(uid).update(updates)
     .then(() => {
