@@ -3019,12 +3019,13 @@ function renderDashboardCharts(){
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px">`;
 
   defs.forEach(({key,label,color,hex,icon})=>{
-    const max=_chartMax[key];
-    // For 'today' mode quota scales to 1 day, for 'day' it's per-day, for 'week' multiply by 7
+    const rawMax=_chartMax[key];
+    // Максимум задаётся в день — на неделе умножается ×7
+    const max = _chartMode==='week' ? rawMax*7 : rawMax;
     const rawQuota=_chartQuota[key]||0;
     const quotaScaled = rawQuota<=0 ? 0
       : _chartMode==='week' ? rawQuota*7
-      : rawQuota; // day/today: daily quota
+      : rawQuota;
     const data=periods.map(p=>({label:p.label,sub:p.sub,value:getMetricForPeriod(key,p.from,p.to),isCurrent:!!p.isCurrent}));
     const lastVal=data[data.length-1]?.value??0;
     const pct=Math.round(lastVal/max*100);
@@ -3050,8 +3051,8 @@ function renderDashboardCharts(){
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
           <div style="display:flex;align-items:center;gap:4px">
-            <span style="font-size:9px;color:var(--t3)">max:</span>
-            <input type="number" min="1" value="${max}"
+            <span style="font-size:9px;color:var(--t3)">max/д:</span>
+            <input type="number" min="1" value="${rawMax}"
               onchange="setChartMax('${key}',this.value)"
               style="width:48px;background:var(--bg4);border:1px solid var(--b2);border-radius:6px;color:var(--t1);font-size:11px;padding:3px 5px;text-align:center;font-family:var(--fb)"/>
           </div>
