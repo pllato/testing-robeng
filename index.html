@@ -9687,12 +9687,18 @@ function buildCRMList(leads){
   return `
   <div id="crm-bulk-bar" style="display:none;align-items:center;gap:10px;padding:10px 14px;background:var(--acbg);border:1px solid var(--acb);border-radius:var(--rl);margin-bottom:8px;flex-wrap:wrap">
     <span id="crm-bulk-count" style="font-size:13px;font-weight:600;color:var(--t1)">0 выбрано</span>
-    <span style="color:var(--t3);font-size:12px">Переназначить на:</span>
+    <span style="color:var(--t3);font-size:12px">Переназначить:</span>
     <select id="crm-bulk-assignee" style="padding:5px 10px;border-radius:6px;border:1px solid var(--b2);background:var(--bg3);color:var(--t1);font-size:12px;cursor:pointer">
-      <option value="">— выберите —</option>
+      <option value="">— ответственный —</option>
       ${userOpts}
     </select>
     <button onclick="crmBulkAssign()" style="padding:5px 14px;background:var(--ac);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600">Применить</button>
+    <span style="color:var(--t3);font-size:12px;margin-left:4px">Стадия:</span>
+    <select id="crm-bulk-stage" style="padding:5px 10px;border-radius:6px;border:1px solid var(--b2);background:var(--bg3);color:var(--t1);font-size:12px;cursor:pointer">
+      <option value="">— стадия —</option>
+      ${CRM_STAGES.map(s=>`<option value="${s.id}">${s.label}</option>`).join('')}
+    </select>
+    <button onclick="crmBulkStage()" style="padding:5px 14px;background:var(--bg3);border:1px solid var(--b2);color:var(--t1);border-radius:6px;cursor:pointer;font-size:12px;font-weight:600">Применить</button>
     <button onclick="crmBulkClear()" style="padding:5px 12px;background:var(--bg3);border:1px solid var(--b2);color:var(--t2);border-radius:6px;cursor:pointer;font-size:12px">Снять выбор</button>
   </div>
   <div style="background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden">
@@ -9771,6 +9777,24 @@ async function crmBulkAssign(){
     done++;
   }
   toast(`✓ ${done} лидов переназначено на ${userName}`);
+  crmBulkClear();
+}
+
+async function crmBulkStage(){
+  const sel = document.getElementById('crm-bulk-stage');
+  const stageId = sel?.value;
+  if(!stageId){ toast('Выберите стадию'); return; }
+  const stageLabel = crmStage(stageId).label;
+  const checked = [...document.querySelectorAll('.crm-row-check:checked')];
+  if(!checked.length){ toast('Выберите лиды'); return; }
+  const ids = checked.map(cb => cb.dataset.id);
+  const now = new Date().toISOString();
+  let done = 0;
+  for(const id of ids){
+    await crmRef.child(id).update({ stage: stageId, updatedAt: now });
+    done++;
+  }
+  toast(`✓ ${done} лидов переведено в стадию «${stageLabel}»`);
   crmBulkClear();
 }
 
