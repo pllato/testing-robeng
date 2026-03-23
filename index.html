@@ -6777,11 +6777,19 @@ async function getNextCRMAssignee(){
   });
   if(!weighted.length) return null;
 
-  // Atomically read + increment counter in Firebase
-  const counterRef = fbDb.ref('settings/crmDistribCounter');
-  const snap = await counterRef.once('value');
-  const counter = snap.val() || 0;
-  counterRef.set(counter + 1); // fire-and-forget
+  // Читаем счётчик из правильного пути (eduSchedule/settings)
+  let counter = 0;
+  try {
+    const snap = await Promise.race([
+      dbRef.child('settings/crmDistribCounter').once('value'),
+      new Promise((_,r) => setTimeout(()=>r(new Error('timeout')), 3000))
+    ]);
+    counter = snap.val() || 0;
+    dbRef.child('settings/crmDistribCounter').set(counter + 1);
+  } catch(e) {
+    // Если Firebase не отвечает — берём случайного регистратора
+    counter = Math.floor(Math.random() * weighted.length);
+  }
 
   const pick = weighted[counter % weighted.length];
   return pick;
@@ -11081,8 +11089,9 @@ async function openNewWAChat(){
   const raw = prompt('Номер WhatsApp:\n(любой формат: +7 701 123 99 99, 87011239999, +1 555 000 etc.)');
   if(!raw) return;
   const clean = normalizePhone(raw);
-  if(clean.length<10){ toast('Некорректный номер',true); return; }
+  if(clean.length<10){ toast('Некорректный номер — введите минимум 10 цифр',true); return; }
 
+  try {
   // Ищем существующий лид по номеру
   const snap = await crmRef.once('value');
   const raw2 = snap.val()||{};
@@ -11113,12 +11122,21 @@ async function openNewWAChat(){
     assigneeUid: assigneePick?.uid || '',
     assignee: assigneePick?.name || '',
   };
-  ref.set(leadData).then(()=>{
-    _wachatsTab = 'new'; // новый человек → вкладка Новые
-    renderWAChats();
-    setTimeout(()=>openWAChat(id), 400);
-    toast(assigneePick ? `Чат создан → ${assigneePick.name}` : 'Чат создан');
-  });
+  ref.set(leadData)
+    .then(()=>{
+      _wachatsTab = 'new';
+      renderWAChats();
+      setTimeout(()=>openWAChat(id), 400);
+      toast(assigneePick ? `Чат создан → ${assigneePick.name}` : 'Чат создан');
+    })
+    .catch(err=>{
+      toast('Ошибка создания чата: ' + (err?.message||err), true);
+      console.error('openNewWAChat set error:', err);
+    });
+  } catch(e) {
+    toast('Ошибка: ' + (e?.message||e), true);
+    console.error('openNewWAChat error:', e);
+  }
 }
 
 // Универсальный диалог — просто WA
