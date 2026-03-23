@@ -782,6 +782,26 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
         </div>
 
 
+        <!-- Авто-опросы -->
+        <div style="padding:16px 0;border-bottom:1px solid var(--b1)">
+          <div style="font-size:13px;font-weight:600;color:var(--t1);margin-bottom:6px">📋 Ежемесячные опросы родителей</div>
+          <div style="font-size:11px;color:var(--t3);margin-bottom:12px">Каждому ученику назначается свой день месяца (1–28) автоматически — отзывы приходят равномерно весь месяц. Следующий опрос не раньше чем через 30 дней после предыдущего.</div>
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;margin-bottom:10px">
+            <input type="checkbox" id="set-survey-auto" onchange="saveAppSettings()" style="width:16px;height:16px;margin-top:2px;accent-color:var(--ac);cursor:pointer;flex-shrink:0">
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--t1)">Включить авто-рассылку опросов</div>
+              <div style="font-size:11px;color:var(--t3);margin-top:2px">Опрос отправляется в WhatsApp родителю/ученику в «их» день месяца.</div>
+            </div>
+          </label>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:4px;margin-left:26px">
+            <span style="font-size:11px;color:var(--t2)">Время отправки:</span>
+            <input type="number" id="set-survey-hour" min="9" max="20" value="10" onchange="saveAppSettings()"
+              style="width:52px;background:var(--bg3);border:1px solid var(--b2);border-radius:6px;color:var(--t1);font-size:12px;padding:3px 7px;font-family:var(--fb)"/>
+            <span style="font-size:11px;color:var(--t3)">:00</span>
+          </div>
+          <div id="survey-day-preview" style="margin-top:10px;margin-left:26px;font-size:11px;color:var(--t3)"></div>
+        </div>
+
         <div style="display:flex;align-items:center;gap:10px;margin-top:16px">
           <div id="settings-saved" style="display:none;font-size:12px;color:var(--gn);background:var(--gnbg);border:1px solid rgba(63,216,142,.3);border-radius:6px;padding:5px 12px">✓ Настройки сохранены</div>
         </div>
@@ -7951,6 +7971,31 @@ function checkEndOfDayReminders(now, today){
   });
 }
 
+
+// Превью: сколько учеников в каждый день месяца
+function renderSurveyDayPreview(){
+  const el = document.getElementById('survey-day-preview');
+  if(!el) return;
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  const active = S.enrollments.filter(e=>!e.inactive&&enrollActive(e,todayStr));
+  const seen = new Set();
+  const byDay = {};
+  active.forEach(e=>{
+    const st = student(e.studentId);
+    if(!st||seen.has(st.id)) return;
+    seen.add(st.id);
+    const d = getSurveyDayOfMonth(st.id);
+    byDay[d]=(byDay[d]||0)+1;
+  });
+  const total = seen.size;
+  if(!total){el.textContent='Нет активных учеников';return;}
+  const days = Object.entries(byDay).sort((a,b)=>a[0]-b[0]);
+  const todayDay = today.getDate();
+  const parts = days.map(([d,n])=>`<span style="color:${parseInt(d)===todayDay?'var(--gn)':'var(--t3)'}">${d}-е: ${n}</span>`).join(' · ');
+  el.innerHTML = `<span style="color:var(--t2)">Распределение по дням месяца (${total} учеников):</span><br>${parts}`;
+}
+
 // ═══════════════════════════════════════════════════════
 //  SURVEY SYSTEM
 // ═══════════════════════════════════════════════════════
@@ -7959,7 +8004,7 @@ const surveyTokensRef = fbDb.ref('surveyTokens');
 const surveyResultsRef = fbDb.ref('surveyResults');
 const surveyFeedbackRef = fbDb.ref('surveyFeedback');
 const SURVEY_BASE_URL = 'https://pllato.github.io/robeng/survey.html';
-const SURVEY_INTERVAL_DAYS = 14; // каждые 2 недели
+const SURVEY_INTERVAL_DAYS = 30; // раз в месяц
 
 
 // ── Survey admin actions ──────────────────────────────────────────
@@ -8046,19 +8091,15 @@ async function renderTeacherSurveyAlerts(){
 }
 
 // Проверяем расписание и запускаем авто-рассылку если нужно
+// Запускается ежедневно — каждому ученику свой день месяца (равномерный разброс)
 async function checkAndAutoSendSurveys(){
   if(currentRole!=='admin') return;
   const now = new Date();
-  const todayDow = (now.getDay()+6)%7; // 0=пн..6=вс
-  const todayHour = now.getHours();
-  const surveyDays = (S.settings||{}).surveyDays||[3]; // [3]=четверг
   const surveyHour = (S.settings||{}).surveyHour||10;
+  if((S.settings||{}).surveyAutoEnabled === false) return;
+  if(now.getHours() < surveyHour) return; // ещё рано
 
-  if(!surveyDays.includes(todayDow)) return; // не тот день
-  if(todayHour < surveyHour) return; // ещё рано
-
-  // Проверяем что сегодня ещё не запускали
-  const todayStr = now.toISOString().slice(0,10);
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
   const lastAutoKey = 'surveyAutoSent_'+todayStr;
   if(localStorage.getItem(lastAutoKey)) return; // уже запускали сегодня
 
@@ -8096,17 +8137,15 @@ async function sendSurvey(stuId){
   await surveyTokensRef.child(token).set(tokenData);
 
   const link = `${SURVEY_BASE_URL}?id=${token}`;
-  const msg = `📋 Опрос о качестве обучения
+  const msg = `✏️ Оцените обучение!
 
-` +
-    `Здравствуйте! Хотим узнать ваше мнение об уроках ${st.name}.
+Здравствуйте! Мы стараемся делать уроки максимально полезными для ${st.name} — и ваше мнение очень важно для нас.
 
-` +
-    `Займёт 1 минуту — 4 вопроса:
+Пройдите короткий опрос (1 минута, 4 вопроса):
 ${link}
 
-` +
-    `Ваш отзыв помогает нам стать лучше 🙏`;
+Спасибо, что доверяете нам обучение вашего ребёнка 🙏
+— Команда Robeng ELC`;
 
   const phones = [parentPhone, studentPhone].filter((p,i,a)=>p&&a.indexOf(p)===i);
   for(const p of phones) await notifyWhatsApp('+'+p, msg).catch(()=>{});
@@ -8116,37 +8155,50 @@ ${link}
   toast(`📋 Опрос отправлен ${st.name}`);
 }
 
-// Авто-отправка каждые 2 недели всем активным ученикам
+// Раз в месяц — каждому ученику свой день месяца (равномерный разброс)
+// Стабильный «день» считается из ID ученика: studentDayOfMonth = (id % 28) + 1
+function getSurveyDayOfMonth(studentId){
+  return (Math.abs(parseInt(studentId)||0) % 28) + 1; // 1..28
+}
+
 async function autoSendSurveys(){
   if(currentRole!=='admin') return;
-  const today = new Date().toISOString().slice(0,10);
+  const now = new Date();
+  const todayDay = now.getDate(); // день месяца, 1-31
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+
   const snap = await surveyTokensRef.once('value');
   const tokens = snap.val()||{};
 
-  // Для каждого активного ученика проверяем когда последний раз отправляли
-  const activeEnrolls = S.enrollments.filter(e=>!e.inactive&&enrollActive(e,today));
+  // Уникальные активные студенты
+  const activeEnrolls = S.enrollments.filter(e=>!e.inactive&&enrollActive(e,todayStr));
+  const seen = new Set();
   for(const e of activeEnrolls){
     const st = student(e.studentId);
-    if(!st) continue;
+    if(!st||seen.has(st.id)) continue;
+    seen.add(st.id);
     if(!st.parentPhone && !st.phone) continue;
 
-    // Найти последний отправленный опрос для этого ученика
+    // Проверяем — сегодня «день» этого ученика?
+    const assignedDay = getSurveyDayOfMonth(st.id);
+    if(todayDay !== assignedDay) continue;
+
+    // Найти последний отправленный опрос
     const stuTokens = Object.values(tokens).filter(t=>String(t.studentId)===String(st.id));
     stuTokens.sort((a,b)=>b.sentAt.localeCompare(a.sentAt));
     const lastSent = stuTokens[0]?.sentAt;
 
-    // Проверяем интервал
     if(lastSent){
       const daysSince = (Date.now() - new Date(lastSent).getTime()) / 86400000;
-      if(daysSince < SURVEY_INTERVAL_DAYS) continue;
+      if(daysSince < SURVEY_INTERVAL_DAYS) continue; // слишком рано
     } else {
-      // Никогда не отправляли — проверяем что ученик активен хотя бы SURVEY_INTERVAL_DAYS дней
+      // Никогда не отправляли — ждём хотя бы 14 дней с начала обучения
       const daysSinceStart = (Date.now() - new Date(e.dateStart).getTime()) / 86400000;
-      if(daysSinceStart < SURVEY_INTERVAL_DAYS) continue;
+      if(daysSinceStart < 10) continue; // ~3-4 урока при расписании 3 раза в неделю
     }
 
     await sendSurvey(st.id);
-    await new Promise(r=>setTimeout(r,1500)); // небольшая пауза между отправками
+    await new Promise(r=>setTimeout(r,1500)); // пауза между отправками
   }
 }
 
@@ -8397,9 +8449,14 @@ function renderAppSettings(){
   const cbTB=document.getElementById("set-teacher-before");
   if(cbTB) cbTB.checked = S.settings.teacherBeforeRemind!==false; // по умолчанию вкл
   const cbEOD=document.getElementById("set-eod-remind");
-  if(cbEOD) cbEOD.checked = S.settings.eodRemindEnabled!==false; // по умолчанию вкл
+  if(cbEOD) cbEOD.checked = S.settings.eodRemindEnabled!==false;
   const eodH=document.getElementById("set-eod-hour");
   if(eodH) eodH.value = S.settings.eodRemindHour||21;
+  const cbSA=document.getElementById("set-survey-auto");
+  if(cbSA) cbSA.checked = S.settings.surveyAutoEnabled!==false; // по умолчанию вкл
+  const survH=document.getElementById("set-survey-hour");
+  if(survH) survH.value = S.settings.surveyHour||10;
+  renderSurveyDayPreview();
   const freq=S.settings.videoFrequency||"each";
   document.querySelectorAll("input[name=\"video-freq\"]").forEach(r=>{r.checked=r.value===freq;});
   renderCRMStagesEditor();
@@ -8760,6 +8817,11 @@ function saveAppSettings(){
   if(cbEOD) S.settings.eodRemindEnabled=cbEOD.checked;
   const eodH=document.getElementById("set-eod-hour");
   if(eodH) S.settings.eodRemindHour=parseInt(eodH.value)||21;
+  const cbSA=document.getElementById("set-survey-auto");
+  if(cbSA) S.settings.surveyAutoEnabled=cbSA.checked;
+  const survH=document.getElementById("set-survey-hour");
+  if(survH) S.settings.surveyHour=parseInt(survH.value)||10;
+  renderSurveyDayPreview();
   const freqEl=document.querySelector("input[name=\"video-freq\"]:checked");
   if(freqEl) S.settings.videoFrequency=freqEl.value;
 
