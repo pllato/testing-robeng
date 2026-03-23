@@ -10437,135 +10437,195 @@ let _wachatsTab = 'all'; // 'all' | 'clients' | 'staff'
 let _wachatsFilterAssignee = ''; // uid or '' for all
 
 // ─── CALLS LOG ───────────────────────────────────────────────────────
-
-const binotelCallsRef = fbDb.ref('binotelCalls');
+// Reads from crmChats (Binotel system/call_recording messages) + binotelCalls
 let _callsFilter = 'all'; // 'all' | 'missed' | 'in' | 'out'
-let _callsListener = null;
 
-function renderCallsLog(){
+async function renderCallsLog(){
   const body = document.getElementById('callslog-body');
   if(!body) return;
   body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--t3)">Загрузка...</div>';
 
-  if(_callsListener){ binotelCallsRef.off('value', _callsListener); _callsListener = null; }
+  // ── Read from binotelCalls (new worker) AND crmChats (old worker) ──────
+  const [binotelSnap, leadsSnap, chatsSnap] = await Promise.all([
+    fbDb.ref('binotelCalls').limitToLast(300).once('value').catch(()=>null),
+    crmRef.once('value').catch(()=>null),
+    fbDb.ref('crmChats').once('value').catch(()=>null),
+  ]);
 
-  _callsListener = binotelCallsRef.limitToLast(200).on('value', snap => {
-    const raw = snap.val() || {};
-    let calls = Object.entries(raw)
-      .map(([key, v]) => ({...v, _key: key}))
-      .sort((a,b) => (b.ts||'').localeCompare(a.ts||''));
+  const calls = []; // unified list
 
-    // Filter
-    if(_callsFilter === 'missed') calls = calls.filter(c => c.isMissed);
-    else if(_callsFilter === 'in')  calls = calls.filter(c => String(c.callType) === '0');
-    else if(_callsFilter === 'out') calls = calls.filter(c => String(c.callType) === '1');
+  // Source 1: binotelCalls node (new worker)
+  const binotelRaw = binotelSnap?.val() || {};
+  Object.values(binotelRaw).forEach(c => {
+    if(!c.ts) return;
+    calls.push({
+      ts:        c.ts,
+      phone:     c.phone || '',
+      callType:  String(c.callType||'0'),
+      duration:  c.duration||0,
+      answered:  c.answered || c.duration > 0,
+      isMissed:  c.isMissed || false,
+      recordingLink: c.recordingLink||'',
+      leadId:    c.leadId||'',
+      leadName:  c.leadName||'',
+      internalNumber: c.internalNumber||'',
+      src: 'binotelCalls',
+    });
+  });
 
-    const missed = Object.values(raw).filter(c => c.isMissed).length;
-    const badge = document.getElementById('missed-badge');
-    if(badge){ badge.textContent = missed || ''; badge.style.display = missed ? '' : 'none'; }
+  // Source 2: crmChats — scan Binotel entries
+  const leadsRaw = leadsSnap?.val() || {};
+  const chatsRaw = chatsSnap?.val() || {};
+  const seenCallIds = new Set(calls.map(c => c.ts + c.phone));
 
-    const tabs = ['all','missed','in','out'];
-    const tabLabels = {all:'Все', missed:`❌ Пропущенные${missed?' ('+missed+')':''}`, in:'📞↙ Входящие', out:'📞↗ Исходящие'};
-    const tabBar = tabs.map(t => `
-      <button onclick="_callsFilter='${t}';renderCallsLog()"
-        style="padding:5px 12px;font-size:12px;border-radius:6px;border:1px solid;cursor:pointer;font-family:var(--fb);${_callsFilter===t?'background:var(--ac);border-color:var(--ac);color:#fff':'background:var(--bg3);border-color:var(--b2);color:var(--t2)'}">
-        ${tabLabels[t]}
-      </button>`).join('');
+  Object.entries(chatsRaw).forEach(([leadId, msgs]) => {
+    if(!msgs || typeof msgs !== 'object') return;
+    const lead = leadsRaw[leadId] || {};
+    Object.values(msgs).forEach(m => {
+      if(!m.ts) return;
+      if(m.type === 'call_recording'){
+        const key = m.ts + (lead.phone||'');
+        if(seenCallIds.has(key)) return;
+        seenCallIds.add(key);
+        calls.push({
+          ts: m.ts, phone: lead.phone||'', callType: '?',
+          duration: m.duration||0, answered: (m.duration||0) > 0,
+          isMissed: false, recordingLink: m.mediaUrl||'',
+          leadId, leadName: lead.name||'',
+          internalNumber: '', src: 'chat_rec',
+        });
+      } else if(m.type === 'system' && m.name === 'Binotel' && m.text){
+        const txt = m.text;
+        const isOut    = txt.includes('📞↗') || txt.includes('↗');
+        const answered = txt.includes('✅') || /\d мин/.test(txt);
+        const missed   = !answered && !isOut;
+        const durMatch = txt.match(/(\d+) мин (\d+) сек/);
+        const dur = durMatch ? parseInt(durMatch[1])*60 + parseInt(durMatch[2]) : 0;
+        const key = m.ts + (lead.phone||'');
+        if(seenCallIds.has(key)) return;
+        seenCallIds.add(key);
+        calls.push({
+          ts: m.ts, phone: lead.phone||'', callType: isOut ? '1' : '0',
+          duration: dur, answered, isMissed: missed,
+          recordingLink: '', leadId, leadName: lead.name||'',
+          internalNumber: '', src: 'chat_sys',
+        });
+      }
+    });
+  });
 
-    if(!calls.length){
-      body.innerHTML = `
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">${tabBar}</div>
-        <div style="text-align:center;padding:40px;color:var(--t3)">Нет звонков</div>`;
-      return;
-    }
+  // Sort newest first
+  calls.sort((a,b) => (b.ts||'').localeCompare(a.ts||''));
 
-    const rows = calls.map(c => {
-      const isOut    = String(c.callType) === '1';
-      const answered = c.answered || c.duration > 0;
-      const missed   = c.isMissed;
-      const durStr   = c.duration > 0
-        ? `${Math.floor(c.duration/60)}м ${c.duration%60}с`
-        : '—';
-      const dirIcon  = isOut ? '📞↗' : '📞↙';
-      const statusColor = missed ? 'var(--rd)' : answered ? 'var(--gn)' : 'var(--t3)';
-      const statusLabel = missed ? 'Пропущен' : answered ? 'Отвечен' : 'Не отвечен';
-      const dt = c.ts ? new Date(c.ts).toLocaleString('ru',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+  // Missed badge
+  const missed = calls.filter(c => c.isMissed).length;
+  const badge = document.getElementById('missed-badge');
+  if(badge){ badge.textContent = missed||''; badge.style.display = missed ? '' : 'none'; }
 
-      const dealBtn = c.leadId
-        ? `<button onclick="nav(document.querySelector('[data-p=crm]'));setTimeout(()=>openCRMCard('${c.leadId}'),300)"
-            style="background:var(--acbg);border:1px solid var(--acb);border-radius:5px;color:var(--ac2);cursor:pointer;padding:3px 9px;font-size:11px;font-family:var(--fb)">
-            💼 ${c.leadName||'Сделка'}
-          </button>`
-        : '<span style="font-size:10px;color:var(--t3)">Нет сделки</span>';
+  // Filter
+  let filtered = calls;
+  if(_callsFilter === 'missed') filtered = calls.filter(c => c.isMissed);
+  else if(_callsFilter === 'in')  filtered = calls.filter(c => String(c.callType) === '0');
+  else if(_callsFilter === 'out') filtered = calls.filter(c => String(c.callType) === '1');
 
-      const callBackBtn = c.phone
-        ? `<button onclick="crmWACallByPhone('${c.phone}')"
-            title="Позвонить через WA"
+  const tabs = ['all','missed','in','out'];
+  const tabLabels = {
+    all: `Все (${calls.length})`,
+    missed: `❌ Пропущенные${missed?' ('+missed+')':''}`,
+    in: '📞↙ Входящие',
+    out: '📞↗ Исходящие',
+  };
+  const tabBar = tabs.map(t => `
+    <button onclick="_callsFilter='${t}';renderCallsLog()"
+      style="padding:5px 12px;font-size:12px;border-radius:6px;border:1px solid;cursor:pointer;font-family:var(--fb);${_callsFilter===t?'background:var(--ac);border-color:var(--ac);color:#fff':'background:var(--bg3);border-color:var(--b2);color:var(--t2)'}">
+      ${tabLabels[t]}
+    </button>`).join('');
+
+  if(!filtered.length){
+    body.innerHTML = `
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">${tabBar}</div>
+      <div style="text-align:center;padding:40px;color:var(--t3)">
+        ${calls.length ? 'Нет звонков по фильтру' : 'Звонков пока нет. Они появятся после первого звонка через Binotel.'}
+      </div>`;
+    return;
+  }
+
+  const rows = filtered.map(c => {
+    const isOut    = String(c.callType) === '1';
+    const dirIcon  = c.callType === '?' ? '📞' : isOut ? '📞↗' : '📞↙';
+    const statusColor = c.isMissed ? 'var(--rd)' : c.answered ? 'var(--gn)' : 'var(--t3)';
+    const statusLabel = c.isMissed ? '❌ Пропущен' : c.answered ? '✅ Отвечен' : '— Нет ответа';
+    const durStr  = c.duration > 0
+      ? `${Math.floor(c.duration/60)}м ${c.duration%60}с`
+      : '—';
+    const dt = c.ts ? new Date(c.ts).toLocaleString('ru',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+
+    const dealBtn = c.leadId
+      ? `<button onclick="nav(document.querySelector('[data-p=crm]'));setTimeout(()=>openCRMCard('${c.leadId}'),300)"
+          style="background:var(--acbg);border:1px solid var(--acb);border-radius:5px;color:var(--ac2);cursor:pointer;padding:3px 9px;font-size:11px;font-family:var(--fb)">
+          💼 ${c.leadName||'Сделка'}
+        </button>`
+      : '';
+
+    const callBackBtn = c.phone
+      ? `<button onclick="crmWACallByPhone('${c.phone}')" title="Позвонить через WA"
             style="background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.25);border-radius:5px;color:var(--gn);cursor:pointer;padding:3px 9px;font-size:11px">
             📞 WA
           </button>
-          <button onclick="crmCallByPhone('${c.phone}', '${c.leadId||''}')"
-            title="Позвонить через Binotel"
+          <button onclick="crmCallByPhone('${c.phone}','${c.leadId||''}')" title="Позвонить через Binotel"
             style="background:rgba(124,92,252,.1);border:1px solid rgba(124,92,252,.25);border-radius:5px;color:var(--ac2);cursor:pointer;padding:3px 9px;font-size:11px">
             📞
           </button>`
-        : '';
+      : '';
 
-      const recBtn = c.recordingLink
-        ? `<audio controls src="${c.recordingLink}" style="height:28px;max-width:180px;vertical-align:middle"></audio>`
-        : '';
+    const recHtml = c.recordingLink
+      ? `<div style="margin-top:5px"><audio controls src="${c.recordingLink}" style="height:28px;max-width:200px;vertical-align:middle"></audio></div>`
+      : '';
 
-      return `<div style="display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--b1)">
-        <div style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:36px">
-          <span style="font-size:16px">${dirIcon}</span>
-          <span style="font-size:9px;font-weight:700;color:${statusColor}">${statusLabel}</span>
+    return `<div style="display:grid;grid-template-columns:52px 1fr auto;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--b1)">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
+        <span style="font-size:18px">${dirIcon}</span>
+        <span style="font-size:9px;font-weight:700;color:${statusColor};text-align:center;line-height:1.2">${statusLabel}</span>
+      </div>
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-size:13px;font-weight:600;color:var(--t1)">${c.phone||'—'}</span>
+          ${c.leadName ? `<span style="font-size:11px;color:var(--t2)">${c.leadName}</span>` : ''}
         </div>
-        <div>
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <span style="font-size:13px;font-weight:600;color:var(--t1)">${c.phone||'—'}</span>
-            ${c.leadName?`<span style="font-size:11px;color:var(--t2)">${c.leadName}</span>`:''}
-          </div>
-          <div style="font-size:10px;color:var(--t3);margin-top:2px;display:flex;gap:10px;flex-wrap:wrap">
-            <span>🕐 ${dt}</span>
-            <span>⏱ ${durStr}</span>
-            ${c.internalNumber?`<span>☎ ${c.internalNumber}</span>`:''}
-          </div>
-          ${recBtn ? `<div style="margin-top:5px">${recBtn}</div>` : ''}
+        <div style="font-size:10px;color:var(--t3);margin-top:2px;display:flex;gap:10px;flex-wrap:wrap">
+          <span>🕐 ${dt}</span>
+          ${c.duration > 0 ? `<span>⏱ ${durStr}</span>` : ''}
+          ${c.internalNumber ? `<span>☎ ${c.internalNumber}</span>` : ''}
         </div>
-        <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end">
-          ${dealBtn}
-          <div style="display:flex;gap:4px">${callBackBtn}</div>
-        </div>
-      </div>`;
-    }).join('');
+        ${recHtml}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex-shrink:0">
+        ${dealBtn}
+        <div style="display:flex;gap:4px">${callBackBtn}</div>
+      </div>
+    </div>`;
+  }).join('');
 
-    body.innerHTML = `
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">${tabBar}</div>
-      <div style="background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden">${rows}</div>`;
-  });
+  body.innerHTML = `
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">${tabBar}</div>
+    <div style="background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden">${rows}</div>`;
 }
 
-// Перезвонить через WA по номеру (без leadId)
 function crmWACallByPhone(phone){
   const clean = (phone||'').replace(/\D/g,'');
   if(!clean){ toast('Нет номера',true); return; }
   window.open('https://wa.me/'+clean, '_blank');
 }
 
-// Перезвонить через Binotel по номеру
 async function crmCallByPhone(phone, leadId){
   if(!leadId){
-    // Try to find lead by phone
     const snap = await crmRef.once('value');
     const raw = snap.val()||{};
     const found = Object.entries(raw).find(([,l])=>(l.phone||'').replace(/\D/g,'') === (phone||'').replace(/\D/g,''));
     if(found) leadId = found[0];
   }
-  if(leadId){
-    crmCall(leadId);
-  } else {
-    toast('Сделка не найдена, звонок через Binotel невозможен', true);
-  }
+  if(leadId){ crmCall(leadId); }
+  else { toast('Сделка не найдена', true); }
 }
 
 function renderWAChats(){
