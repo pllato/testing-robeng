@@ -10655,23 +10655,55 @@ async function renderCallsLog(){
 }
 
 async function showBinotelDebug(){
-  const snap = await fbDb.ref('binotelDebug').limitToLast(10).once('value');
-  const raw = snap.val() || {};
-  const entries = Object.values(raw).sort((a,b)=>(b.ts||'').localeCompare(a.ts||''));
-  if(!entries.length){ toast('Нет данных от Binotel'); return; }
-  const html = entries.map(e=>`
-    <div style="margin-bottom:10px;background:var(--bg);border:1px solid var(--b2);border-radius:6px;padding:8px;font-size:10px">
-      <div style="color:var(--t3);margin-bottom:4px">${e.ts}</div>
-      <pre style="color:var(--t1);white-space:pre-wrap;word-break:break-all;margin:0;font-family:monospace;font-size:10px">${e.raw||''}</pre>
-    </div>`).join('');
+  // Read BOTH binotelDebug (new worker) AND scan crmChats for Binotel system messages
+  const [debugSnap, chatsSnap] = await Promise.all([
+    fbDb.ref('binotelDebug').limitToLast(10).once('value').catch(()=>null),
+    fbDb.ref('crmChats').once('value').catch(()=>null),
+  ]);
+
+  // Collect crmChats Binotel messages
+  const chatMsgs = [];
+  const chatsRaw = chatsSnap?.val() || {};
+  Object.entries(chatsRaw).forEach(([leadId, msgs]) => {
+    if(!msgs || typeof msgs !== 'object') return;
+    Object.values(msgs).forEach(m => {
+      if((m.name === 'Binotel' || m.type === 'call_recording') && m.ts){
+        chatMsgs.push({leadId, type: m.type, text: m.text||'', ts: m.ts, mediaUrl: m.mediaUrl||'', duration: m.duration||0});
+      }
+    });
+  });
+  chatMsgs.sort((a,b)=>(b.ts||'').localeCompare(a.ts||''));
+
+  const debugRaw = debugSnap?.val() || {};
+  const debugEntries = Object.values(debugRaw).sort((a,b)=>(b.ts||'').localeCompare(a.ts||''));
+
+  const chatHtml = chatMsgs.slice(0,20).map(m=>`
+    <div style="margin-bottom:6px;background:var(--bg);border:1px solid var(--b2);border-radius:5px;padding:6px 8px;font-size:10px">
+      <span style="color:var(--t3)">${m.ts.slice(0,19)}</span>
+      <span style="color:var(--ac2);margin:0 8px">[${m.leadId.slice(-6)}]</span>
+      <span style="color:${m.type==='call_recording'?'var(--gn)':'var(--t2)'}">${m.type}</span>:
+      <span style="color:var(--t1)">${m.text||''}</span>
+      ${m.mediaUrl?`<a href="${m.mediaUrl}" target="_blank" style="color:var(--gn);margin-left:8px">🎙 Запись</a>`:''}
+    </div>`).join('') || '<div style="color:var(--t3);font-size:11px">Нет сообщений от Binotel в чатах</div>';
+
+  const debugHtml = debugEntries.length
+    ? debugEntries.map(e=>`
+        <div style="margin-bottom:8px;background:var(--bg);border:1px solid var(--b2);border-radius:5px;padding:8px;font-size:10px">
+          <div style="color:var(--t3);margin-bottom:3px">${e.ts}</div>
+          <pre style="color:var(--t1);white-space:pre-wrap;word-break:break-all;margin:0;font-size:9px;max-height:200px;overflow-y:auto">${e.raw||''}</pre>
+        </div>`).join('')
+    : '<div style="color:var(--t3);font-size:11px">Нет raw-данных — нужен новый воркер. Ниже данные из чатов:</div>';
   const modal = document.createElement('div');
   modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:999;display:flex;align-items:center;justify-content:center';
-  modal.innerHTML=`<div style="background:var(--bg2);border:1px solid var(--b2);border-radius:12px;padding:20px;max-width:700px;width:95%;max-height:80vh;overflow-y:auto">
-    <div style="display:flex;justify-content:space-between;margin-bottom:12px">
-      <b style="color:var(--t1)">🔍 Последние вебхуки от Binotel</b>
+  modal.innerHTML=`<div style="background:var(--bg2);border:1px solid var(--b2);border-radius:12px;padding:20px;max-width:800px;width:95%;max-height:85vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <b style="color:var(--t1)">🔍 Диагностика Binotel</b>
       <button onclick="this.closest('[style]').remove()" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:18px">✕</button>
     </div>
-    ${html}
+    <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:6px">📨 Сообщения в чатах (тип Binotel):</div>
+    <div style="margin-bottom:16px">${chatHtml}</div>
+    <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:6px">📡 Raw-вебхуки (только новый воркер):</div>
+    <div>${debugHtml}</div>
   </div>`;
   modal.addEventListener('click', e=>{ if(e.target===modal) modal.remove(); });
   document.body.appendChild(modal);
