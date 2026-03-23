@@ -2913,6 +2913,109 @@ function getMetricForPeriod(metric,from,to){
   return 0;
 }
 
+function buildDualLineChartSVG(dataA, dataB, max, colorA, colorB, labelA, labelB){
+  const W=420,H=420;
+  const padL=36,padR=12,padT=26,padB=52;
+  const cW=W-padL-padR,cH=H-padT-padB;
+  const n=dataA.length;
+  const safeMax=max||1;
+  const step=cW/(n-1||1);
+
+  const pts=(data)=>data.map((d,i)=>{
+    const clamped=Math.min(d.value,safeMax);
+    return{x:padL+i*step,y:padT+cH*(1-clamped/safeMax),value:d.value,exceed:d.value>safeMax};
+  });
+  const ptsA=pts(dataA),ptsB=pts(dataB);
+
+  let svg=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block">`;
+
+  // Gradients
+  svg+=`<defs>
+    <linearGradient id="dg_a" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${colorA}" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="${colorA}" stop-opacity="0.02"/>
+    </linearGradient>
+    <linearGradient id="dg_b" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${colorB}" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="${colorB}" stop-opacity="0.01"/>
+    </linearGradient>
+  </defs>`;
+
+  // Grid
+  for(let g=0;g<=4;g++){
+    const frac=g/4;
+    const yp=padT+cH*(1-frac);
+    const val=Math.round(safeMax*frac);
+    svg+=`<line x1="${padL}" y1="${yp}" x2="${W-padR}" y2="${yp}" stroke="rgba(255,255,255,${g===4?'0.13':'0.06'})" stroke-width="1" stroke-dasharray="${g===4?'none':'3,3'}"/>`;
+    svg+=`<text x="${padL-4}" y="${yp+3.5}" text-anchor="end" font-size="8.5" fill="#5e5c78" font-family="Manrope,sans-serif">${val}</text>`;
+  }
+
+  // Area A
+  if(ptsA.length>1){
+    const ap=[`${ptsA[0].x},${padT+cH}`,...ptsA.map(p=>`${p.x},${p.y}`),`${ptsA[ptsA.length-1].x},${padT+cH}`].join(' ');
+    svg+=`<polygon points="${ap}" fill="url(#dg_a)"/>`;
+  }
+  // Area B
+  if(ptsB.length>1){
+    const bp=[`${ptsB[0].x},${padT+cH}`,...ptsB.map(p=>`${p.x},${p.y}`),`${ptsB[ptsB.length-1].x},${padT+cH}`].join(' ');
+    svg+=`<polygon points="${bp}" fill="url(#dg_b)"/>`;
+  }
+
+  // Lines A
+  for(let i=0;i<ptsA.length-1;i++){
+    const a=ptsA[i],b=ptsA[i+1];
+    svg+=`<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${colorA}" stroke-width="2.2" stroke-linecap="round"/>`;
+  }
+  // Lines B (dashed)
+  for(let i=0;i<ptsB.length-1;i++){
+    const a=ptsB[i],b=ptsB[i+1];
+    svg+=`<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${colorB}" stroke-width="2" stroke-dasharray="5,3" stroke-linecap="round"/>`;
+  }
+
+  // Dots + X labels (shared from dataA)
+  ptsA.forEach((p,i)=>{
+    const d=dataA[i];
+    const isLast=i===ptsA.length-1;
+    svg+=`<line x1="${p.x}" y1="${padT+cH}" x2="${p.x}" y2="${padT+cH+4}" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>`;
+    // Column highlight
+    if(d.isCurrent) svg+=`<rect x="${p.x-step/2}" y="${padT}" width="${step}" height="${cH}" fill="${colorA}" opacity="0.04" rx="3"/>`;
+    // Dot A
+    const rA=isLast?5:3.5;
+    svg+=`<circle cx="${p.x}" cy="${p.y}" r="${rA+1.5}" fill="${colorA}" opacity="0.18"/>`;
+    svg+=`<circle cx="${p.x}" cy="${p.y}" r="${rA}" fill="${colorA}"/>`;
+    if(isLast)svg+=`<circle cx="${p.x}" cy="${p.y}" r="2" fill="#fff"/>`;
+    // Value A above dot
+    const lblYA=Math.max(padT+10,p.y-8);
+    svg+=`<text x="${p.x}" y="${lblYA}" text-anchor="middle" font-size="9.5" font-weight="700" fill="${colorA}" font-family="Manrope,sans-serif">${d.value}</text>`;
+    // X label
+    svg+=`<text x="${p.x}" y="${H-padB+14}" text-anchor="middle" font-size="9" fill="${isLast?'#f0eefc':'#9896b0'}" font-weight="${isLast?'700':'400'}" font-family="Manrope,sans-serif">${d.label}</text>`;
+    if(d.sub)svg+=`<text x="${p.x}" y="${H-padB+26}" text-anchor="middle" font-size="7.5" fill="${isLast?'#9896b0':'#5e5c78'}" font-family="Manrope,sans-serif">${d.sub}</text>`;
+  });
+
+  // Dots B
+  ptsB.forEach((p,i)=>{
+    const d=dataB[i];
+    const isLast=i===ptsB.length-1;
+    const rB=isLast?4.5:3;
+    svg+=`<circle cx="${p.x}" cy="${p.y}" r="${rB+1.5}" fill="${colorB}" opacity="0.18"/>`;
+    svg+=`<circle cx="${p.x}" cy="${p.y}" r="${rB}" fill="${colorB}"/>`;
+    if(isLast)svg+=`<circle cx="${p.x}" cy="${p.y}" r="2" fill="#fff"/>`;
+    // Value B
+    const lblYB=Math.min(padT+cH-4, p.y+16);
+    svg+=`<text x="${p.x}" y="${lblYB}" text-anchor="middle" font-size="9.5" font-weight="700" fill="${colorB}" font-family="Manrope,sans-serif">${d.value}</text>`;
+  });
+
+  // Legend
+  const lgY=padT+cH+38;
+  svg+=`<rect x="${padL}" y="${lgY}" width="10" height="3" rx="1.5" fill="${colorA}"/>`;
+  svg+=`<text x="${padL+13}" y="${lgY+3.5}" font-size="8.5" fill="${colorA}" font-family="Manrope,sans-serif">${labelA}</text>`;
+  svg+=`<line x1="${padL+60}" y1="${lgY+1.5}" x2="${padL+70}" y2="${lgY+1.5}" stroke="${colorB}" stroke-width="2" stroke-dasharray="4,2"/>`;
+  svg+=`<text x="${padL+73}" y="${lgY+3.5}" font-size="8.5" fill="${colorB}" font-family="Manrope,sans-serif">${labelB}</text>`;
+
+  svg+='</svg>';
+  return svg;
+}
+
 function buildLineChartSVG(data,max,colorHex,quota=0){
   const W=420,H=420;
   const padL=36,padR=12,padT=26,padB=52;
@@ -3017,13 +3120,12 @@ function renderDashboardCharts(){
   const periods=getChartPeriods(_chartMode,7);
 
   const defs=[
-    {key:'leads',       label:'Новые обращения',       color:'var(--tl)',  hex:'#3fc8d8', icon:'📥'},
-    {key:'trials',      label:'Пробные занятия',       color:'#ff7eb3',   hex:'#ff7eb3', icon:'🧪'},
-    {key:'starts',      label:'Старты',                color:'var(--ac2)', hex:'#a87fff', icon:'🚀'},
-    {key:'active',      label:'Активных (в системе)',  color:'var(--gn)',  hex:'#3fd88e', icon:'🎓'},
-    {key:'active_fact', label:'Активных (факт посещ.)',color:'#3fc8d8',   hex:'#3fc8d8', icon:'📊'},
-    {key:'restarts',    label:'Перестарты',            color:'var(--am)',  hex:'#f5c842', icon:'🔄'},
-    {key:'graduates',   label:'Выпускники',            color:'#e8a838',   hex:'#e8a838', icon:'🏆'},
+    {key:'leads',       label:'Новые обращения',  color:'var(--tl)',  hex:'#3fc8d8', icon:'📥'},
+    {key:'trials',      label:'Пробные занятия',  color:'#ff7eb3',   hex:'#ff7eb3', icon:'🧪'},
+    {key:'starts',      label:'Старты',           color:'var(--ac2)', hex:'#a87fff', icon:'🚀'},
+    {key:'active',      label:'Активных учеников',color:'var(--gn)',  hex:'#3fd88e', icon:'🎓'},
+    {key:'restarts',    label:'Перестарты',       color:'var(--am)',  hex:'#f5c842', icon:'🔄'},
+    {key:'graduates',   label:'Выпускники',       color:'#e8a838',   hex:'#e8a838', icon:'🏆'},
   ];
   // Load CRM leads for 'leads' metric (async, then re-render if needed)
   if(!window._crmLeadsCache){
@@ -3072,10 +3174,65 @@ function renderDashboardCharts(){
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px">`;
 
   defs.forEach(({key,label,color,hex,icon})=>{
+
+    // ── Комбинированная плашка «Активные» (в системе + факт) ─────
+    if(key==='active'){
+      const rawMaxA=_chartMax['active'];
+      const rawMaxF=_chartMax['active_fact'];
+      const dataA=periods.map(p=>({label:p.label,sub:p.sub,value:getMetricForPeriod('active',p.from,p.to),isCurrent:!!p.isCurrent}));
+      const dataF=periods.map(p=>({label:p.label,sub:p.sub,value:getMetricForPeriod('active_fact',p.from,p.to),isCurrent:!!p.isCurrent}));
+      const lastA=dataA[dataA.length-1]?.value??0;
+      const lastF=dataF[dataF.length-1]?.value??0;
+      const trendA=dataA.length>=2?dataA[dataA.length-1].value-dataA[dataA.length-2].value:0;
+      const trendF=dataF.length>=2?dataF[dataF.length-1].value-dataF[dataF.length-2].value:0;
+      const tHtml=t=>t>0?`<span style="color:var(--gn);font-size:10px">▲${t}</span>`:t<0?`<span style="color:var(--rd);font-size:10px">▼${Math.abs(t)}</span>`:`<span style="color:var(--t3);font-size:10px">—</span>`;
+      const combinedMax=Math.max(rawMaxA,rawMaxF);
+      html+=`
+      <div style="background:var(--bg3);border:1px solid var(--b1);border-radius:12px;padding:12px 12px 6px">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;gap:8px">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:11px;font-weight:600;color:var(--t2)">🎓 Активных учеников</div>
+            <div style="display:flex;gap:14px;margin-top:6px;flex-wrap:wrap">
+              <div>
+                <div style="font-size:9px;font-weight:600;color:#3fd88e;text-transform:uppercase;letter-spacing:.04em;margin-bottom:1px">В системе</div>
+                <div style="display:flex;align-items:baseline;gap:4px">
+                  <span style="font-family:var(--fd);font-size:22px;font-weight:700;color:#3fd88e">${lastA}</span>
+                  <span style="font-size:10px;color:var(--t3)">/ ${rawMaxA}</span>
+                  ${tHtml(trendA)}
+                </div>
+              </div>
+              <div style="width:1px;background:var(--b1);align-self:stretch;margin:2px 0"></div>
+              <div>
+                <div style="font-size:9px;font-weight:600;color:#3fc8d8;text-transform:uppercase;letter-spacing:.04em;margin-bottom:1px">Факт посещения</div>
+                <div style="display:flex;align-items:baseline;gap:4px">
+                  <span style="font-family:var(--fd);font-size:22px;font-weight:700;color:#3fc8d8">${lastF}</span>
+                  <span style="font-size:10px;color:var(--t3)">/ ${rawMaxF}</span>
+                  ${tHtml(trendF)}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+            <div style="display:flex;align-items:center;gap:4px">
+              <span style="font-size:9px;color:#3fd88e;opacity:.8">max сист:</span>
+              <input type="number" min="1" value="${rawMaxA}" onchange="setChartMax('active',this.value)"
+                style="width:48px;background:var(--bg4);border:1px solid var(--b2);border-radius:6px;color:var(--t1);font-size:11px;padding:3px 5px;text-align:center;font-family:var(--fb)"/>
+            </div>
+            <div style="display:flex;align-items:center;gap:4px">
+              <span style="font-size:9px;color:#3fc8d8;opacity:.8">max факт:</span>
+              <input type="number" min="1" value="${rawMaxF}" onchange="setChartMax('active_fact',this.value)"
+                style="width:48px;background:var(--bg4);border:1px solid var(--b2);border-radius:6px;color:var(--t1);font-size:11px;padding:3px 5px;text-align:center;font-family:var(--fb)"/>
+            </div>
+          </div>
+        </div>
+        ${buildDualLineChartSVG(dataA,dataF,combinedMax,'#3fd88e','#3fc8d8','В системе','Факт')}
+      </div>`;
+      return;
+    }
+
+    // ── Обычная плашка ────────────────────────────────────────────
     const rawMax=_chartMax[key];
-    // active — это снимок (сколько учеников сейчас), не накапливается → max не умножаем
-    // starts/restarts/leads — события за период → на неделе ×7
-    const isSnapshot = key==='active' || key==='active_fact'; // снимок, не события за период
+    const isSnapshot = key==='active'; // active = снимок, остальные = события за период
     const max = (!isSnapshot && _chartMode==='week') ? rawMax*7 : rawMax;
     const rawQuota=_chartQuota[key]||0;
     const quotaScaled = rawQuota<=0 ? 0
