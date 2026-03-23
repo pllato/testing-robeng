@@ -6122,9 +6122,14 @@ function onVideoFileSelect(input){
   const nameEl = document.getElementById('video-file-name');
   const dz = document.getElementById('video-drop-zone');
   const sizeMB = (file.size / 1024 / 1024).toFixed(1);
-  const sizeHint = sizeMB > 50 ? ' — загрузка займёт ~' + Math.round(sizeMB / 5) + ' мин' : sizeMB > 20 ? ' — ~1 мин' : '';
+  // Оцениваем время: ~2 МБ/с типичный мобильный аплоад
+    const uploadSpeedMBs = 2;
+    const estMin = Math.ceil(sizeMB / 60 / uploadSpeedMBs);
+    const sizeHint = sizeMB > 100 ? ` — загрузка займёт ~${estMin} мин при обычном интернете`
+      : sizeMB > 30 ? ' — ~1-2 мин'
+      : '';
   nameEl.textContent = '✓ ' + file.name + ' · ' + sizeMB + ' МБ' + sizeHint;
-  nameEl.style.color = sizeMB > 50 ? 'var(--am)' : 'var(--gn)';
+  nameEl.style.color = sizeMB > 400 ? 'var(--rd)' : sizeMB > 100 ? 'var(--am)' : 'var(--gn)';
   nameEl.style.display = '';
   dz.style.borderColor = 'var(--ac)';
 }
@@ -6364,22 +6369,38 @@ async function submitVideo(){
 
     // Шаг 2: загружаем файл НАПРЯМУЮ в R2 через XHR (есть прогресс-бар)
     statusEl.textContent = `Загружаем видео (${sizeMB} МБ)...`;
+
+    // Определяем правильный content-type по расширению (браузеры иногда не определяют для .mov, .mkv)
+    const extMap = { mov:'video/quicktime', mp4:'video/mp4', avi:'video/x-msvideo', mkv:'video/x-matroska', webm:'video/webm', m4v:'video/mp4' };
+    const fileExt = (_videoSelectedFile.name.split('.').pop()||'').toLowerCase();
+    const ct = _videoSelectedFile.type || extMap[fileExt] || 'video/mp4';
+
     await new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.open('PUT', prepData.presignedUrl, true);
-      xhr.setRequestHeader('Content-Type', _videoSelectedFile.type || 'video/mp4');
+      xhr.setRequestHeader('Content-Type', ct);
+      // Нет таймаута — большие файлы могут грузиться часами
+      let lastLoaded = 0, staleSince = Date.now();
       xhr.upload.onprogress = (ev) => {
         if(ev.lengthComputable){
           const pct = Math.round(ev.loaded / ev.total * 90);
           bar.style.width = pct + '%';
-          if(pct > 70) statusEl.textContent = 'Почти готово...';
+          const loadedMB = (ev.loaded/1024/1024).toFixed(0);
+          const totalMB  = (ev.total/1024/1024).toFixed(0);
+          if(pct > 70) statusEl.textContent = `Почти готово... ${loadedMB}/${totalMB} МБ`;
+          else statusEl.textContent = `Загружаем ${loadedMB}/${totalMB} МБ (${pct}%)`;
+          if(ev.loaded !== lastLoaded){ lastLoaded = ev.loaded; staleSince = Date.now(); }
         }
       };
       xhr.onload = () => {
         if(xhr.status >= 200 && xhr.status < 300) resolve();
-        else reject(new Error('Ошибка загрузки: HTTP ' + xhr.status));
+        else {
+          console.error('R2 upload HTTP error:', xhr.status, xhr.responseText);
+          reject(new Error(`Ошибка загрузки: HTTP ${xhr.status}. Попробуйте ещё раз или проверьте соединение.`));
+        }
       };
-      xhr.onerror = () => reject(new Error('Ошибка сети при загрузке'));
+      xhr.onerror = () => reject(new Error('Ошибка сети. Проверьте интернет и попробуйте снова.'));
+      xhr.onabort = () => reject(new Error('Загрузка отменена.'));
       xhr.send(_videoSelectedFile);
     });
 
