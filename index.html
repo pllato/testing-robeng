@@ -7858,8 +7858,16 @@ function renderCRMStageSettings(){
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
         <span style="font-size:11px;font-weight:700;color:${stage.color};background:${stage.hex}22;border:1px solid ${stage.hex}44;padding:2px 9px;border-radius:8px">${stage.label}</span>
       </div>
-      <textarea id="crm-msg-${stage.id}" rows="2" placeholder="Пусто = не отправлять..."
+      <textarea id="crm-msg-${stage.id}" rows="3" placeholder="Пусто = не отправлять..."
         style="width:100%;background:var(--bg3);border:1px solid var(--b2);border-radius:8px;color:var(--t1);font-family:var(--fb);font-size:12px;padding:7px 10px;resize:vertical;box-sizing:border-box">${msg}</textarea>
+      <div style="font-size:10px;color:var(--t3);margin-top:3px;line-height:1.6">
+        Переменные: <code style="background:var(--bg4);padding:1px 4px;border-radius:4px;color:var(--ac2)">{{Имя клиента}}</code>
+        <code style="background:var(--bg4);padding:1px 4px;border-radius:4px;color:var(--ac2)">{{Дата пробного}}</code>
+        <code style="background:var(--bg4);padding:1px 4px;border-radius:4px;color:var(--ac2)">{{Время пробного}}</code>
+        <code style="background:var(--bg4);padding:1px 4px;border-radius:4px;color:var(--ac2)">{{Преподаватель}}</code>
+        <code style="background:var(--bg4);padding:1px 4px;border-radius:4px;color:var(--ac2)">{{Предмет}}</code>
+        <code style="background:var(--bg4);padding:1px 4px;border-radius:4px;color:var(--ac2)">{{Бюджет}}</code>
+      </div>
     </div>`;
   }).join('');
 }
@@ -8014,7 +8022,9 @@ function saveCRMDistribSettings(){
   });
   if(!S.settings) S.settings={};
   S.settings.crmWeights = weights;
-  fbDb.ref('settings').update({crmWeights: weights}).then(()=>{
+  // Сохраняем через dbRef (eduSchedule/settings) — туда же откуда читаем
+  dbRef.child('settings/crmWeights').set(weights).then(()=>{
+    try{localStorage.setItem('edu_v5',JSON.stringify(S));}catch(e){}
     const saved = document.getElementById('crm-distrib-saved');
     if(saved){ saved.style.display='block'; setTimeout(()=>saved.style.display='none',2500); }
     toast('Коэффициенты сохранены');
@@ -9333,6 +9343,42 @@ const CRM_STAGES = [
 ];
 
 // Сообщения при смене стадии — шаблоны для WhatsApp
+// ── Template variable resolver for stage auto-messages ───────────────
+// Доступные переменные:
+//   {{Имя клиента}}        — l.name
+//   {{Телефон}}            — l.phone
+//   {{Дата пробного}}      — трialDate в формате "понедельник, 5 мая"
+//   {{Время пробного}}     — l.trialTime
+//   {{Преподаватель}}      — имя преподавателя из S.teachers
+//   {{Предмет}}            — l.interest
+//   {{Источник}}           — l.source
+//   {{Бюджет}}             — l.budget
+function resolveStageMsg(tpl, lead){
+  if(!tpl) return '';
+  const l = lead || {};
+  const teachers = S.teachers || [];
+  const teacher = teachers.find(t => String(t.id) === String(l.trialTeacherId));
+  const teacherName = teacher ? (teacher.name || '') : '';
+
+  let date = '';
+  if(l.trialDate){
+    try {
+      date = new Date(l.trialDate + 'T' + (l.trialTime || '12:00'))
+        .toLocaleDateString('ru', {weekday:'long', day:'numeric', month:'long'});
+    } catch(e){ date = l.trialDate; }
+  }
+
+  return tpl
+    .replace(/{{Имя клиента}}/g,     l.name       || '')
+    .replace(/{{Телефон}}/g,         l.phone      || '')
+    .replace(/{{Дата пробного}}/g,   date         || '—')
+    .replace(/{{Время пробного}}/g,  l.trialTime  || '—')
+    .replace(/{{Преподаватель}}/g,   teacherName  || '—')
+    .replace(/{{Предмет}}/g,         l.interest   || '')
+    .replace(/{{Бюджет}}/g,          l.budget     || '')
+    .replace(/{{Источник}}/g,        l.source     || '');
+}
+
 const CRM_STAGE_MSGS = {
   contact:  'Здравствуйте! Это RobEng ELC Roblox English. Вы оставили заявку — готовы рассказать подробнее о занятиях. Удобно сейчас поговорить?',
   trial:    'Отличные новости! Приглашаем вас на бесплатный пробный урок. Выберите удобное время — мы подберём преподавателя.',
@@ -9826,8 +9872,9 @@ function crmDrop(event, newStage){
     const tpl = CRM_STAGE_MSGS[newStage];
     if(tpl && l.phone){
       const phone = (l.phone||'').replace(/\D/g,'');
-      if(phone) notifyWhatsApp('+'+phone, tpl).then(()=>{
-        crmChatRef.child(dragId).push({type:'out', text:tpl, ts:new Date().toISOString(), uid:fbAuth.currentUser?.uid||'', name:'Авто'});
+      const msg = resolveStageMsg(tpl, l);
+      if(phone) notifyWhatsApp('+'+phone, msg).then(()=>{
+        crmChatRef.child(dragId).push({type:'out', text:msg, ts:new Date().toISOString(), uid:fbAuth.currentUser?.uid||'', name:'Авто'});
         crmRef.child(dragId+'/msgCount').transaction(v=>(v||0)+1);
       });
     }
@@ -9942,11 +9989,25 @@ function saveCRMCard(){
   };
   if(_crmEditId){
     data.id = _crmEditId;
-    // Check if trial date changed → notify teacher
+    // Check if stage or trial date changed
     crmRef.child(_crmEditId).once('value').then(snap=>{
       const prev = snap.val()||{};
       crmRef.child(_crmEditId).update(data).then(()=>{
         maybeSendTrialNotify(_crmEditId, prev.trialDate, data.trialDate, data.trialTeacherId);
+        // Send stage auto-message if stage changed
+        if(prev.stage !== data.stage && data.phone){
+          const tpl = CRM_STAGE_MSGS[data.stage];
+          if(tpl){
+            const msg = resolveStageMsg(tpl, data);
+            const phone = data.phone.replace(/\D/g,'');
+            const now = new Date().toISOString();
+            if(phone) notifyWhatsApp('+'+phone, msg).then(()=>{
+              crmChatRef.child(_crmEditId).push({type:'out', text:msg, ts:now, uid:fbAuth.currentUser?.uid||'', name:'Авто'});
+              crmRef.child(_crmEditId+'/msgCount').transaction(v=>(v||0)+1);
+              crmRef.child(_crmEditId+'/lastContact').set(now);
+            });
+          }
+        }
         close1('m-crm-card'); renderCRM(); toast('Карточка сохранена');
       });
     });
