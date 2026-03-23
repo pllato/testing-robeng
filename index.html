@@ -9579,6 +9579,7 @@ function renderCRMContent(leads){
         const id = btn.dataset.id;
         const action = btn.dataset.action;
         if(action==='wa') crmWhatsApp(id);
+        else if(action==='wacall') crmWACall(id);
         else if(action==='call') crmCall(id);
         else if(action==='chat') openCRMChat(id);
       });
@@ -9673,6 +9674,7 @@ function buildCRMCard(l){
     </div>
     <div style="display:flex;gap:4px;margin-top:8px">
       ${l.phone?`<button data-action="wa" data-id="${l.id}" title="Чат WA" style="background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.25);border-radius:5px;color:var(--gn);cursor:pointer;padding:3px 7px;font-size:11px">💬</button>`:''}
+      ${l.phone?`<button data-action="wacall" data-id="${l.id}" title="Позвонить через WhatsApp" style="background:rgba(63,216,142,.12);border:1px solid rgba(63,216,142,.3);border-radius:5px;color:var(--gn);cursor:pointer;padding:3px 7px;font-size:11px">📞WA</button>`:''}
       ${l.phone?`<button data-action="call" data-id="${l.id}" title="Позвонить" style="background:rgba(124,92,252,.1);border:1px solid rgba(124,92,252,.25);border-radius:5px;color:var(--ac2);cursor:pointer;padding:3px 7px;font-size:11px">📞</button>`:''}
       <button data-action="chat" data-id="${l.id}" title="История" style="background:var(--bg4);border:1px solid var(--b2);border-radius:5px;color:var(--t3);cursor:pointer;padding:3px 7px;font-size:11px">💬 ${l.msgCount||0}</button>
     </div>
@@ -9727,6 +9729,7 @@ function buildCRMList(leads){
             <td style="padding:9px 12px">
               <div style="display:flex;gap:5px">
                 ${l.phone?`<button onclick="event.stopPropagation();crmWhatsApp('${l.id}')" style="background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.2);border-radius:5px;color:var(--gn);cursor:pointer;padding:3px 7px;font-size:11px">💬 WA</button>`:''}
+                ${l.phone?`<button onclick="event.stopPropagation();crmWACall('${l.id}')" title="Позвонить через WhatsApp" style="background:rgba(63,216,142,.12);border:1px solid rgba(63,216,142,.3);border-radius:5px;color:var(--gn);cursor:pointer;padding:3px 7px;font-size:11px">📞 WA</button>`:''}
                 ${l.phone?`<button onclick="event.stopPropagation();crmCall('${l.id}')" style="background:rgba(124,92,252,.1);border:1px solid rgba(124,92,252,.2);border-radius:5px;color:var(--ac2);cursor:pointer;padding:3px 7px;font-size:11px">📞</button>`:''}
               </div>
             </td>
@@ -10108,6 +10111,15 @@ function crmWhatsApp(id){
     const l = snap.val();
     if(!l?.phone){ toast('Нет телефона',true); return; }
     openCRMChat(id);
+  });
+}
+
+function crmWACall(id){
+  crmRef.child(id).once('value').then(snap=>{
+    const l = snap.val();
+    if(!l?.phone){ toast('Нет телефона',true); return; }
+    const phone = (l.phone||'').replace(/[^\d]/g,'');
+    window.open('https://wa.me/' + phone, '_blank');
   });
 }
 
