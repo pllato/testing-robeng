@@ -11618,6 +11618,7 @@ function addCRMLinkToStudent(studentEl, phone){
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
       <!-- Left: fields -->
       <div style="display:flex;flex-direction:column;gap:0">
+        <div class="fr"><label>💬 Комментарий</label><textarea id="crm-f-notes" placeholder="Важные детали, история, договорённости..." rows="3" style="font-size:13px"></textarea></div>
         <div class="fr"><label>ФИО / Имя клиента</label><input id="crm-f-name" placeholder="Иванова Татьяна"/></div>
         <div class="fr"><label>📱 Телефон WhatsApp</label><input id="crm-f-phone" placeholder="+7 700 000 00 00"/></div>
         <div id="crm-card-call-btns" style="display:none;gap:6px;margin-top:-4px;margin-bottom:8px">
@@ -11668,7 +11669,6 @@ function addCRMLinkToStudent(studentEl, phone){
             </select>
           </div>
         </div>
-        <div class="fr"><label>📝 Заметки</label><textarea id="crm-f-notes" placeholder="Важные детали..." rows="2"></textarea></div>
         <div style="display:flex;gap:8px;margin-top:4px">
           <button class="btn" onclick="close1('m-crm-card')">Отмена</button>
           <button class="btn btn-a" onclick="saveCRMCard()">💾 Сохранить</button>
