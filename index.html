@@ -9725,6 +9725,7 @@ function renderCRMContent(leads){
         else if(action==='wacall') crmWACall(id);
         else if(action==='call') crmCall(id);
         else if(action==='chat') openCRMChat(id);
+        else if(action==='stage') showStageQuickPick(id, btn);
       });
     });
   }
@@ -9754,14 +9755,77 @@ function buildCRMKanban(leads){
   return html;
 }
 
+let _crmScrollTimer = null;
+
+// Всплывающее меню быстрой смены стадии
+function showStageQuickPick(leadId, anchorBtn){
+  // Убираем предыдущий пикер если есть
+  document.getElementById('_stage-pick')?.remove();
+
+  const rect = anchorBtn.getBoundingClientRect();
+  const pick = document.createElement('div');
+  pick.id = '_stage-pick';
+  pick.style.cssText = `position:fixed;z-index:9999;background:var(--bg2);border:1px solid var(--b2);border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.4);padding:6px;min-width:180px;max-height:320px;overflow-y:auto`;
+
+  // Position below button, or above if near bottom
+  const spaceBelow = window.innerHeight - rect.bottom;
+  if(spaceBelow > 200){
+    pick.style.top = (rect.bottom + 4) + 'px';
+    pick.style.left = Math.min(rect.left, window.innerWidth - 200) + 'px';
+  } else {
+    pick.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+    pick.style.left = Math.min(rect.left, window.innerWidth - 200) + 'px';
+  }
+
+  pick.innerHTML = `<div style="font-size:10px;color:var(--t3);padding:3px 8px 6px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Перенести в стадию</div>` +
+    CRM_STAGES.map(s => `
+      <div onclick="crmDropQuick('${leadId}','${s.id}');document.getElementById('_stage-pick')?.remove()"
+        style="padding:7px 10px;border-radius:7px;cursor:pointer;font-size:12px;color:var(--t1);display:flex;align-items:center;gap:8px"
+        onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+        <span style="width:8px;height:8px;border-radius:50%;background:${s.hex};flex-shrink:0;display:inline-block"></span>
+        ${s.label}
+      </div>`).join('');
+
+  document.body.appendChild(pick);
+  setTimeout(()=>{ document.addEventListener('click', function h(e){ if(!pick.contains(e.target)){ pick.remove(); document.removeEventListener('click',h); } }, {capture:true}); }, 10);
+}
+
+async function crmDropQuick(leadId, newStage){
+  const snap = await crmRef.child(leadId).once('value');
+  const l = snap.val();
+  if(!l) return;
+  if(l.stage === newStage){ toast('Уже в этой стадии'); return; }
+  // Re-use crmDrop logic
+  _crmDragId = leadId;
+  await crmDrop(null, newStage);
+}
+
 function initCRMDragDrop(){
+  const wrap = document.getElementById('crm-kanban-wrap');
+
   // Вешаем обработчики на все колонки
   document.querySelectorAll('.crm-col, .crm-col-body, .crm-col-empty').forEach(col=>{
-    col.addEventListener('dragover', e=>{ e.preventDefault(); e.stopPropagation(); col.style.outline='2px solid var(--ac)'; });
+    col.addEventListener('dragover', e=>{
+      e.preventDefault(); e.stopPropagation();
+      col.style.outline='2px solid var(--ac)';
+      // Авто-скролл канбана при перетаскивании к краям
+      if(wrap){
+        const rect = wrap.getBoundingClientRect();
+        const edge = 80;
+        if(e.clientX > rect.right - edge){
+          if(!_crmScrollTimer) _crmScrollTimer = setInterval(()=>{ wrap.scrollLeft += 18; }, 16);
+        } else if(e.clientX < rect.left + edge){
+          if(!_crmScrollTimer) _crmScrollTimer = setInterval(()=>{ wrap.scrollLeft -= 18; }, 16);
+        } else {
+          clearInterval(_crmScrollTimer); _crmScrollTimer = null;
+        }
+      }
+    });
     col.addEventListener('dragleave', e=>{ col.style.outline=''; });
     col.addEventListener('drop', e=>{
       e.preventDefault(); e.stopPropagation();
       col.style.outline='';
+      clearInterval(_crmScrollTimer); _crmScrollTimer = null;
       const stage = col.dataset.stage;
       if(stage && _crmDragId && _crmDragId!=='null') crmDrop(e, stage);
     });
@@ -9773,7 +9837,11 @@ function initCRMDragDrop(){
       card.style.opacity = '.4';
       e.stopPropagation();
     });
-    card.addEventListener('dragend', e=>{ card.style.opacity='1'; });
+    card.addEventListener('dragend', e=>{
+      card.style.opacity='1';
+      clearInterval(_crmScrollTimer); _crmScrollTimer = null;
+      document.querySelectorAll('.crm-col,.crm-col-body,.crm-col-empty').forEach(c=>c.style.outline='');
+    });
     card.addEventListener('click', e=>{
       if(!e.defaultPrevented) openCRMCard(card.dataset.id);
     });
@@ -9815,11 +9883,12 @@ function buildCRMCard(l){
       ${staleWarn?`<span style="font-size:9px;color:var(--rd);font-weight:600">${daysSince}д без связи</span>`:''}
       ${daysSince!==null&&!staleWarn?`<span style="font-size:9px;color:var(--t3)">${daysSince===0?'сегодня':daysSince+'д'}</span>`:''}
     </div>
-    <div style="display:flex;gap:4px;margin-top:8px">
+    <div style="display:flex;gap:4px;margin-top:8px;align-items:center;flex-wrap:wrap">
       ${l.phone?`<button data-action="wa" data-id="${l.id}" title="Чат WA" style="background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.25);border-radius:5px;color:var(--gn);cursor:pointer;padding:3px 7px;font-size:11px">💬</button>`:''}
       ${l.phone?`<button data-action="wacall" data-id="${l.id}" title="Позвонить через WhatsApp" style="background:rgba(63,216,142,.12);border:1px solid rgba(63,216,142,.3);border-radius:5px;color:var(--gn);cursor:pointer;padding:3px 7px;font-size:11px">📞WA</button>`:''}
       ${l.phone?`<button data-action="call" data-id="${l.id}" title="Позвонить" style="background:rgba(124,92,252,.1);border:1px solid rgba(124,92,252,.25);border-radius:5px;color:var(--ac2);cursor:pointer;padding:3px 7px;font-size:11px">📞</button>`:''}
       <button data-action="chat" data-id="${l.id}" title="История" style="background:var(--bg4);border:1px solid var(--b2);border-radius:5px;color:var(--t3);cursor:pointer;padding:3px 7px;font-size:11px">💬 ${l.msgCount||0}</button>
+      <button data-action="stage" data-id="${l.id}" title="Перенести в стадию" style="margin-left:auto;background:var(--bg4);border:1px solid var(--b2);border-radius:5px;color:var(--t3);cursor:pointer;padding:3px 8px;font-size:10px;white-space:nowrap">→ стадия</button>
     </div>
   </div>`;
 }
@@ -9946,7 +10015,7 @@ async function crmBulkStage(){
 
 // ── DRAG & DROP ───────────────────────────────────────────────────
 function crmDrop(event, newStage){
-  event.preventDefault();
+  if(event) event.preventDefault();
   const dragId = _crmDragId; // сохраняем до сброса
   _crmDragId = null;
   if(!dragId || dragId==='null' || dragId==='undefined') return;
