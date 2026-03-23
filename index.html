@@ -1723,7 +1723,8 @@ fbAuth.onAuthStateChanged(user=>{
         if(S.settings?.crmStageMsgs) Object.assign(CRM_STAGE_MSGS, S.settings.crmStageMsgs);
         if(S.settings?.chartMax) Object.assign(_chartMax, S.settings.chartMax);
         if(S.settings?.chartQuota) Object.assign(_chartQuota, S.settings.chartQuota);
-        if(!_chartMax.trials) _chartMax.trials=10; // default
+        if(!_chartMax.trials)     _chartMax.trials=10;
+        if(!_chartMax.graduates) _chartMax.graduates=5;
         // Загружаем сохранённые стадии CRM
         if(S.settings?.crmStages && Array.isArray(S.settings.crmStages) && S.settings.crmStages.length>=2){
           CRM_STAGES.length = 0;
@@ -1992,8 +1993,8 @@ let dashMode='days'; // 'days' | 'thu'
 
 // ── CHART STATE ───────────────────────────────────────────────────
 let _chartMode='week'; // 'day' | 'week' | 'today'
-let _chartMax={active:100,starts:20,restarts:20,leads:20,trials:10};
-let _chartQuota={active:0,starts:0,restarts:0,leads:0,trials:0}; // 0=не задана
+let _chartMax={active:100,starts:20,restarts:20,leads:20,trials:10,graduates:5};
+let _chartQuota={active:0,starts:0,restarts:0,leads:0,trials:0,graduates:0}; // 0=не задана
 let _chartDayDate=new Date().toISOString().slice(0,10); // для режима 'today'
 
 function setDashPeriod(days){
@@ -2860,16 +2861,39 @@ function getMetricForPeriod(metric,from,to){
     return Object.values(window._crmLeadsCache)
       .filter(l=>l.createdAt&&l.createdAt.slice(0,10)>=from&&l.createdAt.slice(0,10)<=to).length;
   } else if(metric==='trials'){
-    // Пробные занятия: trialDate попадает в период И стадия содержит "пробный" + "оплач"/"провед"
     if(!window._crmLeadsCache) return 0;
-    const trialStageIds = CRM_STAGES
-      .filter(s=>{
-        const lbl=(s.label||'').toLowerCase();
-        return lbl.includes('пробн') && (lbl.includes('оплач')||lbl.includes('провед')||lbl.includes('paid')||lbl.includes('done'));
-      })
-      .map(s=>s.id);
+    // Считаем всех лидов у кого trialDate попадает в период — независимо от стадии
     return Object.values(window._crmLeadsCache)
-      .filter(l=>l.trialDate&&l.trialDate>=from&&l.trialDate<=to&&trialStageIds.includes(l.stage)).length;
+      .filter(l=>l.trialDate&&l.trialDate>=from&&l.trialDate<=to).length;
+  } else if(metric==='graduates'){
+    // Выпускник = ученик набравший 100 часов (200 уроков по 30 мин)
+    // Считаем тех, кто достиг 200-го урока (done/makeup) в периоде [from, to]
+    const GRAD_LESSONS = 200; // 200 × 30 мин = 100 часов
+    const att = S.attendance || {};
+
+    // Для каждого студента собираем все отметки done/makeup отсортированные по дате
+    const studentLessons = {}; // studentId → sorted dates[]
+    S.enrollments.forEach(e => {
+      if(!e.studentId) return;
+      Object.entries(att).forEach(([k, v]) => {
+        if((v==='done'||v==='makeup') && k.startsWith(e.id+'_')){
+          const dt = k.slice(String(e.id).length+1);
+          if(!studentLessons[e.studentId]) studentLessons[e.studentId]=[];
+          studentLessons[e.studentId].push(dt);
+        }
+      });
+    });
+
+    // Студент — выпускник за период если его 200-й урок попал в [from, to]
+    let count = 0;
+    Object.values(studentLessons).forEach(dates => {
+      dates.sort();
+      if(dates.length >= GRAD_LESSONS){
+        const gradDate = dates[GRAD_LESSONS-1];
+        if(gradDate >= from && gradDate <= to) count++;
+      }
+    });
+    return count;
   }
   return 0;
 }
@@ -2978,11 +3002,12 @@ function renderDashboardCharts(){
   const periods=getChartPeriods(_chartMode,7);
 
   const defs=[
-    {key:'active',  label:'Активных учеников', color:'var(--gn)',  hex:'#3fd88e', icon:'🎓'},
-    {key:'starts',  label:'Старты',             color:'var(--ac2)', hex:'#a87fff', icon:'🚀'},
-    {key:'restarts',label:'Перестарты',          color:'var(--am)',  hex:'#f5c842', icon:'🔄'},
-    {key:'leads',   label:'Новые обращения',     color:'var(--tl)',  hex:'#3fc8d8', icon:'📥'},
-    {key:'trials',  label:'Пробные занятия',     color:'#ff7eb3',    hex:'#ff7eb3', icon:'🧪'},
+    {key:'leads',     label:'Новые обращения',  color:'var(--tl)',  hex:'#3fc8d8', icon:'📥'},
+    {key:'trials',    label:'Пробные занятия',  color:'#ff7eb3',   hex:'#ff7eb3', icon:'🧪'},
+    {key:'starts',    label:'Старты',           color:'var(--ac2)', hex:'#a87fff', icon:'🚀'},
+    {key:'active',    label:'Активных учеников',color:'var(--gn)',  hex:'#3fd88e', icon:'🎓'},
+    {key:'restarts',  label:'Перестарты',       color:'var(--am)',  hex:'#f5c842', icon:'🔄'},
+    {key:'graduates', label:'Выпускники',       color:'#e8a838',   hex:'#e8a838', icon:'🏆'},
   ];
   // Load CRM leads for 'leads' metric (async, then re-render if needed)
   if(!window._crmLeadsCache){
