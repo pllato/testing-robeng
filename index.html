@@ -405,6 +405,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
     <div class="ni" data-p="reports" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">📊</span>Отчёты</div>
     <div class="ni" data-p="videoreviews" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">🎥</span>Видео уроков <span id="video-badge" style="display:none;background:var(--am);color:var(--bg);font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
     <div class="ni" data-p="surveys" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">📋</span>Опросы <span id="surveys-badge" style="display:none;background:var(--gn);color:var(--bg);font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
+    <div class="ni admin-only" data-p="analytics" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">🧠</span>Аналитика</div>
     <div class="ni admin-only" id="ni-more" onclick="toggleMore(this)"><span style="font-size:14px;width:18px;text-align:center">•••</span>Ещё</div>
     <div id="more-menu" style="display:none">
       <div class="ni admin-only" data-p="subjects" onclick="nav(this)" style="padding-left:30px"><span style="font-size:13px;width:18px;text-align:center">📚</span>Предметы</div>
@@ -646,6 +647,10 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
         </select>
       </div>
       <div id="jrn-list"></div>
+    </div>
+    <!-- ANALYTICS -->
+    <div class="panel" id="panel-analytics">
+      <div id="analytics-body" style="padding:0"></div>
     </div>
     <!-- NOTIFY LOG -->
     <div class="panel" id="panel-notifylog">
@@ -1897,8 +1902,8 @@ function countFree(){
 }
 
 // ── NAVIGATION ───────────────────────────────────────────────────
-const TITLES={today:'Сегодня ☀️',tasks:'Задачи',teamchat:'Командный чат',dashboard:'Главная',subjects:'Предметы',teachers:'Преподаватели',availability:'Время работы',schedule:'Расписание',freeSlots:'Свободные слоты',students:'Ученики',reports:'Отчёты по преподавателям',journal:'Журнал действий',notifylog:'📨 Журнал уведомлений',trash:'Корзина',backups:'Резервные копии',users:'Пользователи',videoreviews:'Видео уроков',surveys:'Опросы',crm:'CRM — Клиенты',wachats:'Чаты',callslog:'Журнал звонков'};
-const ACTS={today:'',tasks:'',teamchat:'',dashboard:'+',subjects:'',teachers:'+ Преподаватель',availability:'',schedule:'',freeSlots:'',students:'+ Ученик',reports:'',journal:'',notifylog:'',trash:'',backups:'',users:'',videoreviews:'',surveys:'',crm:'',wachats:'',callslog:''};
+const TITLES={today:'Сегодня ☀️',tasks:'Задачи',teamchat:'Командный чат',dashboard:'Главная',subjects:'Предметы',teachers:'Преподаватели',availability:'Время работы',schedule:'Расписание',freeSlots:'Свободные слоты',students:'Ученики',reports:'Отчёты по преподавателям',journal:'Журнал действий',notifylog:'📨 Журнал уведомлений',analytics:'🧠 Аналитика',trash:'Корзина',backups:'Резервные копии',users:'Пользователи',videoreviews:'Видео уроков',surveys:'Опросы',crm:'CRM — Клиенты',wachats:'Чаты',callslog:'Журнал звонков'};
+const ACTS={today:'',tasks:'',teamchat:'',dashboard:'+',subjects:'',teachers:'+ Преподаватель',availability:'',schedule:'',freeSlots:'',students:'+ Ученик',reports:'',journal:'',notifylog:'',analytics:'',trash:'',backups:'',users:'',videoreviews:'',surveys:'',crm:'',wachats:'',callslog:''};
 function curPanel(){return document.querySelector('.ni.active')?.dataset.p||'dashboard';}
 function nav(el){
   // Close more menu on nav
@@ -1971,6 +1976,7 @@ function renderPanel(p){
   else if(p==='reports'){renderReports();}
   else if(p==='journal'){renderJournal();}
   else if(p==='notifylog'){renderNotifyLog();}
+  else if(p==='analytics'){renderAnalytics();}
   else if(p==='trash'){renderTrash();}
   else if(p==='backups'){renderBackups();}
   else if(p==='users'){renderUsers();}
@@ -7866,6 +7872,342 @@ function checkLessonReminders(){
 
 
 
+
+
+// ═══════════════════════════════════════════════════════
+//  ANALYTICS — аналитика + AI рекомендации
+// ═══════════════════════════════════════════════════════
+
+let _analyticsTab = 'overview';
+let _analyticsCache = null;
+
+function renderAnalytics(){
+  const el = document.getElementById('analytics-body');
+  if(!el) return;
+  el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--t3)">Загрузка данных...</div>';
+  const load = window._crmLeadsCache
+    ? Promise.resolve(window._crmLeadsCache)
+    : crmRef.once('value').then(s=>{ window._crmLeadsCache=s.val()||{}; return window._crmLeadsCache; });
+  Promise.all([
+    load,
+    fbDb.ref('surveyResults').once('value').then(s=>s.val()||{}),
+    fbDb.ref('appUsers').once('value').then(s=>s.val()||{}),
+  ]).then(([leads,surveys,users])=>{
+    const metrics = _collectAnalyticsMetrics(leads,surveys,users);
+    _analyticsCache = {leads,surveys,users,metrics};
+    _renderAnalyticsPanel(metrics);
+  }).catch(e=>{ el.innerHTML=`<div style="color:var(--rd);padding:20px">Ошибка: ${e.message}</div>`; });
+}
+
+function _collectAnalyticsMetrics(leads,surveys,users){
+  const now=new Date();
+  const todayStr=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  const d30=new Date(now);d30.setDate(d30.getDate()-30);
+  const d30s=`${d30.getFullYear()}-${String(d30.getMonth()+1).padStart(2,'0')}-${String(d30.getDate()).padStart(2,'0')}`;
+  const att=S.attendance||{};
+  const vr=S.videoReports||{};
+  const journal=S.journal||[];
+  const allLeads=Object.values(leads||{});
+  const leads30=allLeads.filter(l=>l.createdAt&&l.createdAt.slice(0,10)>=d30s);
+  const byStage={};
+  CRM_STAGES.forEach(s=>{byStage[s.id]=0;});
+  allLeads.forEach(l=>{if(l.stage)byStage[l.stage]=(byStage[l.stage]||0)+1;});
+  const trialed=allLeads.filter(l=>l.trialDate);
+  const trialConverted=trialed.filter(l=>{
+    const p=(l.phone||'').replace(/\D/g,'');
+    if(!p)return false;
+    return S.students.some(s=>{const sp=(s.phone||s.parentPhone||'').replace(/\D/g,'');return sp&&(sp===p||sp.slice(-9)===p.slice(-9));});
+  });
+  const registrars=Object.entries(users||{}).filter(([,u])=>u.crmRole==='registrar');
+  const regStats=registrars.map(([uid,u])=>{
+    const myLeads30=leads30.filter(l=>l.assigneeUid===uid);
+    const myLeadsAll=allLeads.filter(l=>l.assigneeUid===uid);
+    const withTrial=myLeadsAll.filter(l=>l.trialDate).length;
+    const convRate=myLeadsAll.length?Math.round(withTrial/myLeadsAll.length*100):0;
+    return{uid,name:u.name||u.email||uid,total:myLeadsAll.length,last30:myLeads30.length,withTrial,convRate};
+  });
+  const teacherStats=S.teachers.map(t=>{
+    const enrs=S.enrollments.filter(e=>String(e.teacherId)===String(t.id)&&!e.inactive);
+    const activeEnrs=enrs.filter(e=>enrollActive(e,todayStr));
+    const studentCount=new Set(activeEnrs.map(e=>e.studentId)).size;
+    let lessonsExpected=0,lessonsMarked=0,lessonsMissed=0,videoExpected=0,videoUploaded=0;
+    enrs.forEach(e=>{
+      const start=e.dateStart>=d30s?e.dateStart:d30s;
+      const end=e.dateEnd<=todayStr?e.dateEnd:todayStr;
+      if(start>end)return;
+      getDatesInRange(start,end).forEach(d=>{
+        const dow=(new Date(d+'T12:00:00').getDay()+6)%7;
+        if(e.slots.some(sl=>sl.day===dow)){
+          lessonsExpected++;
+          const ak=`${e.id}_${d}`;
+          if(att[ak]==='done'||att[ak]==='makeup'){lessonsMarked++;videoExpected++;if(vr[ak]&&vr[ak].status!=='missing')videoUploaded++;}
+          else if(att[ak]==='miss')lessonsMissed++;
+        }
+      });
+    });
+    const attFillRate=lessonsExpected?Math.round((lessonsMarked+lessonsMissed)/lessonsExpected*100):0;
+    const videoRate=videoExpected?Math.round(videoUploaded/videoExpected*100):100;
+    const mySurveys=Object.values(surveys||{}).filter(r=>String(r.teacherId)===String(t.id)&&r.rating);
+    const avgRating=mySurveys.length?(mySurveys.reduce((s,r)=>s+(parseFloat(r.rating)||0),0)/mySurveys.length).toFixed(1):null;
+    const renewalPct=mySurveys.length?Math.round(mySurveys.filter(r=>r.renewal==='yes'||r.renewal==='likely').length/mySurveys.length*100):null;
+    return{id:t.id,name:t.name,studentCount,lessonsExpected,lessonsMarked,lessonsMissed,attFillRate,videoExpected,videoUploaded,videoRate,avgRating,renewalPct,surveyCount:mySurveys.length};
+  }).filter(t=>t.studentCount>0||t.lessonsExpected>0);
+  const activeStudents=new Set();
+  S.enrollments.filter(e=>!e.inactive&&enrollActive(e,todayStr)).forEach(e=>activeStudents.add(e.studentId));
+  const expiringSoon=S.enrollments.filter(e=>{
+    if(e.inactive||!enrollActive(e,todayStr))return false;
+    const days=(new Date(e.dateEnd)-now)/86400000;
+    return days>=0&&days<=14;
+  });
+  const deactivations30=journal.filter(j=>j.type==='deactivate'&&j.isoDate>=d30s).length;
+  const renewals30=journal.filter(j=>(j.type==='renewal'||j.type==='extend')&&j.isoDate>=d30s).length;
+  const starts30=S.enrollments.filter(e=>e.dateStart>=d30s&&!e.inactive).length;
+  const churnRate=(activeStudents.size+deactivations30)>0?Math.round(deactivations30/(activeStudents.size+deactivations30)*100):0;
+  const overdueEnrolls=S.enrollments.filter(e=>!e.inactive&&e.dateEnd<todayStr&&enrollActive(e,e.dateEnd)).length;
+  const allRatings=Object.values(surveys||{}).filter(r=>r.rating);
+  const schoolRating=allRatings.length?(allRatings.reduce((s,r)=>s+(parseFloat(r.rating)||0),0)/allRatings.length).toFixed(1):null;
+  return{period:{today:todayStr,d30:d30s},funnel:{totalLeads:allLeads.length,leads30:leads30.length,byStage,trialed:trialed.length,trialConverted:trialConverted.length},registrars:regStats,teachers:teacherStats,business:{activeStudents:activeStudents.size,expiringSoon:new Set(expiringSoon.map(e=>e.studentId)).size,deactivations30,renewals30,starts30,churnRate,overdueEnrolls,schoolRating,surveyCount:allRatings.length}};
+}
+
+function _renderAnalyticsPanel(metrics){
+  const el=document.getElementById('analytics-body');
+  if(!el)return;
+  const tabs=[{id:'overview',label:'📊 Обзор'},{id:'funnel',label:'🎯 Воронка'},{id:'registrars',label:'🗂 Регистраторы'},{id:'teachers',label:'👩‍🏫 Преподаватели'},{id:'business',label:'💼 Бизнес'}];
+  el.innerHTML=`<div style="display:flex;gap:0;flex-wrap:wrap;border-bottom:1px solid var(--b1);background:var(--bg2);position:sticky;top:0;z-index:10;padding:0 22px">
+    ${tabs.map(t=>`<button onclick="_analyticsTab='${t.id}';_renderAnalyticsContent()" id="atab-${t.id}" style="padding:11px 14px;font-size:12px;font-weight:600;font-family:var(--fb);border:none;border-bottom:2px solid ${_analyticsTab===t.id?'var(--ac)':'transparent'};background:transparent;color:${_analyticsTab===t.id?'var(--ac2)':'var(--t3)'};cursor:pointer;white-space:nowrap">${t.label}</button>`).join('')}
+    <button onclick="runAIAnalysis()" id="ai-btn" style="margin:6px 0 6px auto;padding:6px 14px;font-size:12px;font-weight:600;font-family:var(--fb);border-radius:8px;border:1px solid var(--acb);background:var(--acbg);color:var(--ac2);cursor:pointer">🤖 Проанализировать</button>
+  </div>
+  <div id="analytics-ai-block" style="margin:16px 22px 0;display:none"></div>
+  <div id="analytics-content" style="padding:22px"></div>`;
+  _renderAnalyticsContent();
+}
+
+function _renderAnalyticsContent(){
+  ['overview','funnel','registrars','teachers','business'].forEach(id=>{
+    const b=document.getElementById('atab-'+id);if(!b)return;
+    b.style.borderBottomColor=_analyticsTab===id?'var(--ac)':'transparent';
+    b.style.color=_analyticsTab===id?'var(--ac2)':'var(--t3)';
+  });
+  const el=document.getElementById('analytics-content');
+  if(!el||!_analyticsCache)return;
+  const m=_analyticsCache.metrics;
+  if(_analyticsTab==='overview')el.innerHTML=_aOverview(m);
+  else if(_analyticsTab==='funnel')el.innerHTML=_aFunnel(m);
+  else if(_analyticsTab==='registrars')el.innerHTML=_aRegistrars(m);
+  else if(_analyticsTab==='teachers')el.innerHTML=_aTeachers(m);
+  else if(_analyticsTab==='business')el.innerHTML=_aBusiness(m);
+}
+
+function _aCard(lbl,val,color,icon){return`<div style="background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rl);padding:15px 17px"><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:6px">${icon} ${lbl}</div><div style="font-family:var(--fd);font-size:24px;font-weight:700;color:${color}">${val}</div></div>`;}
+
+function _aOverview(m){
+  const b=m.business;
+  const convRate=m.funnel.trialed>0?Math.round(m.funnel.trialConverted/m.funnel.trialed*100):0;
+  const churnColor=b.churnRate<=5?'var(--gn)':b.churnRate<=10?'var(--am)':'var(--rd)';
+  const ratingColor=!b.schoolRating?'var(--t3)':b.schoolRating>=4.5?'var(--gn)':b.schoolRating>=3.5?'var(--am)':'var(--rd)';
+  const alerts=[];
+  if(b.churnRate>10)alerts.push({lvl:'rd',msg:`🚨 Churn ${b.churnRate}% — за 30 дней ушло ${b.deactivations30} учеников. Нужно выяснить причины и усилить работу с удержанием.`});
+  if(b.expiringSoon>3)alerts.push({lvl:'am',msg:`⚠️ ${b.expiringSoon} учеников заканчивают занятия в течение 2 недель — предложи продление.`});
+  if(b.overdueEnrolls>0)alerts.push({lvl:'rd',msg:`❗ ${b.overdueEnrolls} записей просрочены — проверь список учеников.`});
+  const badAtt=m.teachers.filter(t=>t.attFillRate<70&&t.lessonsExpected>5);
+  if(badAtt.length)alerts.push({lvl:'am',msg:`⚠️ Низкий % заполнения журнала у: ${badAtt.map(t=>t.name).join(', ')}`});
+  const badVid=m.teachers.filter(t=>t.videoRate<50&&t.videoExpected>3);
+  if(badVid.length)alerts.push({lvl:'am',msg:`🎥 Мало видео от: ${badVid.map(t=>t.name).join(', ')}`});
+  if(convRate<30&&m.funnel.trialed>5)alerts.push({lvl:'rd',msg:`🎯 Конверсия пробных ${convRate}% — ниже нормы. Проработайте скрипт follow-up после урока.`});
+  return`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px">
+    ${_aCard('Активных учеников',b.activeStudents,'var(--gn)','🎓')}
+    ${_aCard('Старты (30д)',b.starts30,'var(--ac2)','🚀')}
+    ${_aCard('Истекает скоро',b.expiringSoon,b.expiringSoon>0?'var(--am)':'var(--gn)','⚠️')}
+    ${_aCard('Ушли (30д)',b.deactivations30,b.deactivations30>3?'var(--rd)':'var(--gn)','📉')}
+    ${_aCard('Churn rate',b.churnRate+'%',churnColor,'📊')}
+    ${_aCard('Рейтинг школы',b.schoolRating?b.schoolRating+'⭐':'—',ratingColor,'⭐')}
+    ${_aCard('Конверсия проб.',convRate+'%',convRate>=50?'var(--gn)':convRate>=30?'var(--am)':'var(--rd)','🎯')}
+    ${_aCard('Продления (30д)',b.renewals30,'var(--tl)','🔄')}
+  </div>
+  ${alerts.length?`<div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:8px">⚡ Требует внимания</div><div style="display:flex;flex-direction:column;gap:8px">${alerts.map(a=>`<div style="background:var(--${a.lvl}bg);border:1px solid rgba(${a.lvl==='rd'?'240,89,117':'245,200,66'},.3);border-radius:var(--rl);padding:12px 15px;font-size:13px;color:var(--${a.lvl})">${a.msg}</div>`).join('')}</div>`
+  :`<div style="background:var(--gnbg);border:1px solid rgba(63,216,142,.3);border-radius:var(--rl);padding:14px 17px;color:var(--gn);font-size:13px">✅ Критических проблем не обнаружено!</div>`}`;
+}
+
+function _aFunnel(m){
+  const f=m.funnel;
+  const convRate=f.trialed>0?Math.round(f.trialConverted/f.trialed*100):0;
+  const stages=CRM_STAGES.map(s=>({...s,count:f.byStage[s.id]||0}));
+  const maxC=Math.max(1,...stages.map(s=>s.count));
+  return`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px">
+    ${_aCard('Всего лидов',f.totalLeads,'var(--t1)','📥')}
+    ${_aCard('За 30 дней',f.leads30,'var(--tl)','📅')}
+    ${_aCard('Пробных',f.trialed,'#ff7eb3','🧪')}
+    ${_aCard('→ Старты',f.trialConverted,'var(--gn)','✅')}
+    ${_aCard('Конверсия',convRate+'%',convRate>=50?'var(--gn)':convRate>=30?'var(--am)':'var(--rd)','🎯')}
+  </div>
+  <div style="background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rl);padding:16px;margin-bottom:14px">
+    <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:14px">Распределение по стадиям</div>
+    ${stages.map(s=>`<div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span style="font-size:12px;color:var(--t1)">${s.label}</span>
+        <span style="font-size:12px;font-weight:700;color:${s.hex||'var(--ac2)'}">${s.count}</span>
+      </div>
+      <div style="height:6px;background:var(--bg3);border-radius:3px"><div style="height:100%;width:${Math.round(s.count/maxC*100)}%;background:${s.hex||'#7c5cfc'};border-radius:3px"></div></div>
+    </div>`).join('')}
+  </div>
+  <div style="background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rl);padding:16px;font-size:12px;color:var(--t3);line-height:1.7">
+    💡 Конверсия пробных → старты: <b style="color:var(--t1)">${convRate}%</b> ${convRate>=50?'✅ хорошо (норма 50%+)':convRate>=30?'⚠️ средне':'❌ низко'}<br>
+    ${convRate<40?'Рекомендация: follow-up звонок/сообщение в течение 24ч после пробного урока.':'Продолжайте в том же темпе.'}
+  </div>`;
+}
+
+function _aRegistrars(m){
+  if(!m.registrars.length)return'<div class="empty"><div class="empty-icon">🗂</div><div class="empty-text">Нет регистраторов</div></div>';
+  return`<div style="background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden;margin-bottom:16px">
+    <div style="display:grid;grid-template-columns:1fr 80px 80px 80px 90px;gap:8px;padding:10px 16px;background:var(--bg3);border-bottom:1px solid var(--b1)">
+      <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase">Регистратор</div>
+      <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;text-align:center">Всего</div>
+      <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;text-align:center">За 30д</div>
+      <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;text-align:center">Пробных</div>
+      <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;text-align:center">Конверсия</div>
+    </div>
+    ${m.registrars.map(r=>{const cc=r.convRate>=50?'var(--gn)':r.convRate>=30?'var(--am)':'var(--rd)';return`<div style="display:grid;grid-template-columns:1fr 80px 80px 80px 90px;gap:8px;padding:11px 16px;border-bottom:1px solid var(--b1);align-items:center">
+      <div style="font-size:13px;font-weight:600;color:var(--t1)">${r.name}</div>
+      <div style="font-size:14px;font-weight:700;color:var(--ac2);text-align:center">${r.total}</div>
+      <div style="font-size:14px;font-weight:700;color:var(--tl);text-align:center">${r.last30}</div>
+      <div style="font-size:14px;font-weight:700;color:#ff7eb3;text-align:center">${r.withTrial}</div>
+      <div style="font-size:14px;font-weight:700;color:${cc};text-align:center">${r.convRate}%</div>
+    </div>`;}).join('')}
+  </div>
+  <div style="background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rl);padding:14px;font-size:12px;color:var(--t3);line-height:1.8">
+    ✅ Хорошая конверсия: 50%+&nbsp;&nbsp;⚠️ Средняя: 30–50%&nbsp;&nbsp;❌ Низкая: &lt;30%<br>
+    Конверсия = доля лидов, которым был назначен пробный урок.
+  </div>`;
+}
+
+function _aTeachers(m){
+  if(!m.teachers.length)return'<div class="empty"><div class="empty-icon">👩‍🏫</div><div class="empty-text">Нет данных</div></div>';
+  return`<div style="display:flex;flex-direction:column;gap:12px">${m.teachers.map(t=>{
+    const ac=t.attFillRate>=90?'var(--gn)':t.attFillRate>=70?'var(--am)':'var(--rd)';
+    const vc=t.videoRate>=80?'var(--gn)':t.videoRate>=50?'var(--am)':'var(--rd)';
+    const rc=!t.avgRating?'var(--t3)':t.avgRating>=4.5?'var(--gn)':t.avgRating>=3.5?'var(--am)':'var(--rd)';
+    return`<div style="background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rl);padding:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="font-size:14px;font-weight:700;color:var(--t1)">${t.name}</div>
+        <div style="font-size:11px;color:var(--t3)">👤 ${t.studentCount} уч.</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px">
+        <div style="background:var(--bg3);border-radius:10px;padding:10px 12px">
+          <div style="font-size:9px;color:var(--t3);font-weight:600;text-transform:uppercase;margin-bottom:3px">Посещаемость</div>
+          <div style="font-size:20px;font-weight:700;color:${ac}">${t.attFillRate}%</div>
+          <div style="font-size:10px;color:var(--t3)">${t.lessonsMarked+t.lessonsMissed}/${t.lessonsExpected}</div>
+        </div>
+        <div style="background:var(--bg3);border-radius:10px;padding:10px 12px">
+          <div style="font-size:9px;color:var(--t3);font-weight:600;text-transform:uppercase;margin-bottom:3px">Видео</div>
+          <div style="font-size:20px;font-weight:700;color:${vc}">${t.videoRate}%</div>
+          <div style="font-size:10px;color:var(--t3)">${t.videoUploaded}/${t.videoExpected}</div>
+        </div>
+        <div style="background:var(--bg3);border-radius:10px;padding:10px 12px">
+          <div style="font-size:9px;color:var(--t3);font-weight:600;text-transform:uppercase;margin-bottom:3px">Рейтинг</div>
+          <div style="font-size:20px;font-weight:700;color:${rc}">${t.avgRating?t.avgRating+'⭐':'—'}</div>
+          <div style="font-size:10px;color:var(--t3)">${t.surveyCount} отз.</div>
+        </div>
+        ${t.renewalPct!==null?`<div style="background:var(--bg3);border-radius:10px;padding:10px 12px">
+          <div style="font-size:9px;color:var(--t3);font-weight:600;text-transform:uppercase;margin-bottom:3px">Продлят</div>
+          <div style="font-size:20px;font-weight:700;color:${t.renewalPct>=70?'var(--gn)':t.renewalPct>=50?'var(--am)':'var(--rd)'}">${t.renewalPct}%</div>
+        </div>`:''}
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function _aBusiness(m){
+  const b=m.business;
+  const now=new Date();
+  const todayStr=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  const expList=S.enrollments.filter(e=>{
+    if(e.inactive||!enrollActive(e,todayStr))return false;
+    const d=(new Date(e.dateEnd)-now)/86400000;
+    return d>=0&&d<=14;
+  }).map(e=>{
+    const st=student(e.studentId),t=teacher(e.teacherId);
+    const d=Math.ceil((new Date(e.dateEnd)-now)/86400000);
+    return`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--b1)">
+      <div><div style="font-size:13px;font-weight:600;color:var(--t1)">${st?.name||'—'}</div><div style="font-size:11px;color:var(--t3)">${t?.name||'—'} · до ${e.dateEnd}</div></div>
+      <span style="font-size:11px;font-weight:700;color:${d<=7?'var(--rd)':'var(--am)'};background:${d<=7?'var(--rdbg)':'var(--ambg)'};padding:3px 10px;border-radius:8px">${d}д</span>
+    </div>`;
+  });
+  return`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px">
+    ${_aCard('Активных',b.activeStudents,'var(--gn)','🎓')}
+    ${_aCard('Старты (30д)',b.starts30,'var(--ac2)','🚀')}
+    ${_aCard('Ушли (30д)',b.deactivations30,b.deactivations30>5?'var(--rd)':'var(--t2)','📉')}
+    ${_aCard('Продления (30д)',b.renewals30,'var(--tl)','🔄')}
+    ${_aCard('Churn',b.churnRate+'%',b.churnRate<=5?'var(--gn)':b.churnRate<=10?'var(--am)':'var(--rd)','📊')}
+    ${_aCard('Рейтинг',b.schoolRating?b.schoolRating+'⭐':'—',!b.schoolRating?'var(--t3)':b.schoolRating>=4.5?'var(--gn)':'var(--am)','⭐')}
+  </div>
+  ${expList.length?`<div style="background:var(--bg2);border:1px solid rgba(245,200,66,.3);border-radius:var(--rl);padding:16px;margin-bottom:16px">
+    <div style="font-size:12px;font-weight:700;color:var(--am);margin-bottom:10px">⚠️ Истекает в 2 недели (${expList.length})</div>${expList.join('')}</div>`:''}
+  <div style="background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rl);padding:14px;font-size:12px;color:var(--t3);line-height:1.9">
+    📈 Баланс: старты <b>${b.starts30}</b> − уходы <b>${b.deactivations30}</b> = <b style="color:${b.starts30>=b.deactivations30?'var(--gn)':'var(--rd)'}">${b.starts30>=b.deactivations30?'+':''}${b.starts30-b.deactivations30}</b><br>
+    Churn ${b.churnRate}% ${b.churnRate<=5?'✅ отлично':b.churnRate<=10?'⚠️ норма':'❌ высокий — усиль удержание'}<br>
+    ${b.schoolRating?`Рейтинг ${b.schoolRating}⭐ из ${b.surveyCount} отзывов ${b.schoolRating>=4.5?'✅':b.schoolRating>=3.5?'⚠️':'❌'}`:''} 
+  </div>`;
+}
+
+async function runAIAnalysis(){
+  const btn=document.getElementById('ai-btn');
+  const block=document.getElementById('analytics-ai-block');
+  if(!btn||!block||!_analyticsCache)return;
+  btn.disabled=true;btn.innerHTML='⏳ Анализирую...';
+  block.style.display='block';
+  block.innerHTML=`<div style="background:var(--bg2);border:1px solid var(--acb);border-radius:var(--rl);padding:18px;display:flex;align-items:center;gap:12px;margin-bottom:4px">
+    <div style="width:18px;height:18px;border:2px solid var(--ac);border-top-color:transparent;border-radius:50%;animation:aspin .8s linear infinite;flex-shrink:0"></div>
+    <div style="font-size:13px;color:var(--t2)">Claude изучает данные вашей школы...</div>
+  </div><style>@keyframes aspin{to{transform:rotate(360deg)}}</style>`;
+  const m=_analyticsCache.metrics;
+  const convRate=m.funnel.trialed>0?Math.round(m.funnel.trialConverted/m.funnel.trialed*100):0;
+  const prompt=`Ты бизнес-аналитик онлайн-школы английского языка Robeng ELC. Проанализируй данные и дай конкретные рекомендации на русском языке.
+
+ДАННЫЕ (последние 30 дней):
+
+📊 ПОКАЗАТЕЛИ:
+- Активных учеников: ${m.business.activeStudents}
+- Новых стартов: ${m.business.starts30}, ушло: ${m.business.deactivations30}, продлений: ${m.business.renewals30}
+- Churn rate: ${m.business.churnRate}%, истекает в 2 недели: ${m.business.expiringSoon}
+- Средний рейтинг школы: ${m.business.schoolRating||'нет'} (из ${m.business.surveyCount} отзывов)
+
+🎯 ВОРОНКА CRM:
+- Всего лидов: ${m.funnel.totalLeads}, за 30д: ${m.funnel.leads30}
+- Пробных: ${m.funnel.trialed}, конверсия в старт: ${convRate}%
+
+🗂 РЕГИСТРАТОРЫ:
+${m.registrars.map(r=>`- ${r.name}: ${r.total} лидов, конверсия ${r.convRate}%`).join('\n')||'нет данных'}
+
+👩‍🏫 ПРЕПОДАВАТЕЛИ:
+${m.teachers.map(t=>`- ${t.name}: ${t.studentCount} уч, посещаемость ${t.attFillRate}%, видео ${t.videoRate}%, рейтинг ${t.avgRating||'?'}, продлят ${t.renewalPct!==null?t.renewalPct+'%':'?'}`).join('\n')||'нет данных'}
+
+Формат ответа:
+**Общая оценка** (2-3 предложения)
+**Главные проблемы** (топ-3 с объяснением)
+**Что работает хорошо** (топ-3)
+**Рекомендации** (5-7 конкретных действий: 🔴 срочно, 🟡 важно, 🟢 улучшение)
+**Фокус на эту неделю** (1-2 главных действия прямо сейчас)
+
+Будь прямым и конкретным, избегай общих фраз.`;
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,messages:[{role:'user',content:prompt}]})});
+    const data=await resp.json();
+    const text=data.content?.map(c=>c.text||'').join('')||'Ошибка';
+    const html=text.replace(/\*\*(.*?)\*\*/g,'<b style="color:var(--t1)">$1</b>').replace(/\n\n/g,'</p><p style="margin:0 0 12px">').replace(/\n/g,'<br>');
+    block.innerHTML=`<div style="background:var(--bg2);border:1px solid var(--acb);border-radius:var(--rl);padding:20px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--b1)">
+        <span style="font-size:20px">🤖</span>
+        <div><div style="font-size:13px;font-weight:700;color:var(--ac2)">AI-анализ от Claude</div><div style="font-size:11px;color:var(--t3)">${new Date().toLocaleString('ru',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</div></div>
+        <button onclick="renderAnalytics()" style="margin-left:auto;font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--b2);background:var(--bg3);color:var(--t2);cursor:pointer">🔄 Обновить данные</button>
+      </div>
+      <div style="font-size:13px;color:var(--t2);line-height:1.7"><p style="margin:0 0 12px">${html}</p></div>
+    </div>`;
+  }catch(e){
+    block.innerHTML=`<div style="background:var(--rdbg);border:1px solid rgba(240,89,117,.3);border-radius:var(--rl);padding:14px;color:var(--rd);font-size:13px">Ошибка: ${e.message}</div>`;
+  }finally{
+    btn.disabled=false;btn.innerHTML='🤖 Проанализировать';
+  }
+}
 
 // ═══════════════════════════════════════════════════════
 //  NOTIFY LOG — журнал всех WA уведомлений
