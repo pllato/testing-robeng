@@ -397,6 +397,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
     <div class="ni" data-p="students" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">🎓</span>Ученики</div>
     <div class="ni admin-only" data-p="crm" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">💼</span>CRM <span id="crm-badge" style="display:none;background:var(--ac);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
     <div class="ni admin-only" data-p="wachats" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">💬</span>Чаты <span id="wachats-badge" style="display:none;background:var(--gn);color:var(--bg);font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
+    <div class="ni admin-only" data-p="callslog" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">📞</span>Звонки <span id="missed-badge" style="display:none;background:var(--rd);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
     <div class="ni" data-p="teamchat" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">💬</span>Командный чат <span id="chat-badge" style="display:none;background:var(--gn);color:var(--bg);font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
     <div class="ni" data-p="tasks" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">✅</span>Задачи <span id="tasks-badge" style="display:none;background:var(--rd);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
     <div class="nav-sec">Система</div>
@@ -710,6 +711,10 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
     <!-- WA CHATS -->
     <div class="panel" id="panel-wachats">
       <div id="wachats-body"></div>
+    </div>
+    <!-- CALLS LOG -->
+    <div class="panel" id="panel-callslog">
+      <div id="callslog-body" style="padding:16px"></div>
     </div>
     <!-- TRIAL CALENDAR -->
     <div class="panel" id="panel-trialcal">
@@ -1705,6 +1710,14 @@ fbAuth.onAuthStateChanged(user=>{
         // CRM badge — новые лиды
         if(currentRole==='admin') initCRMBadge();
         if(currentRole==='admin') initWAUnreadListener();
+        // Missed calls badge
+        if(currentRole==='admin'){
+          fbDb.ref('binotelCalls').on('value', snap=>{
+            const n = Object.values(snap.val()||{}).filter(c=>c.isMissed).length;
+            const b = document.getElementById('missed-badge');
+            if(b){ b.textContent=n||''; b.style.display=n?'':'none'; }
+          });
+        }
         // Загружаем сохранённые шаблоны CRM
         if(S.settings?.crmStageMsgs) Object.assign(CRM_STAGE_MSGS, S.settings.crmStageMsgs);
         // Загружаем сохранённые стадии CRM
@@ -1808,8 +1821,8 @@ function countFree(){
 }
 
 // ── NAVIGATION ───────────────────────────────────────────────────
-const TITLES={today:'Сегодня ☀️',tasks:'Задачи',teamchat:'Командный чат',dashboard:'Главная',subjects:'Предметы',teachers:'Преподаватели',availability:'Время работы',schedule:'Расписание',freeSlots:'Свободные слоты',students:'Ученики',reports:'Отчёты по преподавателям',journal:'Журнал действий',trash:'Корзина',backups:'Резервные копии',users:'Пользователи',videoreviews:'Видео уроков',surveys:'Опросы',crm:'CRM — Клиенты',wachats:'Чаты'};
-const ACTS={today:'',tasks:'',teamchat:'',dashboard:'+',subjects:'',teachers:'+ Преподаватель',availability:'',schedule:'',freeSlots:'',students:'+ Ученик',reports:'',journal:'',trash:'',backups:'',users:'',videoreviews:'',surveys:'',crm:'',wachats:''};
+const TITLES={today:'Сегодня ☀️',tasks:'Задачи',teamchat:'Командный чат',dashboard:'Главная',subjects:'Предметы',teachers:'Преподаватели',availability:'Время работы',schedule:'Расписание',freeSlots:'Свободные слоты',students:'Ученики',reports:'Отчёты по преподавателям',journal:'Журнал действий',trash:'Корзина',backups:'Резервные копии',users:'Пользователи',videoreviews:'Видео уроков',surveys:'Опросы',crm:'CRM — Клиенты',wachats:'Чаты',callslog:'Журнал звонков'};
+const ACTS={today:'',tasks:'',teamchat:'',dashboard:'+',subjects:'',teachers:'+ Преподаватель',availability:'',schedule:'',freeSlots:'',students:'+ Ученик',reports:'',journal:'',trash:'',backups:'',users:'',videoreviews:'',surveys:'',crm:'',wachats:'',callslog:''};
 function curPanel(){return document.querySelector('.ni.active')?.dataset.p||'dashboard';}
 function nav(el){
   // Close more menu on nav
@@ -1889,6 +1902,7 @@ function renderPanel(p){
   else if(p==='surveys'){renderSurveys();}
   else if(p==='crm'){renderCRM();}
   else if(p==='wachats'){renderWAChats();}
+  else if(p==='callslog'){renderCallsLog();}
   else if(p==='trialcal'){renderTrialCalendar();}
   // При уходе с CRM — отписываемся от real-time
   if(p!=='crm' && _crmRealtimeListener){
@@ -10421,6 +10435,138 @@ let _wachatChatListener = null;
 
 let _wachatsTab = 'all'; // 'all' | 'clients' | 'staff'
 let _wachatsFilterAssignee = ''; // uid or '' for all
+
+// ─── CALLS LOG ───────────────────────────────────────────────────────
+
+const binotelCallsRef = fbDb.ref('binotelCalls');
+let _callsFilter = 'all'; // 'all' | 'missed' | 'in' | 'out'
+let _callsListener = null;
+
+function renderCallsLog(){
+  const body = document.getElementById('callslog-body');
+  if(!body) return;
+  body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--t3)">Загрузка...</div>';
+
+  if(_callsListener){ binotelCallsRef.off('value', _callsListener); _callsListener = null; }
+
+  _callsListener = binotelCallsRef.limitToLast(200).on('value', snap => {
+    const raw = snap.val() || {};
+    let calls = Object.entries(raw)
+      .map(([key, v]) => ({...v, _key: key}))
+      .sort((a,b) => (b.ts||'').localeCompare(a.ts||''));
+
+    // Filter
+    if(_callsFilter === 'missed') calls = calls.filter(c => c.isMissed);
+    else if(_callsFilter === 'in')  calls = calls.filter(c => String(c.callType) === '0');
+    else if(_callsFilter === 'out') calls = calls.filter(c => String(c.callType) === '1');
+
+    const missed = Object.values(raw).filter(c => c.isMissed).length;
+    const badge = document.getElementById('missed-badge');
+    if(badge){ badge.textContent = missed || ''; badge.style.display = missed ? '' : 'none'; }
+
+    const tabs = ['all','missed','in','out'];
+    const tabLabels = {all:'Все', missed:`❌ Пропущенные${missed?' ('+missed+')':''}`, in:'📞↙ Входящие', out:'📞↗ Исходящие'};
+    const tabBar = tabs.map(t => `
+      <button onclick="_callsFilter='${t}';renderCallsLog()"
+        style="padding:5px 12px;font-size:12px;border-radius:6px;border:1px solid;cursor:pointer;font-family:var(--fb);${_callsFilter===t?'background:var(--ac);border-color:var(--ac);color:#fff':'background:var(--bg3);border-color:var(--b2);color:var(--t2)'}">
+        ${tabLabels[t]}
+      </button>`).join('');
+
+    if(!calls.length){
+      body.innerHTML = `
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">${tabBar}</div>
+        <div style="text-align:center;padding:40px;color:var(--t3)">Нет звонков</div>`;
+      return;
+    }
+
+    const rows = calls.map(c => {
+      const isOut    = String(c.callType) === '1';
+      const answered = c.answered || c.duration > 0;
+      const missed   = c.isMissed;
+      const durStr   = c.duration > 0
+        ? `${Math.floor(c.duration/60)}м ${c.duration%60}с`
+        : '—';
+      const dirIcon  = isOut ? '📞↗' : '📞↙';
+      const statusColor = missed ? 'var(--rd)' : answered ? 'var(--gn)' : 'var(--t3)';
+      const statusLabel = missed ? 'Пропущен' : answered ? 'Отвечен' : 'Не отвечен';
+      const dt = c.ts ? new Date(c.ts).toLocaleString('ru',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+
+      const dealBtn = c.leadId
+        ? `<button onclick="nav(document.querySelector('[data-p=crm]'));setTimeout(()=>openCRMCard('${c.leadId}'),300)"
+            style="background:var(--acbg);border:1px solid var(--acb);border-radius:5px;color:var(--ac2);cursor:pointer;padding:3px 9px;font-size:11px;font-family:var(--fb)">
+            💼 ${c.leadName||'Сделка'}
+          </button>`
+        : '<span style="font-size:10px;color:var(--t3)">Нет сделки</span>';
+
+      const callBackBtn = c.phone
+        ? `<button onclick="crmWACallByPhone('${c.phone}')"
+            title="Позвонить через WA"
+            style="background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.25);border-radius:5px;color:var(--gn);cursor:pointer;padding:3px 9px;font-size:11px">
+            📞 WA
+          </button>
+          <button onclick="crmCallByPhone('${c.phone}', '${c.leadId||''}')"
+            title="Позвонить через Binotel"
+            style="background:rgba(124,92,252,.1);border:1px solid rgba(124,92,252,.25);border-radius:5px;color:var(--ac2);cursor:pointer;padding:3px 9px;font-size:11px">
+            📞
+          </button>`
+        : '';
+
+      const recBtn = c.recordingLink
+        ? `<audio controls src="${c.recordingLink}" style="height:28px;max-width:180px;vertical-align:middle"></audio>`
+        : '';
+
+      return `<div style="display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--b1)">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:36px">
+          <span style="font-size:16px">${dirIcon}</span>
+          <span style="font-size:9px;font-weight:700;color:${statusColor}">${statusLabel}</span>
+        </div>
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="font-size:13px;font-weight:600;color:var(--t1)">${c.phone||'—'}</span>
+            ${c.leadName?`<span style="font-size:11px;color:var(--t2)">${c.leadName}</span>`:''}
+          </div>
+          <div style="font-size:10px;color:var(--t3);margin-top:2px;display:flex;gap:10px;flex-wrap:wrap">
+            <span>🕐 ${dt}</span>
+            <span>⏱ ${durStr}</span>
+            ${c.internalNumber?`<span>☎ ${c.internalNumber}</span>`:''}
+          </div>
+          ${recBtn ? `<div style="margin-top:5px">${recBtn}</div>` : ''}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end">
+          ${dealBtn}
+          <div style="display:flex;gap:4px">${callBackBtn}</div>
+        </div>
+      </div>`;
+    }).join('');
+
+    body.innerHTML = `
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">${tabBar}</div>
+      <div style="background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden">${rows}</div>`;
+  });
+}
+
+// Перезвонить через WA по номеру (без leadId)
+function crmWACallByPhone(phone){
+  const clean = (phone||'').replace(/\D/g,'');
+  if(!clean){ toast('Нет номера',true); return; }
+  window.open('https://wa.me/'+clean, '_blank');
+}
+
+// Перезвонить через Binotel по номеру
+async function crmCallByPhone(phone, leadId){
+  if(!leadId){
+    // Try to find lead by phone
+    const snap = await crmRef.once('value');
+    const raw = snap.val()||{};
+    const found = Object.entries(raw).find(([,l])=>(l.phone||'').replace(/\D/g,'') === (phone||'').replace(/\D/g,''));
+    if(found) leadId = found[0];
+  }
+  if(leadId){
+    crmCall(leadId);
+  } else {
+    toast('Сделка не найдена, звонок через Binotel невозможен', true);
+  }
+}
 
 function renderWAChats(){
   const el = document.getElementById('wachats-body');
