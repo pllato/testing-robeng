@@ -10532,8 +10532,11 @@ async function renderCallsLog(){
 
       if(m.type === 'system' && m.name === 'Binotel' && m.text){
         const txt   = m.text;
-        const isOut = txt.includes('📞↗');
-        const answered = txt.includes('✅') || /\d мин/.test(txt);
+        // Поддерживаем оба формата:
+        // Новый: "📞↗ ✅ Звонок: 2 мин 15 сек"
+        // Старый: "📞 Исходящий звонок: 77773520009 → +77011239999"
+        const isOut = txt.includes('📞↗') || txt.includes('Исходящий') || txt.includes('↗');
+        const answered = txt.includes('✅') || /\d+ мин \d+ сек/.test(txt);
         const missed   = !answered && !isOut;
         const durMatch = txt.match(/(\d+) мин (\d+) сек/);
         const dur = durMatch ? parseInt(durMatch[1])*60 + parseInt(durMatch[2]) : 0;
