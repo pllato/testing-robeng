@@ -2840,15 +2840,21 @@ function getChartPeriods(mode,n=7){
 
 function getMetricForPeriod(metric,from,to){
   if(metric==='active'){
-    // «В системе» — ученик активен если его запись не деактивирована
-    // и период [from,to] пересекается с [dateStart,dateEnd] записи.
-    // Не фильтруем по дню недели — ученик активен весь период действия записи.
+    // «В системе» — ученик считается активным в те дни периода,
+    // когда у него есть слот по расписанию И запись действует (dateStart<=d<=dateEnd).
+    // Например: пн/ср/пт → во вторник не считается.
+    const dates=getDatesInRange(from,to);
     const ids=new Set();
     S.enrollments.forEach(e=>{
-      if(e.inactive) return;
-      const start=e.dateStart||'';
+      if(e.inactive||ids.has(e.studentId)) return;
+      if(!e.slots||!e.slots.length) return; // нет расписания — не считаем
       const end=e.dateEnd||'9999-12-31';
-      if(start<=to && end>=from) ids.add(e.studentId);
+      const start=e.dateStart||'';
+      for(const d of dates){
+        if(d<start||d>end) continue;
+        const dow=(new Date(d+'T00:00:00').getDay()+6)%7; // 0=Пн … 6=Вс
+        if(e.slots.some(sl=>sl.day===dow)){ids.add(e.studentId);break;}
+      }
     });
     return ids.size;
   } else if(metric==='active_fact'){
