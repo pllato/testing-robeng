@@ -7957,29 +7957,33 @@ async function dedupMergeGroup(phone, gi){
 function renderCRMDistribSettings(){
   const el = document.getElementById('crm-distrib-settings');
   if(!el) return;
-  const registrars = Object.entries(S.appUsers||{})
-    .filter(([,u]) => u.crmRole==='registrar');
-  if(!registrars.length){
-    el.innerHTML = '<div style="font-size:12px;color:var(--t3);padding:10px 0">Нет регистраторов. Добавьте роль 🗂 Регистратор CRM в разделе Пользователи.</div>';
-    return;
-  }
-  const weights = S.settings?.crmWeights || {};
-  el.innerHTML = registrars.map(([uid,u])=>{
-    const w = uid in weights ? weights[uid] : 1;
-    const total = registrars.reduce((s,[id])=>s+(id in weights ? weights[id] : 1),0);
-    const pct = total > 0 ? Math.round(w/total*100) : 0;
-    const isOff = w === 0;
-    return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);padding:10px 13px;opacity:${isOff?'0.5':'1'}">
-      <div style="flex:1;font-size:13px;font-weight:600;color:var(--t1)">${u.name||u.email||uid}${isOff?' <span style="font-size:10px;color:var(--t3)">(выключен)</span>':''}</div>
-      <div id="distrib-pct-${uid}" style="font-size:11px;color:var(--t3);min-width:40px;text-align:right">~${pct}%</div>
-      <div style="display:flex;align-items:center;gap:6px">
-        <span style="font-size:11px;color:var(--t2)">Коэф:</span>
-        <input type="number" id="distrib-w-${uid}" value="${w}" min="0" max="99" oninput="updateDistribPct()"
-          style="width:56px;background:var(--bg);border:1px solid var(--b2);border-radius:6px;color:var(--t1);font-family:var(--fb);font-size:13px;padding:4px 8px;text-align:center">
-      </div>
-    </div>`;
-  }).join('');
-  el.innerHTML += `<button class="btn btn-sm btn-a" onclick="saveCRMDistribSettings()" style="margin-top:4px">💾 Сохранить коэффициенты</button>`;
+  // Всегда читаем свежие данные из Firebase чтобы не показывать устаревший кеш
+  fbDb.ref('appUsers').once('value', snap => {
+    S.appUsers = snap.val() || {};
+    const registrars = Object.entries(S.appUsers)
+      .filter(([,u]) => u.crmRole==='registrar');
+    if(!registrars.length){
+      el.innerHTML = '<div style="font-size:12px;color:var(--t3);padding:10px 0">Нет регистраторов. Добавьте роль 🗂 Регистратор CRM в разделе Пользователи.</div>';
+      return;
+    }
+    const weights = S.settings?.crmWeights || {};
+    el.innerHTML = registrars.map(([uid,u])=>{
+      const w = uid in weights ? weights[uid] : 1;
+      const total = registrars.reduce((s,[id])=>s+(id in weights ? weights[id] : 1),0);
+      const pct = total > 0 ? Math.round(w/total*100) : 0;
+      const isOff = w === 0;
+      return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);padding:10px 13px;opacity:${isOff?'0.5':'1'}">
+        <div style="flex:1;font-size:13px;font-weight:600;color:var(--t1)">${u.name||u.email||uid}${isOff?' <span style="font-size:10px;color:var(--t3)">(выключен)</span>':''}</div>
+        <div id="distrib-pct-${uid}" style="font-size:11px;color:var(--t3);min-width:40px;text-align:right">~${pct}%</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:11px;color:var(--t2)">Коэф:</span>
+          <input type="number" id="distrib-w-${uid}" value="${w}" min="0" max="99" oninput="updateDistribPct()"
+            style="width:56px;background:var(--bg);border:1px solid var(--b2);border-radius:6px;color:var(--t1);font-family:var(--fb);font-size:13px;padding:4px 8px;text-align:center">
+        </div>
+      </div>`;
+    }).join('');
+    el.innerHTML += `<button class="btn btn-sm btn-a" onclick="saveCRMDistribSettings()" style="margin-top:4px">💾 Сохранить коэффициенты</button>`;
+  });
 }
 
 function updateDistribPct(){
