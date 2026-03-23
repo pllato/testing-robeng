@@ -3020,11 +3020,13 @@ function renderDashboardCharts(){
 
   defs.forEach(({key,label,color,hex,icon})=>{
     const rawMax=_chartMax[key];
-    // Максимум задаётся в день — на неделе умножается ×7
-    const max = _chartMode==='week' ? rawMax*7 : rawMax;
+    // active — это снимок (сколько учеников сейчас), не накапливается → max не умножаем
+    // starts/restarts/leads — события за период → на неделе ×7
+    const isSnapshot = key==='active';
+    const max = (!isSnapshot && _chartMode==='week') ? rawMax*7 : rawMax;
     const rawQuota=_chartQuota[key]||0;
     const quotaScaled = rawQuota<=0 ? 0
-      : _chartMode==='week' ? rawQuota*7
+      : (!isSnapshot && _chartMode==='week') ? rawQuota*7
       : rawQuota;
     const data=periods.map(p=>({label:p.label,sub:p.sub,value:getMetricForPeriod(key,p.from,p.to),isCurrent:!!p.isCurrent}));
     const lastVal=data[data.length-1]?.value??0;
