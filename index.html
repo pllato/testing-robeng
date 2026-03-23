@@ -734,7 +734,31 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
           <input type="checkbox" id="set-reminders" onchange="saveAppSettings()" style="width:18px;height:18px;margin-top:1px;accent-color:var(--ac);cursor:pointer;flex-shrink:0">
           <div>
             <div style="font-size:13px;font-weight:600;color:var(--t1)">⏰ Напоминания за 5 минут до урока</div>
-            <div style="font-size:11px;color:var(--t3);margin-top:4px">WhatsApp сообщение родителям, ученику и преподавателю перед каждым занятием. Если выключено — напоминания не отправляются.</div>
+            <div style="font-size:11px;color:var(--t3);margin-top:4px">WhatsApp сообщение родителям, ученику и преподавателю перед каждым занятием.</div>
+          </div>
+        </label>
+
+        <!-- Напоминание преподавателю за 15 мин -->
+        <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:16px 0;border-bottom:1px solid var(--b1)">
+          <input type="checkbox" id="set-teacher-before" onchange="saveAppSettings()" style="width:18px;height:18px;margin-top:1px;accent-color:var(--ac);cursor:pointer;flex-shrink:0">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--t1)">🧑‍🏫 Напоминание преподавателю за 15 мин до урока</div>
+            <div style="font-size:11px;color:var(--t3);margin-top:4px">WhatsApp преподавателю со списком ближайших учеников. Дополнительно к стандартному напоминанию за 5 мин.</div>
+          </div>
+        </label>
+
+        <!-- Итог дня преподавателю -->
+        <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:16px 0;border-bottom:1px solid var(--b1)">
+          <input type="checkbox" id="set-eod-remind" onchange="saveAppSettings()" style="width:18px;height:18px;margin-top:1px;accent-color:var(--ac);cursor:pointer;flex-shrink:0">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--t1)">📋 Итог дня для преподавателей</div>
+            <div style="font-size:11px;color:var(--t3);margin-top:4px">В конце дня — WhatsApp преподавателю если есть непроставленные посещения или неотправленные видео.</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
+              <span style="font-size:11px;color:var(--t2)">Время отправки:</span>
+              <input type="number" id="set-eod-hour" min="17" max="23" value="21" onchange="saveAppSettings()"
+                style="width:52px;background:var(--bg3);border:1px solid var(--b2);border-radius:6px;color:var(--t1);font-size:12px;padding:3px 7px;font-family:var(--fb)"/>
+              <span style="font-size:11px;color:var(--t3)">:00</span>
+            </div>
           </div>
         </label>
 
@@ -7688,12 +7712,18 @@ function startLessonReminders(){
 }
 
 function checkLessonReminders(){
-  // Проверяем настройку — если напоминания выключены, ничего не делаем
-  if((S.settings||{}).remindersEnabled === false) return;
-
   const now=new Date();
-  const today=now.toISOString().slice(0,10);
+  // Локальная дата (не UTC) — UTC+5 сдвигает дату
+  const today=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
   const nowMinutes=now.getHours()*60+now.getMinutes();
+
+  // Напоминание преподавателю за 15 мин (отдельная настройка)
+  checkTeacherBeforeLesson(now, today, nowMinutes);
+  // Итог дня (в eodRemindHour:00)
+  checkEndOfDayReminders(now, today);
+
+  // Проверяем настройку 5-мин напоминаний
+  if((S.settings||{}).remindersEnabled === false) return;
 
   S.enrollments.forEach(e=>{
     if(e.inactive)return;
@@ -7783,6 +7813,143 @@ function checkLessonReminders(){
 }
 
 
+
+
+// ═══════════════════════════════════════════════════════
+//  TEACHER REMINDERS — до урока (15 мин) + итог дня
+// ═══════════════════════════════════════════════════════
+
+let _teacherBeforeKeys = new Set(); // дедупликация за 15 мин
+let _eodSentKeys = new Set();       // дедупликация итога дня
+
+// Вызывается из checkLessonReminders каждую минуту
+function checkTeacherBeforeLesson(now, today, nowMinutes){
+  if((S.settings||{}).teacherBeforeRemind === false) return;
+
+  const dow = (now.getDay()+6)%7;
+
+  // Группируем уроки по преподавателю — в одно сообщение все уроки через 15 мин
+  const byTeacher = {}; // teacherId → [{st, e, time}]
+  S.enrollments.forEach(e=>{
+    if(e.inactive) return;
+    if(!enrollActive(e,today)) return;
+    const sl = e.slots.find(s=>s.day===dow);
+    if(!sl) return;
+    const [lh,lm] = TIMES[sl.ti].split(':').map(Number);
+    const diff = (lh*60+lm) - nowMinutes;
+    if(diff<14||diff>16) return; // окно 14–16 мин
+    const key = `before15_${e.id}_${today}_${TIMES[sl.ti]}`;
+    if(_teacherBeforeKeys.has(key)) return;
+    if(!byTeacher[e.teacherId]) byTeacher[e.teacherId]=[];
+    byTeacher[e.teacherId].push({e, st:student(e.studentId), time:TIMES[sl.ti], key});
+  });
+
+  Object.entries(byTeacher).forEach(([tid, lessons])=>{
+    const t = teacher(parseInt(tid));
+    const tPhone = getTeacherPhone(t);
+    if(!tPhone) return;
+
+    // Атомарная блокировка — ключ на первого ученика группы
+    const fbKey = `remindersSent/teacher15_${today}_${tid}_${lessons[0].time.replace(':','-')}`;
+    fbDb.ref(fbKey).transaction(cur=>{
+      if(cur!==null) return;
+      return Date.now();
+    }).then(res=>{
+      if(!res.committed) return;
+      lessons.forEach(l=>_teacherBeforeKeys.add(l.key));
+
+      const lines = lessons.map(l=>`  👤 ${l.st?.name||'—'} · ${l.time} · ${l.e.topic||'Английский'}`).join('\n');
+      const msg = `🔔 Через 15 минут ${lessons.length === 1 ? 'урок' : 'уроки'}!\n\n${lines}\n\n✅ Пожалуйста, подготовьтесь к занятию.`;
+      notifyWhatsApp(tPhone, msg);
+    });
+  });
+}
+
+// Вызывается из checkLessonReminders — проверяет время итога дня
+function checkEndOfDayReminders(now, today){
+  if((S.settings||{}).eodRemindEnabled === false) return;
+  const eodHour = (S.settings||{}).eodRemindHour || 21;
+  if(now.getHours() !== eodHour || now.getMinutes() > 5) return; // только в HH:00–HH:05
+
+  const eodKey = `eod_${today}`;
+  if(_eodSentKeys.has(eodKey)) return;
+
+  const dow = (now.getDay()+6)%7;
+  const att  = S.attendance || {};
+  const vr   = S.videoReports || {};
+
+  // Группируем по преподавателю
+  const byTeacher = {}; // teacherId → {noAtt:[], noVideo:[]}
+  S.enrollments.forEach(e=>{
+    if(e.inactive) return;
+    if(!enrollActive(e,today)) return;
+    const sl = e.slots.find(s=>s.day===dow);
+    if(!sl) return;
+
+    const [lh,lm] = TIMES[sl.ti].split(':').map(Number);
+    // Считаем только уроки которые уже прошли (время урока + 30 мин)
+    if((lh*60+lm+30) > now.getHours()*60+now.getMinutes()) return;
+
+    const attKey = `${e.id}_${today}`;
+    const attVal = att[attKey];
+    const st = student(e.studentId);
+    if(!st) return;
+
+    if(!byTeacher[e.teacherId]) byTeacher[e.teacherId] = {noAtt:[], noVideo:[]};
+
+    // Нет отметки посещения/пропуска
+    if(!attVal){
+      byTeacher[e.teacherId].noAtt.push({st, time:TIMES[sl.ti], topic:e.topic});
+    }
+
+    // Видео не загружено (для состоявшихся уроков)
+    if(attVal==='done'||attVal==='makeup'){
+      const vidKey = `${e.id}_${today}`;
+      const vid = vr[vidKey];
+      if(!vid || vid.status==='missing'){
+        byTeacher[e.teacherId].noVideo.push({st, time:TIMES[sl.ti], topic:e.topic});
+      }
+    }
+  });
+
+  // Отправляем каждому преподавателю
+  const fbEodKey = `remindersSent/eod_${today}`;
+  fbDb.ref(fbEodKey).transaction(cur=>{
+    if(cur!==null) return;
+    return Date.now();
+  }).then(res=>{
+    if(!res.committed) return;
+    _eodSentKeys.add(eodKey);
+
+    Object.entries(byTeacher).forEach(([tid, {noAtt, noVideo}])=>{
+      if(!noAtt.length && !noVideo.length) return;
+      const t = teacher(parseInt(tid));
+      const tPhone = getTeacherPhone(t);
+      if(!tPhone) return;
+
+      let msg = `📋 Итог дня — ${today.split('-').reverse().join('.')}\n`;
+      msg += `Привет, ${t?.name?.split(' ')[0]||'преподаватель'}! Есть незавершённые дела:\n`;
+
+      if(noAtt.length){
+        msg += `\n⚠️ Не проставлено посещение/пропуск (${noAtt.length}):\n`;
+        noAtt.forEach(l=>{
+          msg += `  • ${l.st.name} · ${l.time} · ${l.topic||'Английский'}\n`;
+        });
+        msg += `👉 Зайди в расписание и отметь каждого: ✅ был / ❌ пропуск`;
+      }
+
+      if(noVideo.length){
+        msg += `\n\n🎥 Не загружено видео урока (${noVideo.length}):\n`;
+        noVideo.forEach(l=>{
+          msg += `  • ${l.st.name} · ${l.time}\n`;
+        });
+        msg += `👉 Загрузи видео в раздел «Отчёты» — родители ждут!`;
+      }
+
+      notifyWhatsApp(tPhone, msg);
+    });
+  });
+}
 
 // ═══════════════════════════════════════════════════════
 //  SURVEY SYSTEM
@@ -8227,6 +8394,12 @@ function renderAppSettings(){
   if(!S.settings)S.settings={};
   const cb=document.getElementById("set-reminders");
   if(cb) cb.checked = S.settings.remindersEnabled!==false;
+  const cbTB=document.getElementById("set-teacher-before");
+  if(cbTB) cbTB.checked = S.settings.teacherBeforeRemind!==false; // по умолчанию вкл
+  const cbEOD=document.getElementById("set-eod-remind");
+  if(cbEOD) cbEOD.checked = S.settings.eodRemindEnabled!==false; // по умолчанию вкл
+  const eodH=document.getElementById("set-eod-hour");
+  if(eodH) eodH.value = S.settings.eodRemindHour||21;
   const freq=S.settings.videoFrequency||"each";
   document.querySelectorAll("input[name=\"video-freq\"]").forEach(r=>{r.checked=r.value===freq;});
   renderCRMStagesEditor();
@@ -8581,6 +8754,12 @@ function saveAppSettings(){
   if(!S.settings)S.settings={};
   const cb=document.getElementById("set-reminders");
   if(cb) S.settings.remindersEnabled=cb.checked;
+  const cbTB=document.getElementById("set-teacher-before");
+  if(cbTB) S.settings.teacherBeforeRemind=cbTB.checked;
+  const cbEOD=document.getElementById("set-eod-remind");
+  if(cbEOD) S.settings.eodRemindEnabled=cbEOD.checked;
+  const eodH=document.getElementById("set-eod-hour");
+  if(eodH) S.settings.eodRemindHour=parseInt(eodH.value)||21;
   const freqEl=document.querySelector("input[name=\"video-freq\"]:checked");
   if(freqEl) S.settings.videoFrequency=freqEl.value;
 
