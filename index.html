@@ -5839,15 +5839,22 @@ function renderUsers(){
             <div style="font-size:14px;font-weight:600;color:var(--t1)">${u.name||'—'} ${isSelf?'<span style="font-size:10px;color:var(--t3)">(вы)</span>':''}</div>
             <div style="font-size:12px;color:var(--t3);margin-top:2px">${u.email||'—'}</div>
             ${u.phone?`<div style="font-size:11px;color:var(--t3);margin-top:1px">📱 ${u.phone}</div>`:'<div style="font-size:11px;color:var(--rd);margin-top:1px">📱 Телефон не указан</div>'}
-            ${u.binotelExt?`<div style="font-size:11px;color:var(--ac2);margin-top:1px">☎ Binotel: ${u.binotelExt}</div>`:''}
+            ${u.binotelExt?`<div style="font-size:11px;color:var(--ac2);margin-top:1px">☎ Binotel: ${u.binotelExt}${u.crmRole==='registrar'?' · 🗂 Регистратор':''}</div>`:(!u.crmRole?'':"<div style=\"font-size:11px;color:var(--am);margin-top:1px\">🗂 Регистратор (линия не задана)</div>")}
           </div>
           <span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:10px;${isAdmin?'background:var(--acbg);border:1px solid var(--acb);color:var(--ac2)':'background:var(--gnbg);border:1px solid rgba(63,216,142,.25);color:var(--gn)'}">
             ${isAdmin?'👑 Админ':'👨‍🏫 Преподаватель'}
           </span>
-          ${isAdmin?`<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;color:var(--t2);background:var(--bg3);border:1px solid var(--b1);border-radius:8px;padding:3px 10px" title="Регистратор видит только свои CRM-сделки">
-            <input type="checkbox" ${u.crmRole==='registrar'?'checked':''} onchange="toggleCRMRole('${uid}',this.checked)" style="accent-color:var(--ac);cursor:pointer">
-            🗂 Регистратор CRM
-          </label>`:''}
+          ${isAdmin?`<div style="display:flex;flex-direction:column;gap:3px">
+            <select onchange="setCRMRegistrarLine('${uid}',this.value)"
+              style="background:var(--bg3);border:1px solid var(--b1);border-radius:8px;color:var(--t1);font-family:var(--fb);font-size:11px;padding:4px 8px;cursor:pointer"
+              title="Роль регистратора и линия Binotel">
+              <option value="" ${!u.crmRole?'selected':''}>— Не регистратор —</option>
+              <option value="1906" ${u.crmRole==='registrar'&&u.binotelExt==='1906'?'selected':''}>🗂 Регистратор · ☎ 1906</option>
+              <option value="1951" ${u.crmRole==='registrar'&&u.binotelExt==='1951'?'selected':''}>🗂 Регистратор · ☎ 1951</option>
+              <option value="custom" ${u.crmRole==='registrar'&&u.binotelExt&&u.binotelExt!=='1906'&&u.binotelExt!=='1951'?'selected':''}>🗂 Регистратор · ☎ ${u.binotelExt||'?'}</option>
+            </select>
+            ${u.crmRole==='registrar'?`<span style="font-size:9px;color:var(--t3)">☎ Binotel: ${u.binotelExt||'не указана'}</span>`:''}
+          </div>`:''} 
           ${isTeacher&&tRec?`<button class="btn btn-xs" style="${isActive?'background:var(--gnbg);border:1px solid rgba(63,216,142,.3);color:var(--gn)':'background:var(--rdbg);border:1px solid rgba(240,89,117,.3);color:var(--rd)'}" onclick="toggleTeacherActive('${uid}',${isActive})">
             ${isActive?'✓ Активен':'✗ Неактивен'}
           </button>`:''}
@@ -5883,14 +5890,21 @@ function editUserProfile(uid, currentName, currentPhone, currentExt){
   if(name===null)return;
   const phone=prompt('Телефон WhatsApp (формат: +7XXXXXXXXXX):', currentPhone);
   if(phone===null)return;
-  const ext=prompt('📞 Внутренняя линия Binotel (например: 1905)\nОставьте пустым если не используете телефонию:', currentExt||'');
+  const ext=prompt('📞 Внутренняя линия Binotel\nДоступные линии: 1906, 1951\nОставьте пустым если не используете телефонию:', currentExt||'');
   if(ext===null)return;
   const updates={};
   if(name.trim())updates.name=name.trim();
   updates.phone=phone.trim();
   updates.binotelExt=ext.trim()||null;
   usersRef.child(uid).update(updates)
-    .then(()=>{toast('Профиль обновлён');renderUsers();})
+    .then(()=>{
+      if(S.appUsers?.[uid]){
+        if(name.trim()) S.appUsers[uid].name=name.trim();
+        S.appUsers[uid].phone=phone.trim();
+        S.appUsers[uid].binotelExt=ext.trim()||null;
+      }
+      toast('Профиль обновлён');renderUsers();
+    })
     .catch(err=>toast('Ошибка: '+err.message,true));
 }
 
@@ -6768,11 +6782,30 @@ async function getNextCRMAssignee(){
 }
 
 function toggleCRMRole(uid, isRegistrar){
-  usersRef.child(uid + '/crmRole').set(isRegistrar ? 'registrar' : null)
+  // Legacy compatibility — kept for any external calls
+  setCRMRegistrarLine(uid, isRegistrar ? (S.appUsers?.[uid]?.binotelExt || '1906') : '');
+}
+
+function setCRMRegistrarLine(uid, line){
+  // line = '' → remove registrar role; '1906'/'1951'/'custom' → set role + line
+  const isRegistrar = line !== '' && line !== 'custom';
+  const ext = isRegistrar ? line : null;
+  const updates = {
+    crmRole: isRegistrar ? 'registrar' : null,
+    binotelExt: ext,
+  };
+  // Remove null keys (Firebase ignores them in update)
+  if(!isRegistrar) { updates.crmRole = null; updates.binotelExt = null; }
+
+  usersRef.child(uid).update(updates)
     .then(() => {
-      // Update local cache immediately so renderCRMDistribSettings sees the new value
-      if(S.appUsers?.[uid]) S.appUsers[uid].crmRole = isRegistrar ? 'registrar' : null;
-      toast(isRegistrar ? '✓ Роль Регистратора добавлена' : 'Роль Регистратора снята');
+      if(S.appUsers?.[uid]){
+        S.appUsers[uid].crmRole = isRegistrar ? 'registrar' : null;
+        if(ext) S.appUsers[uid].binotelExt = ext;
+        else delete S.appUsers[uid].binotelExt;
+      }
+      const label = isRegistrar ? `✓ Регистратор · линия ${ext}` : 'Роль Регистратора снята';
+      toast(label);
       renderUsers();
       renderCRMDistribSettings();
     })
@@ -8004,7 +8037,10 @@ function renderCRMDistribSettings(){
       const pct = total > 0 ? Math.round(w/total*100) : 0;
       const isOff = w === 0;
       return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);padding:10px 13px;opacity:${isOff?'0.5':'1'}">
-        <div style="flex:1;font-size:13px;font-weight:600;color:var(--t1)">${u.name||u.email||uid}${isOff?' <span style="font-size:10px;color:var(--t3)">(выключен)</span>':''}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--t1)">${u.name||u.email||uid}${isOff?' <span style="font-size:10px;color:var(--t3)">(выключен)</span>':''}</div>
+          ${u.binotelExt?`<div style="font-size:10px;color:var(--ac2);margin-top:1px">☎ Линия ${u.binotelExt}</div>`:'<div style="font-size:10px;color:var(--am);margin-top:1px">⚠ Линия не задана</div>'}
+        </div>
         <div id="distrib-pct-${uid}" style="font-size:11px;color:var(--t3);min-width:40px;text-align:right">~${pct}%</div>
         <div style="display:flex;align-items:center;gap:6px">
           <span style="font-size:11px;color:var(--t2)">Коэф:</span>
