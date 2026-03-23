@@ -1996,7 +1996,7 @@ let dashMode='days'; // 'days' | 'thu'
 let _chartMode='week'; // 'day' | 'week' | 'today'
 let _chartMax={active:100,active_fact:100,starts:20,restarts:20,leads:20,trials:10,graduates:5};
 let _chartQuota={active:0,active_fact:0,starts:0,restarts:0,leads:0,trials:0,graduates:0}; // 0=не задана
-let _chartDayDate=new Date().toISOString().slice(0,10); // для режима 'today'
+let _chartDayDate=(()=>{const _d=new Date();return`${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,'0')}-${String(_d.getDate()).padStart(2,'0')}`;})(); // для режима 'today' (локальная дата)
 
 function setDashPeriod(days){
   dashPeriod=days;
@@ -2054,7 +2054,7 @@ function getThuToThuDashDates(offset){
   const dates=[];
   const cur=new Date(startThu);
   while(cur<=endThu){
-    dates.push(cur.toISOString().slice(0,10));
+    dates.push(`${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}-${String(cur.getDate()).padStart(2,'0')}`);
     cur.setDate(cur.getDate()+1);
   }
   return dates;
@@ -2818,7 +2818,8 @@ function getChartPeriods(mode,n=7){
   if(mode==='day'){
     for(let i=n-1;i>=0;i--){
       const d=new Date(today);d.setDate(d.getDate()-i);
-      const ds=d.toISOString().slice(0,10);
+      // Используем ЛОКАЛЬНУЮ дату (не UTC), иначе в UTC+5 дата сдвигается на -1 день
+      const ds=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
       const lbl=`${d.getDate()}.${String(d.getMonth()+1).padStart(2,'0')}`;
       const dow=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'][d.getDay()];
       periods.push({from:ds,to:ds,label:lbl,sub:dow});
