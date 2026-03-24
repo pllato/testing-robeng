@@ -8215,7 +8215,7 @@ ${m.teachers.map(t=>`- ${t.name}: ${t.studentCount} уч, посещаемост
 //  NOTIFY LOG — журнал всех WA уведомлений
 // ═══════════════════════════════════════════════════════
 
-const notifyLogRef = fbDb.ref('notifyLog');
+// notifyLog использует fbDb.ref('notifyLog') напрямую
 
 // Типы уведомлений с иконками и цветами
 const NOTIFY_TYPES = {
@@ -8238,7 +8238,7 @@ const NOTIFY_TYPES = {
 function logNotify(type, recipient, phone, preview, meta){
   const now = new Date();
   const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-  notifyLogRef.child(todayStr).push({
+  fbDb.ref('notifyLog').child(todayStr).push({
     type: type||'other',
     recipient: recipient||'',
     phone: phone||'',
@@ -8255,7 +8255,9 @@ async function renderNotifyLog(){
   const statsEl = document.getElementById('nlog-stats');
   if(!el) return;
   el.innerHTML = '<div style="text-align:center;padding:30px;color:var(--t3)">Загрузка...</div>';
+  if(statsEl) statsEl.innerHTML = '';
 
+  try{
   const typeF  = document.getElementById('nlog-type')?.value||'';
   const dateF  = parseInt(document.getElementById('nlog-date')?.value||'7');
 
@@ -8263,7 +8265,8 @@ async function renderNotifyLog(){
   cutoff.setDate(cutoff.getDate() - (isNaN(dateF)?9999:dateF));
   const cutoffStr = `${cutoff.getFullYear()}-${String(cutoff.getMonth()+1).padStart(2,'0')}-${String(cutoff.getDate()).padStart(2,'0')}`;
 
-  const snap = await notifyLogRef.once('value');
+  // Используем fbDb напрямую чтобы не зависеть от момента объявления notifyLogRef
+  const snap = await fbDb.ref('notifyLog').once('value');
   const raw = snap.val()||{};
 
   // Flatten: {date: {pushId: entry}} → flat array
@@ -8310,6 +8313,9 @@ async function renderNotifyLog(){
       <div style="font-size:11px;color:var(--t3);flex-shrink:0;white-space:nowrap">${e.tsLocal||''}</div>
     </div>`;
   }).join('');
+  } catch(err) {
+    el.innerHTML = `<div style="background:var(--rdbg);border:1px solid rgba(240,89,117,.3);border-radius:var(--rl);padding:14px 17px;color:var(--rd);font-size:13px">Ошибка загрузки: ${err.message}</div>`;
+  }
 }
 
 // ═══════════════════════════════════════════════════════
