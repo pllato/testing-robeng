@@ -6690,7 +6690,16 @@ function sendVideoToParent(record){
 
   // WhatsApp — ждём генерации сообщения с опросом
   buildMsg().then(msg=>{
-    phones.forEach(p=>notifyWhatsApp('+'+p,msg));
+    phones.forEach(p=>{
+      notifyWhatsApp('+'+p, msg).then(r=>{
+        if(r?.ok) logNotify('report',
+          `${record.studentName||'—'} (${p===parentPhone?'родитель':'ученик'})`,
+          '+'+p,
+          msg,
+          {teacherName: record.teacherName||'—', date: record.dateStr||''}
+        );
+      });
+    });
   });
 }
 
