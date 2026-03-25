@@ -3325,6 +3325,25 @@ function renderCompanyPulse(){
     });
   }
 
+  // ── Текущий пульс за последний час (только из уже загруженных данных) ──
+  const hourAgo = new Date(now.getTime() - 60*60*1000);
+  const hourAgoISO = hourAgo.toISOString();
+  let hourScore = 0;
+  let hourCount = 0;
+  // Из journal (в нём есть ts как строка локального времени — используем id как timestamp)
+  journal.forEach(j=>{
+    if(!j.id) return;
+    const ts = parseInt(j.id);
+    if(isNaN(ts)||ts<hourAgo.getTime()) return;
+    const type = j.type==='extend'?'renewal':j.type;
+    const w = PULSE_W[type]||PULSE_W[j.type]||3;
+    if(w>0){ hourScore+=w; hourCount++; }
+  });
+  // CRM: лиды созданные за час (createdAt ISO)
+  crmLeads.forEach(l=>{
+    if((l.createdAt||'') >= hourAgoISO){ hourScore+=PULSE_W.crm_new||20; hourCount++; }
+  });
+
   // Сырые очки — без нормализации
   const todayScore = Math.max(0, dayScores[todayStr]||0);
   const yesterdayStr = days7[days7.length-2];
@@ -3400,13 +3419,34 @@ function renderCompanyPulse(){
       <!-- Score -->
       <div>
         <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">❤️ Пульс компании</div>
-        <div style="display:flex;align-items:baseline;gap:10px">
+        <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
           <span style="font-family:var(--fd);font-size:42px;font-weight:700;color:${pulseColor};line-height:1">${todayScore}</span>
           <div>
             <div style="font-size:12px;font-weight:700;color:${diffColor}">${diff===0?'—':diffSign+Math.abs(diff)} к вчера</div>
-            <div style="font-size:10px;color:var(--t3)">тиков сегодня</div>
+            <div style="font-size:10px;color:var(--t3)">тиков за день</div>
           </div>
           <span style="font-size:28px;margin-left:4px">${pulseEmoji}</span>
+        </div>
+        <!-- Текущий пульс за час -->
+        <div style="display:flex;align-items:center;gap:10px;margin-top:10px;padding:8px 12px;background:var(--bg3);border-radius:10px;border:1px solid ${hourScore>=30?'rgba(124,92,252,.35)':hourScore>0?'rgba(245,200,66,.25)':'var(--b1)'}">
+          <div style="position:relative;width:28px;height:28px;flex-shrink:0">
+            <svg viewBox="0 0 28 28" style="width:28px;height:28px">
+              <circle cx="14" cy="14" r="12" fill="none" stroke="var(--bg4)" stroke-width="3"/>
+              <circle cx="14" cy="14" r="12" fill="none" stroke="${hourScore>=30?'#7c5cfc':hourScore>0?'#f5c842':'#5e5c78'}" stroke-width="3"
+                stroke-dasharray="${Math.min(100,hourScore)*0.754} 75.4"
+                stroke-linecap="round" transform="rotate(-90 14 14)"/>
+            </svg>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--t3)">Текущий пульс (час)</div>
+            <div style="display:flex;align-items:baseline;gap:5px">
+              <span style="font-family:var(--fd);font-size:18px;font-weight:700;color:${hourScore>=30?'var(--ac2)':hourScore>0?'var(--am)':'var(--t3)'}">${hourScore}</span>
+              <span style="font-size:10px;color:var(--t3)">${hourCount} событий</span>
+            </div>
+          </div>
+          <div style="margin-left:auto;font-size:10px;color:var(--t3);text-align:right">
+            ${hourScore>=30?'🔥 Активно':hourScore>=10?'⚡ Есть движение':'💤 Тихо'}
+          </div>
         </div>
       </div>
 
@@ -3661,6 +3701,12 @@ function renderDashboard(){
       crmRef.once('value').then(s=>{window._crmLeadsCache=s.val()||{};renderCompanyPulse();});
     } else {
       renderCompanyPulse();
+    }
+    // Авто-обновление текущего пульса каждую минуту (только локальные данные, без Firebase)
+    if(!window._pulseInterval){
+      window._pulseInterval = setInterval(()=>{
+        if(curPanel()==='dashboard' && currentRole==='admin') renderCompanyPulse();
+      }, 60*1000);
     }
   }
   if(currentRole==='admin') renderDashboardCharts();
