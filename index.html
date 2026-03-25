@@ -11439,6 +11439,30 @@ function crmDrop(event, newStage){
 
 // ── OPEN CARD MODAL ───────────────────────────────────────────────
 
+
+// Звонок на произвольный номер (WA или Binotel)
+function crmCallNumber(phone, type){
+  const p = (phone||'').trim();
+  if(!p){ toast('Номер не указан',true); return; }
+  if(type==='wa'){
+    const clean = p.replace(/\D/g,'');
+    window.open(`https://wa.me/${clean}`, '_blank');
+  } else {
+    // Binotel — используем существующую функцию crmCall если есть _crmEditId
+    // иначе просто открываем tel:
+    if(_crmEditId && typeof crmCall === 'function'){
+      // Временно переопределяем номер в lead для звонка
+      const origPhone = document.getElementById('crm-f-phone')?.value;
+      if(document.getElementById('crm-f-phone')) document.getElementById('crm-f-phone').value = p;
+      crmCall(_crmEditId);
+      if(document.getElementById('crm-f-phone') && origPhone !== undefined)
+        setTimeout(()=>{ document.getElementById('crm-f-phone').value = origPhone; }, 500);
+    } else {
+      window.open(`tel:${p}`);
+    }
+  }
+}
+
 // Заполняем дропдаун слотов для справочной пометки в CRM-карточке
 function fillCRMSlotHint(selectedVal){
   const sel = document.getElementById('crm-f-slothint');
@@ -11514,8 +11538,7 @@ function openCRMCard(id){
       const l = snap.val()||{};
       document.getElementById('crm-f-name').value = l.name||'';
       document.getElementById('crm-f-phone').value = l.phone||'';
-      const callBtns = document.getElementById('crm-card-call-btns');
-      if(callBtns) callBtns.style.display = l.phone ? 'flex' : 'none';
+      // call buttons always visible
       document.getElementById('crm-f-source').value = l.source||'';
       document.getElementById('crm-f-interest').value = l.interest||'';
       document.getElementById('crm-f-budget').value = l.budget||'';
@@ -12794,10 +12817,18 @@ function toggleCRMStudentForm(){
   const phone = document.getElementById('crm-f-phone')?.value.trim() || '';
   const age   = document.getElementById('crm-f-age')?.value.trim() || '';
   const topic = document.getElementById('crm-f-interest')?.value.trim() || '';
-  document.getElementById('crm-stu-name').value  = '';    // student name — blank (lead name is parent)
-  document.getElementById('crm-stu-phone').value = phone;
+  // Подтягиваем данные из карточки
+  const childName  = document.getElementById('crm-f-childname')?.value.trim()||'';
+  const childPhone = document.getElementById('crm-f-childphone')?.value.trim()||'';
+  document.getElementById('crm-stu-name').value  = childName;   // имя ученика из карточки
+  document.getElementById('crm-stu-phone').value = childPhone||phone; // телефон ученика, иначе родителя
   document.getElementById('crm-stu-age').value   = age;
   document.getElementById('crm-stu-topic').value = topic;
+  // Также заполняем поле родителя/опекуна если оно есть
+  const parentEl = document.getElementById('crm-stu-parent');
+  if(parentEl) parentEl.value = name;
+  const parentPhoneEl = document.getElementById('crm-stu-parentphone');
+  if(parentPhoneEl) parentPhoneEl.value = phone;
   const today = new Date().toISOString().slice(0,10);
   document.getElementById('crm-stu-datestart').value = today;
   document.getElementById('crm-stu-dateend').value   = addMonth(today);
@@ -13499,10 +13530,21 @@ function addCRMLinkToStudent(studentEl, phone){
       <div style="display:flex;flex-direction:column;gap:0">
         <div class="fr"><label>💬 Комментарий</label><textarea id="crm-f-notes" placeholder="Важные детали, история, договорённости..." rows="3" style="font-size:13px"></textarea></div>
         <div class="fr"><label>ФИО / Имя клиента</label><input id="crm-f-name" placeholder="Иванова Татьяна"/></div>
-        <div class="fr"><label>📱 Телефон WhatsApp</label><input id="crm-f-phone" placeholder="+7 700 000 00 00"/></div>
-        <div id="crm-card-call-btns" style="display:none;gap:6px;margin-top:-4px;margin-bottom:8px">
-          <button onclick="crmWACall(_crmEditId)" style="background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.3);border-radius:6px;color:var(--gn);cursor:pointer;padding:5px 12px;font-size:11px;font-weight:600">📞 WA звонок</button>
-          <button onclick="crmCall(_crmEditId)" style="background:rgba(124,92,252,.1);border:1px solid rgba(124,92,252,.3);border-radius:6px;color:var(--ac2);cursor:pointer;padding:5px 12px;font-size:11px;font-weight:600">📞 Binotel</button>
+        <div class="fr">
+          <label>📱 Телефон WhatsApp клиента</label>
+          <input id="crm-f-phone" placeholder="+7 700 000 00 00"/>
+          <div style="display:flex;gap:5px;margin-top:5px" id="crm-card-call-btns">
+            <button onclick="crmWACall(_crmEditId)" style="background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.3);border-radius:6px;color:var(--gn);cursor:pointer;padding:4px 11px;font-size:11px;font-weight:600">📞 WA</button>
+            <button onclick="crmCall(_crmEditId)" style="background:rgba(124,92,252,.1);border:1px solid rgba(124,92,252,.3);border-radius:6px;color:var(--ac2);cursor:pointer;padding:4px 11px;font-size:11px;font-weight:600">📞 Binotel</button>
+          </div>
+        </div>
+        <div class="fr">
+          <label>💳 Номер для счёта (Kaspi и др.)</label>
+          <input id="crm-f-billphone" placeholder="+7 700 000 00 00"/>
+          <div style="display:flex;gap:5px;margin-top:5px">
+            <button onclick="crmCallNumber(document.getElementById('crm-f-billphone').value,'wa')" style="background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.3);border-radius:6px;color:var(--gn);cursor:pointer;padding:4px 11px;font-size:11px;font-weight:600">📞 WA</button>
+            <button onclick="crmCallNumber(document.getElementById('crm-f-billphone').value,'binotel')" style="background:rgba(124,92,252,.1);border:1px solid rgba(124,92,252,.3);border-radius:6px;color:var(--ac2);cursor:pointer;padding:4px 11px;font-size:11px;font-weight:600">📞 Binotel</button>
+          </div>
         </div>
 
         <!-- ── Данные ученика (справочно) ────────────────── -->
@@ -13516,12 +13558,13 @@ function addCRMLinkToStudent(studentEl, phone){
             <div>
               <label style="font-size:11px;color:var(--t2);display:block;margin-bottom:3px">📱 Телефон ученика</label>
               <input id="crm-f-childphone" placeholder="+7 700 000 00 00" style="width:100%;background:var(--bg2);border:1px solid var(--b2);border-radius:6px;color:var(--t1);font-family:var(--fb);font-size:12px;padding:6px 9px;box-sizing:border-box"/>
+              <div style="display:flex;gap:5px;margin-top:5px">
+                <button onclick="crmCallNumber(document.getElementById('crm-f-childphone').value,'wa')" style="background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.3);border-radius:6px;color:var(--gn);cursor:pointer;padding:3px 9px;font-size:10px;font-weight:600">📞 WA</button>
+                <button onclick="crmCallNumber(document.getElementById('crm-f-childphone').value,'binotel')" style="background:rgba(124,92,252,.1);border:1px solid rgba(124,92,252,.3);border-radius:6px;color:var(--ac2);cursor:pointer;padding:3px 9px;font-size:10px;font-weight:600">📞 Binotel</button>
+              </div>
             </div>
           </div>
-          <div style="margin-bottom:8px">
-            <label style="font-size:11px;color:var(--t2);display:block;margin-bottom:3px">💳 Номер для счёта (Kaspi и др.)</label>
-            <input id="crm-f-billphone" placeholder="+7 700 000 00 00" style="width:100%;background:var(--bg2);border:1px solid var(--b2);border-radius:6px;color:var(--t1);font-family:var(--fb);font-size:12px;padding:6px 9px;box-sizing:border-box"/>
-          </div>
+
           <div>
             <label style="font-size:11px;color:var(--t2);display:block;margin-bottom:3px">📅 Предварительный слот</label>
             <select id="crm-f-slothint"
