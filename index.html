@@ -12111,10 +12111,18 @@ async function renderCallsLog(){
     if(!c.ts) return;
     // Нормализуем callType — поддерживаем все форматы Binotel
     const ct = resolveCallType(c.callType, c.rawCallType);
+    // pending=true значит CALL_SETTINGS пришёл но COMPLETED ещё нет
+    // через 10+ мин такой звонок считаем пропущенным
+    const isPending = !!c.pending;
+    const pendingAge = isPending ? (Date.now() - new Date(c.ts||0).getTime()) : 0;
+    const treatAsMissed = isPending && pendingAge > 10*60*1000; // >10 мин = пропущен
+    if(isPending && !treatAsMissed) return; // ещё «в процессе» — не показываем
+
     calls.push({
       ts: c.ts, phone: c.phone||'', callType: ct,
       duration: c.duration||0, answered: !!(c.answered||c.duration>0),
-      isMissed: !!c.isMissed, recordingLink: c.recordingLink||'',
+      isMissed: treatAsMissed ? true : !!c.isMissed,
+      recordingLink: c.recordingLink||'',
       leadId: c.leadId||'', leadName: c.leadName||'',
       internalNumber: c.internalNumber||'', src:'binotelCalls',
       rawCallType: c.rawCallType||'',
