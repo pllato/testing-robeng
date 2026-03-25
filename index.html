@@ -3325,24 +3325,67 @@ function renderCompanyPulse(){
     });
   }
 
-  // ── Текущий пульс за последний час (только из уже загруженных данных) ──
-  const hourAgo = new Date(now.getTime() - 60*60*1000);
-  const hourAgoISO = hourAgo.toISOString();
-  let hourScore = 0;
-  let hourCount = 0;
-  // Из journal (в нём есть ts как строка локального времени — используем id как timestamp)
+  // ── Скользящий пульс за последние 60 минут ────────────────────────────────
+  const hourAgoMs = now.getTime() - 60*60*1000;
+  const hourAgoISO = new Date(hourAgoMs).toISOString();
+  let hourScore = 0, hourCount = 0;
+
   journal.forEach(j=>{
     if(!j.id) return;
-    const ts = parseInt(j.id);
-    if(isNaN(ts)||ts<hourAgo.getTime()) return;
+    const ts = parseInt(j.id); // id = Date.now() при создании
+    if(isNaN(ts) || ts < hourAgoMs) return;
     const type = j.type==='extend'?'renewal':j.type;
     const w = PULSE_W[type]||PULSE_W[j.type]||3;
     if(w>0){ hourScore+=w; hourCount++; }
   });
-  // CRM: лиды созданные за час (createdAt ISO)
   crmLeads.forEach(l=>{
     if((l.createdAt||'') >= hourAgoISO){ hourScore+=PULSE_W.crm_new||20; hourCount++; }
   });
+
+  // ── Почасовой график за сегодня (24 ч → показываем с 7:00 до сейчас) ────
+  const nowH = now.getHours();
+  const hourlyLabels = [], hourlyScores = [];
+  for(let h = 7; h <= nowH; h++){
+    const hFrom = new Date(now); hFrom.setHours(h,0,0,0);
+    const hTo   = new Date(now); hTo.setHours(h,59,59,999);
+    let sc = 0;
+    journal.forEach(j=>{
+      if(!j.id) return;
+      const ts = parseInt(j.id);
+      if(isNaN(ts)||ts<hFrom.getTime()||ts>hTo.getTime()) return;
+      const type = j.type==='extend'?'renewal':j.type;
+      const w = PULSE_W[type]||PULSE_W[j.type]||3;
+      if(w>0) sc+=w;
+    });
+    crmLeads.forEach(l=>{
+      const d = new Date(l.createdAt||'');
+      if(!isNaN(d)&&d>=hFrom&&d<=hTo) sc+=PULSE_W.crm_new||20;
+    });
+    hourlyLabels.push(h+':00');
+    hourlyScores.push(sc);
+  }
+  // SVG почасового графика
+  const buildHourlyChart = ()=>{
+    const n = hourlyScores.length;
+    if(!n) return '<div style="font-size:11px;color:var(--t3);text-align:center;padding:20px">Данных за сегодня пока нет</div>';
+    const W2=460,H2=80,pL=28,pR=8,pT=8,pB=22,cW2=W2-pL-pR,cH2=H2-pT-pB;
+    const maxH = Math.max(1,...hourlyScores);
+    const bw2 = Math.max(4, Math.floor(cW2/n)-2);
+    let s=`<svg viewBox="0 0 ${W2} ${H2}" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block">`;
+    hourlyScores.forEach((sc,i)=>{
+      const isNowH = i===n-1;
+      const bh = Math.max(3, Math.round(sc/maxH*cH2));
+      const x = pL + i*(cW2/n) + 1;
+      const y = pT+cH2-bh;
+      const col = isNowH?'#7c5cfc':sc>=50?'#3fd88e':sc>=20?'#f5c842':'#5e5c78';
+      const op = isNowH?'1':'0.6';
+      s+=`<rect x="${x}" y="${y}" width="${bw2}" height="${bh}" rx="2" fill="${col}" opacity="${op}"/>`;
+      if(sc>0) s+=`<text x="${x+bw2/2}" y="${y-2}" text-anchor="middle" font-size="7.5" fill="${col}" font-family="Manrope" opacity="${op}">${sc}</text>`;
+      s+=`<text x="${x+bw2/2}" y="${H2-3}" text-anchor="middle" font-size="7.5" fill="${isNowH?'#f0eefc':'#5e5c78'}" font-weight="${isNowH?'700':'400'}" font-family="Manrope">${hourlyLabels[i]}</text>`;
+    });
+    s+=`</svg>`;
+    return s;
+  };
 
   // Сырые очки — без нормализации
   const todayScore = Math.max(0, dayScores[todayStr]||0);
@@ -3427,25 +3470,31 @@ function renderCompanyPulse(){
           </div>
           <span style="font-size:28px;margin-left:4px">${pulseEmoji}</span>
         </div>
-        <!-- Текущий пульс за час -->
-        <div style="display:flex;align-items:center;gap:10px;margin-top:10px;padding:8px 12px;background:var(--bg3);border-radius:10px;border:1px solid ${hourScore>=30?'rgba(124,92,252,.35)':hourScore>0?'rgba(245,200,66,.25)':'var(--b1)'}">
-          <div style="position:relative;width:28px;height:28px;flex-shrink:0">
-            <svg viewBox="0 0 28 28" style="width:28px;height:28px">
-              <circle cx="14" cy="14" r="12" fill="none" stroke="var(--bg4)" stroke-width="3"/>
-              <circle cx="14" cy="14" r="12" fill="none" stroke="${hourScore>=30?'#7c5cfc':hourScore>0?'#f5c842':'#5e5c78'}" stroke-width="3"
-                stroke-dasharray="${Math.min(100,hourScore)*0.754} 75.4"
-                stroke-linecap="round" transform="rotate(-90 14 14)"/>
-            </svg>
-          </div>
-          <div>
-            <div style="font-size:11px;color:var(--t3)">Текущий пульс (час)</div>
-            <div style="display:flex;align-items:baseline;gap:5px">
-              <span style="font-family:var(--fd);font-size:18px;font-weight:700;color:${hourScore>=30?'var(--ac2)':hourScore>0?'var(--am)':'var(--t3)'}">${hourScore}</span>
-              <span style="font-size:10px;color:var(--t3)">${hourCount} событий</span>
+        <!-- Текущий пульс (скользящий час) -->
+        <div class="ph-wrap" style="margin-top:10px">
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg3);border-radius:10px 10px 0 0;border:1px solid ${hourScore>=30?'rgba(124,92,252,.35)':hourScore>0?'rgba(245,200,66,.25)':'var(--b1)'}">
+            <div style="position:relative;width:26px;height:26px;flex-shrink:0">
+              <svg viewBox="0 0 28 28" style="width:26px;height:26px">
+                <circle cx="14" cy="14" r="12" fill="none" stroke="var(--bg4)" stroke-width="3"/>
+                <circle cx="14" cy="14" r="12" fill="none" stroke="${hourScore>=30?'#7c5cfc':hourScore>0?'#f5c842':'#5e5c78'}" stroke-width="3"
+                  stroke-dasharray="${Math.min(75.4, hourScore/2*0.754)} 75.4"
+                  stroke-linecap="round" transform="rotate(-90 14 14)"/>
+              </svg>
             </div>
+            <div>
+              <div style="font-size:10px;color:var(--t3)">Последние 60 минут</div>
+              <div style="display:flex;align-items:baseline;gap:5px">
+                <span style="font-family:var(--fd);font-size:20px;font-weight:700;color:${hourScore>=30?'var(--ac2)':hourScore>0?'var(--am)':'var(--t3)'}">${hourScore}</span>
+                <span style="font-size:10px;color:var(--t3)">${hourCount} событий</span>
+              </div>
+            </div>
+            <div style="margin-left:auto;font-size:11px">${hourScore>=30?'🔥 Активно':hourScore>=10?'⚡ Движение':'💤 Тихо'}</div>
+            <button onclick="(el=>el.style.display=el.style.display==='none'?'block':'none')(this.closest('.ph-wrap').querySelector('.ph-chart'));this.textContent=this.textContent.trim()==='▾'?'▸':'▾'"
+              style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:14px;padding:0 4px;flex-shrink:0">▾</button>
           </div>
-          <div style="margin-left:auto;font-size:10px;color:var(--t3);text-align:right">
-            ${hourScore>=30?'🔥 Активно':hourScore>=10?'⚡ Есть движение':'💤 Тихо'}
+          <div class="ph-chart" style="background:var(--bg3);border:1px solid ${hourScore>=30?'rgba(124,92,252,.2)':'var(--b1)'};border-top:none;border-radius:0 0 10px 10px;padding:8px 10px 6px">
+            <div style="font-size:10px;color:var(--t3);margin-bottom:4px">Пульс по часам сегодня (с 7:00)</div>
+            ${buildHourlyChart()}
           </div>
         </div>
       </div>
@@ -3788,13 +3837,7 @@ function renderDashboard(){
         </div>`:''}
       </div>
     </div>
-    <div class="stat"><div class="stat-lbl">Активных учеников</div><div class="stat-val cg">${activeStudentIds.length}</div><div class="stat-sub">Сейчас занимаются</div></div>
-    <div class="stat"><div class="stat-lbl">Новые старты</div><div class="stat-val" style="color:var(--ac2)">${newStarts}</div><div class="stat-sub">За период</div></div>
-    <div class="stat"><div class="stat-lbl">Продлений</div><div class="stat-val ca">${extends_}</div><div class="stat-sub">Перестарты</div></div>
-    <div class="stat"><div class="stat-lbl">Деактивировано / не продлили</div><div class="stat-val" style="color:var(--t3)">${deactivated+expired}</div><div class="stat-sub">За период</div></div>
-    <div class="stat"><div class="stat-lbl">Пропуски (не отработаны)</div><div class="stat-val" style="color:var(--rd)">${totalMisses}</div><div class="stat-sub">Всего открытых</div></div>
     <div class="stat"><div class="stat-lbl">Занятость слотов</div><div class="stat-val cv">${occPct}%</div><div class="stat-sub">${occ} из ${tot} мест</div></div>
-    <div class="stat"><div class="stat-lbl">Преподавателей</div><div class="stat-val ct">${S.teachers.filter(t=>t.status==='active').length}</div><div class="stat-sub">Активных</div></div>
     ${(()=>{const vs=calcVideoStats(activeEnrolls.map(e=>e.id),dates);return`
     <div class="stat" style="border-color:var(--acb)">
       <div class="stat-lbl">🎥 Видео уроков</div>
