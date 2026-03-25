@@ -8238,14 +8238,22 @@ const NOTIFY_TYPES = {
 function logNotify(type, recipient, phone, preview, meta){
   const now = new Date();
   const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-  fbDb.ref('notifyLog').child(todayStr).push({
-    type: type||'other',
-    recipient: recipient||'',
-    phone: phone||'',
-    preview: (preview||'').slice(0,120),
-    ts: now.toISOString(),
-    tsLocal: now.toLocaleString('ru',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),
-    ...(meta||{})
+  // Пишем через Worker (FB_SECRET там уже есть)
+  fetch('https://flat-pond-6e68.uurraa.workers.dev/notify-log', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      date: todayStr,
+      entry: {
+        type: type||'other',
+        recipient: recipient||'',
+        phone: phone||'',
+        preview: (preview||'').slice(0,120),
+        ts: now.toISOString(),
+        tsLocal: now.toLocaleString('ru',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),
+        ...(meta||{})
+      }
+    })
   }).catch(()=>{});
 }
 
@@ -8261,22 +8269,13 @@ async function renderNotifyLog(){
   const typeF  = document.getElementById('nlog-type')?.value||'';
   const dateF  = parseInt(document.getElementById('nlog-date')?.value||'7');
 
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - (isNaN(dateF)?9999:dateF));
-  const cutoffStr = `${cutoff.getFullYear()}-${String(cutoff.getMonth()+1).padStart(2,'0')}-${String(cutoff.getDate()).padStart(2,'0')}`;
+  // Читаем через Worker (Firebase правила не нужны)
+  const resp = await fetch(`https://flat-pond-6e68.uurraa.workers.dev/notify-log?days=${isNaN(dateF)?7:dateF}`);
+  const result = await resp.json();
+  if(!result.ok) throw new Error(result.error||'Worker error');
+  const all = result.entries || [];
 
-  // Используем fbDb напрямую чтобы не зависеть от момента объявления notifyLogRef
-  const snap = await fbDb.ref('notifyLog').once('value');
-  const raw = snap.val()||{};
-
-  // Flatten: {date: {pushId: entry}} → flat array
-  const all = [];
-  Object.entries(raw).forEach(([date, entries])=>{
-    if(date < cutoffStr) return;
-    Object.values(entries||{}).forEach(e=>all.push(e));
-  });
-
-  all.sort((a,b)=>(b.ts||'').localeCompare(a.ts||''));
+  // all уже отсортирован по ts Worker-ом, дополнительно фильтруем по типу на клиенте
   const filtered = typeF ? all.filter(e=>e.type===typeF) : all;
 
   // Stats
