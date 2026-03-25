@@ -12286,76 +12286,143 @@ async function renderCallsLog(){
 }
 
 async function showBinotelDebug(){
-  // Read binotelDebug + last 5 binotelCalls + crmChats
-  const [debugSnap, callsSnap, chatsSnap] = await Promise.all([
-    fbDb.ref('binotelDebug').limitToLast(20).once('value').catch(()=>null),
-    fbDb.ref('binotelCalls').limitToLast(5).once('value').catch(()=>null),
-    fbDb.ref('crmChats').once('value').catch(()=>null),
-  ]);
+  // Показываем заглушку пока грузим
+  const body2 = document.getElementById('callslog-body');
+  if(body2) body2.innerHTML += '<div id="dbg-loading" style="text-align:center;padding:20px;color:var(--t3)">Загрузка диагностики...</div>';
 
-  // Show last binotelCalls entries with their raw callType
+  const [debugSnap, callsSnap] = await Promise.all([
+    fbDb.ref('binotelDebug').limitToLast(30).once('value').catch(()=>null),
+    fbDb.ref('binotelCalls').limitToLast(10).once('value').catch(()=>null),
+  ]);
+  document.getElementById('dbg-loading')?.remove();
+
+  // Parse debug entries — separate CALL_SETTINGS, CALL_COMPLETED, others
+  const debugRaw = debugSnap?.val() || {};
+  const allDebug = Object.values(debugRaw)
+    .sort((a,b)=>(b.ts||'').localeCompare(a.ts||''));
+
+  // Parse each entry's raw JSON
+  const parsedDebug = allDebug.map(e=>{
+    let parsed = null;
+    try { parsed = JSON.parse(e.raw||'{}'); } catch {}
+    return { ts: e.ts, raw: e.raw||'', parsed };
+  });
+
+  // binotelCalls last entries
   const callsRaw = callsSnap?.val() || {};
   const lastCalls = Object.values(callsRaw).sort((a,b)=>(b.ts||'').localeCompare(a.ts||''));
-  const callsDebugHtml = lastCalls.length
-    ? `<div style="margin-bottom:16px">
-        <div style="font-size:11px;font-weight:700;color:var(--am);margin-bottom:6px">📞 Последние записи binotelCalls (callType из Firebase):</div>
-        ${lastCalls.map(c=>`
-        <div style="display:grid;grid-template-columns:auto auto auto auto 1fr;gap:8px;align-items:center;padding:5px 8px;background:var(--bg);border:1px solid var(--b2);border-radius:5px;margin-bottom:4px;font-size:10px">
-          <span style="color:var(--t3)">${(c.ts||'').slice(0,16)}</span>
-          <span style="font-weight:700;color:var(--am)">callType=<b style="color:var(--rd)">"${c.callType}"</b></span>
-          <span style="color:var(--t3)">rawCallType="${c.rawCallType||'нет'}"</span>
-          <span style="color:${c.isMissed?'var(--rd)':c.answered?'var(--gn)':'var(--t3)'}">${c.isMissed?'❌пропущ':c.answered?'✅отвеч':'нет отв.'}</span>
-          <span style="color:var(--t2)">${c.phone||''} ${c.leadName?'('+c.leadName+')':''}</span>
-        </div>`).join('')}
-        <div style="font-size:10px;color:var(--rd);margin-top:4px">⚠️ Если callType везде "1" — Binotel шлёт неправильный тип. Нужно видеть fullBody в debug ниже.</div>
-      </div>`
-    : '';
 
-  // Collect crmChats Binotel messages
-  const chatMsgs = [];
-  const chatsRaw = chatsSnap?.val() || {};
-  Object.entries(chatsRaw).forEach(([leadId, msgs]) => {
-    if(!msgs || typeof msgs !== 'object') return;
-    Object.values(msgs).forEach(m => {
-      if((m.name === 'Binotel' || m.type === 'call_recording') && m.ts){
-        chatMsgs.push({leadId, type: m.type, text: m.text||'', ts: m.ts, mediaUrl: m.mediaUrl||'', duration: m.duration||0});
-      }
-    });
-  });
-  chatMsgs.sort((a,b)=>(b.ts||'').localeCompare(a.ts||''));
-
-  const debugRaw = debugSnap?.val() || {};
-  const debugEntries = Object.values(debugRaw).sort((a,b)=>(b.ts||'').localeCompare(a.ts||''));
-
-  const chatHtml = chatMsgs.slice(0,20).map(m=>`
-    <div style="margin-bottom:6px;background:var(--bg);border:1px solid var(--b2);border-radius:5px;padding:6px 8px;font-size:10px">
-      <span style="color:var(--t3)">${m.ts.slice(0,19)}</span>
-      <span style="color:var(--ac2);margin:0 8px">[${m.leadId.slice(-6)}]</span>
-      <span style="color:${m.type==='call_recording'?'var(--gn)':'var(--t2)'}">${m.type}</span>:
-      <span style="color:var(--t1)">${m.text||''}</span>
-      ${m.mediaUrl?`<a href="${m.mediaUrl}" target="_blank" style="color:var(--gn);margin-left:8px">🎙 Запись</a>`:''}
-    </div>`).join('') || '<div style="color:var(--t3);font-size:11px">Нет сообщений от Binotel в чатах</div>';
-
-  const debugHtml = debugEntries.length
-    ? debugEntries.map(e=>`
-        <div style="margin-bottom:8px;background:var(--bg);border:1px solid var(--b2);border-radius:5px;padding:8px;font-size:10px">
-          <div style="color:var(--t3);margin-bottom:3px">${e.ts}</div>
-          <pre style="color:var(--t1);white-space:pre-wrap;word-break:break-all;margin:0;font-size:9px;max-height:200px;overflow-y:auto">${e.raw||''}</pre>
-        </div>`).join('')
-    : '<div style="color:var(--t3);font-size:11px">Нет raw-данных — нужен новый воркер. Ниже данные из чатов:</div>';
+  // Build tabbed modal
   const modal = document.createElement('div');
-  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:999;display:flex;align-items:center;justify-content:center';
-  modal.innerHTML=`<div style="background:var(--bg2);border:1px solid var(--b2);border-radius:12px;padding:20px;max-width:800px;width:95%;max-height:85vh;overflow-y:auto">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-      <b style="color:var(--t1)">🔍 Диагностика Binotel</b>
-      <button onclick="this.closest('[style]').remove()" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:18px">✕</button>
-    </div>
-    ${callsDebugHtml}
-    <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:6px">📨 Сообщения в чатах (тип Binotel):</div>
-    <div style="margin-bottom:16px">${chatHtml}</div>
-    <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:6px">📡 Raw-вебхуки (только новый воркер):</div>
-    <div>${debugHtml}</div>
-  </div>`;
+  modal.id = 'binotel-dbg-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;display:flex;align-items:center;justify-content:center';
+
+  // Tab state
+  let activeTab = 'raw';
+
+  const renderModal = () => {
+    const tabs = [
+      {k:'raw',   l:'📡 Raw от Binotel'},
+      {k:'calls', l:'📞 binotelCalls'},
+      {k:'tip',   l:'💡 Как читать'},
+    ];
+
+    // ── Tab: RAW ───────────────────────────────────────────────
+    const rawHtml = parsedDebug.length ? parsedDebug.map((e,i)=>{
+      const p = e.parsed || {};
+      const event = p.event || '?';
+      const eventColor = event==='CALL_COMPLETED'?'var(--gn)':event==='CALL_SETTINGS'?'#ff7eb3':'var(--am)';
+
+      // Pretty-print the fullBody
+      let bodyStr = '';
+      if(p.fullBody){
+        bodyStr = JSON.stringify(p.fullBody, null, 2);
+      } else {
+        // Format key fields
+        const keys = ['callType','direction','rawType','billsec','disposition','externalNumber','internalNumber','answered'];
+        bodyStr = keys.filter(k=>p[k]!==undefined).map(k=>`  ${k}: ${JSON.stringify(p[k])}`).join('\n');
+        if(!bodyStr) bodyStr = e.raw;
+      }
+
+      return \`<div style="margin-bottom:10px;background:var(--bg);border:1px solid var(--b1);border-radius:8px;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg3);cursor:pointer"
+          onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+          <span style="font-size:10px;font-weight:700;color:\${eventColor};background:\${eventColor}22;padding:2px 8px;border-radius:8px;flex-shrink:0">\${event}</span>
+          <span style="font-size:11px;color:var(--t3)">\${(e.ts||'').slice(0,19)}</span>
+          \${p.externalNumber?'<span style="font-size:11px;color:var(--t1)">📱 '+p.externalNumber+'</span>':''}
+          \${p.callType!==undefined?'<span style="font-size:10px;color:var(--am)">callType=<b>'+p.callType+'</b></span>':''}
+          \${p.rawType!==undefined?'<span style="font-size:10px;color:var(--t3)">rawType=<b>'+p.rawType+'</b></span>':''}
+          \${p.billsec!==undefined?'<span style="font-size:10px;color:var(--gn)">billsec=<b>'+p.billsec+'</b></span>':''}
+          <span style="margin-left:auto;font-size:11px;color:var(--t3)">▾</span>
+        </div>
+        <div style="display:\${i===0?'block':'none'};padding:10px 12px">
+          <pre style="font-size:9px;color:var(--t1);white-space:pre-wrap;word-break:break-all;margin:0;max-height:300px;overflow-y:auto;font-family:monospace">\${bodyStr.replace(/</g,'&lt;')}</pre>
+        </div>
+      </div>\`;
+    }).join('') : '<div style="color:var(--t3);padding:20px;text-align:center">Нет данных — задеплой новый Worker и сделай тестовый звонок</div>';
+
+    // ── Tab: CALLS ─────────────────────────────────────────────
+    const callsHtml = lastCalls.length ? \`
+      <table style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead>
+          <tr style="background:var(--bg3)">
+            <th style="padding:7px 10px;text-align:left;color:var(--t3);font-weight:600">Время</th>
+            <th style="padding:7px 10px;text-align:left;color:var(--t3);font-weight:600">Телефон</th>
+            <th style="padding:7px 10px;text-align:left;color:var(--t3);font-weight:600">callType</th>
+            <th style="padding:7px 10px;text-align:left;color:var(--t3);font-weight:600">rawCallType</th>
+            <th style="padding:7px 10px;text-align:left;color:var(--t3);font-weight:600">Статус</th>
+            <th style="padding:7px 10px;text-align:left;color:var(--t3);font-weight:600">billsec</th>
+          </tr>
+        </thead>
+        <tbody>
+          \${lastCalls.map(c=>\`<tr style="border-bottom:1px solid var(--b1)">
+            <td style="padding:7px 10px;color:var(--t3)">\${(c.ts||'').slice(0,16)}</td>
+            <td style="padding:7px 10px;color:var(--t1)">\${c.phone||'—'}</td>
+            <td style="padding:7px 10px;font-weight:700;color:\${c.callType==='0'?'var(--gn)':c.callType==='1'?'var(--ac2)':'var(--rd)'}">\${c.callType??'?'}</td>
+            <td style="padding:7px 10px;color:var(--am);font-family:monospace">\${c.rawCallType||'—'}</td>
+            <td style="padding:7px 10px;color:\${c.isMissed?'var(--rd)':c.answered?'var(--gn)':'var(--t3)'}">\${c.isMissed?'❌ Пропущен':c.answered?'✅ Отвечен':c.pending?'⏳ В процессе':'— нет отв.'}</td>
+            <td style="padding:7px 10px;color:var(--t2)">\${c.duration||0}с</td>
+          </tr>\`).join('')}
+        </tbody>
+      </table>
+      <div style="margin-top:10px;padding:8px 10px;background:var(--rdbg);border:1px solid rgba(240,89,117,.3);border-radius:8px;font-size:11px;color:var(--rd)">
+        ⚠️ Если все callType="1" — значит Binotel не присылает поле callType для входящих, или шлёт его с другим именем. Смотри вкладку «Raw от Binotel».
+      </div>\` : '<div style="color:var(--t3);padding:20px;text-align:center">Нет записей в binotelCalls</div>';
+
+    // ── Tab: TIP ───────────────────────────────────────────────
+    const tipHtml = \`<div style="font-size:12px;color:var(--t2);line-height:1.8">
+      <b style="color:var(--t1)">Как читать:</b><br><br>
+      <b>callType</b> — направление звонка в базе: <span style="color:var(--gn)">0</span>=входящий, <span style="color:var(--ac2)">1</span>=исходящий<br>
+      <b>rawCallType</b> — оригинальное значение от Binotel (до нормализации)<br>
+      <b>CALL_SETTINGS</b> — событие при начале входящего звонка (ещё до ответа)<br>
+      <b>CALL_COMPLETED</b> — событие при завершении любого звонка<br><br>
+      <b style="color:var(--am)">Что искать:</b><br>
+      Открой вкладку «Raw от Binotel», найди CALL_SETTINGS — там видно что именно шлёт Binotel.<br>
+      Если в raw нет поля <code>callType</code> — возможно используется другое имя (<code>direction</code>, <code>type</code> и т.д.).<br>
+      Если нет вообще ни одной CALL_SETTINGS записи — значит Worker не задеплоен или Binotel не настроен на нужный URL.
+    </div>\`;
+
+    const tabContent = activeTab==='raw'?rawHtml : activeTab==='calls'?callsHtml : tipHtml;
+
+    modal.innerHTML = \`<div style="background:var(--bg2);border:1px solid var(--b1);border-radius:14px;padding:20px;max-width:880px;width:96%;max-height:90vh;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-shrink:0">
+        <b style="font-size:14px;color:var(--t1)">🔍 Диагностика Binotel</b>
+        <button onclick="document.getElementById('binotel-dbg-modal').remove()" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:20px">✕</button>
+      </div>
+      <div style="display:flex;gap:4px;margin-bottom:14px;flex-shrink:0">
+        \${tabs.map(t=>\`<button onclick="(()=>{window._dbgTab='\${t.k}';document.getElementById('binotel-dbg-modal')._rerender();})()"
+          style="padding:6px 14px;font-size:12px;border-radius:7px;border:1px solid;cursor:pointer;font-family:var(--fb);\${activeTab===t.k?'background:var(--ac);border-color:var(--ac);color:#fff':'background:var(--bg3);border-color:var(--b2);color:var(--t2)'}">\${t.l}</button>\`).join('')}
+        <button onclick="(async()=>{const s=await fbDb.ref('binotelDebug').limitToLast(30).once('value').catch(()=>null);alert(JSON.stringify(s?.val()||{},null,2).slice(0,3000));})()"
+          style="margin-left:auto;padding:6px 12px;font-size:11px;border-radius:7px;border:1px solid var(--b2);background:var(--bg3);color:var(--t3);cursor:pointer">
+          📋 Копировать raw</button>
+      </div>
+      <div style="overflow-y:auto;flex:1">\${tabContent}</div>
+    </div>\`;
+
+    modal._rerender = ()=>{ activeTab=window._dbgTab||'raw'; renderModal(); };
+  };
+
+  renderModal();
   modal.addEventListener('click', e=>{ if(e.target===modal) modal.remove(); });
   document.body.appendChild(modal);
 }
