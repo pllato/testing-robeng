@@ -11438,6 +11438,51 @@ function crmDrop(event, newStage){
 }
 
 // ── OPEN CARD MODAL ───────────────────────────────────────────────
+
+// Заполняем дропдаун слотов для справочной пометки в CRM-карточке
+function fillCRMSlotHint(selectedVal){
+  const sel = document.getElementById('crm-f-slothint');
+  if(!sel) return;
+
+  const today = new Date().toISOString().slice(0,10);
+  const DS = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+
+  // Собираем свободные слоты: все слоты преподавателей у кого есть место
+  const slotMap = {}; // "teacherId_day_ti" → {teacher, day, ti, seats}
+
+  S.teachers.filter(t=>t.status==='active').forEach(t=>{
+    const avail = (S.avail||{})[t.id]||{};
+    // Смотрим все ячейки доступности
+    Object.entries(avail).forEach(([dayStr, times])=>{
+      const day = parseInt(dayStr);
+      Object.entries(times||{}).forEach(([tiStr, on])=>{
+        if(!on) return;
+        const ti = parseInt(tiStr);
+        // Считаем сколько уже занято
+        const occupied = S.enrollments.filter(e=>
+          !e.inactive && enrollActive(e,today) &&
+          String(e.teacherId)===String(t.id) &&
+          e.slots.some(sl=>sl.day===day&&sl.ti===ti)
+        ).length;
+        const key = `${t.id}_${day}_${ti}`;
+        slotMap[key] = { teacher:t, day, ti, occupied };
+      });
+    });
+  });
+
+  // Строим опции — сортируем по дню, затем по времени
+  const opts = Object.entries(slotMap)
+    .sort(([,a],[,b])=> a.day!==b.day ? a.day-b.day : a.ti-b.ti)
+    .map(([key,{teacher,day,ti,occupied}])=>{
+      const timeStr = (typeof TIMES!=='undefined'&&TIMES[ti])||'--:--';
+      const label = `${DS[day]} ${timeStr} · ${teacher.name} (${occupied} уч.)`;
+      return `<option value="${key}" ${key===selectedVal?'selected':''}>${label}</option>`;
+    });
+
+  sel.innerHTML = '<option value="">— Не выбран —</option>' + opts.join('');
+  if(selectedVal) sel.value = selectedVal;
+}
+
 function openCRMCard(id){
   _crmEditId = id || null;
   const modal = document.getElementById('m-crm-card');
@@ -11482,6 +11527,12 @@ function openCRMCard(id){
       document.getElementById('crm-f-trialdate').value = l.trialDate||'';
       const ttEl = document.getElementById('crm-f-trialtime');
       if(ttEl) ttEl.value = l.trialTime||'14:00';
+      // Новые поля ученика
+      document.getElementById('crm-f-childname').value = l.childName||'';
+      document.getElementById('crm-f-childphone').value = l.childPhone||'';
+      document.getElementById('crm-f-billphone').value = l.billPhone||'';
+      // Заполняем слоты и выбираем сохранённый
+      fillCRMSlotHint(l.slotHint||'');
       // Fill trial teacher
       const ttchEl = document.getElementById('crm-f-trialteacher');
       if(ttchEl){
@@ -11557,6 +11608,10 @@ function openCRMCard(id){
     renderCRMStageBar('new');
     document.getElementById('crm-f-assignee').value='';
     document.getElementById('crm-f-trialdate').value='';
+    document.getElementById('crm-f-childname').value='';
+    document.getElementById('crm-f-childphone').value='';
+    document.getElementById('crm-f-billphone').value='';
+    const sh=document.getElementById('crm-f-slothint'); if(sh)sh.value='';
     document.getElementById('crm-card-ttl').textContent = 'Новый лид';
     document.getElementById('crm-chat-preview').innerHTML='';
     modal.classList.add('open');
@@ -11582,6 +11637,10 @@ function saveCRMCard(){
     trialDate: document.getElementById('crm-f-trialdate').value,
     trialTime: document.getElementById('crm-f-trialtime')?.value||'',
     trialTeacherId: document.getElementById('crm-f-trialteacher')?.value||'',
+    childName: document.getElementById('crm-f-childname')?.value.trim()||'',
+    childPhone: document.getElementById('crm-f-childphone')?.value.trim()||'',
+    billPhone: document.getElementById('crm-f-billphone')?.value.trim()||'',
+    slotHint: document.getElementById('crm-f-slothint')?.value||'',
     updatedAt: now,
   };
   if(_crmEditId){
@@ -13445,6 +13504,34 @@ function addCRMLinkToStudent(studentEl, phone){
           <button onclick="crmWACall(_crmEditId)" style="background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.3);border-radius:6px;color:var(--gn);cursor:pointer;padding:5px 12px;font-size:11px;font-weight:600">📞 WA звонок</button>
           <button onclick="crmCall(_crmEditId)" style="background:rgba(124,92,252,.1);border:1px solid rgba(124,92,252,.3);border-radius:6px;color:var(--ac2);cursor:pointer;padding:5px 12px;font-size:11px;font-weight:600">📞 Binotel</button>
         </div>
+
+        <!-- ── Данные ученика (справочно) ────────────────── -->
+        <div style="background:var(--bg3);border-radius:10px;padding:10px 12px;margin-bottom:8px;border:1px solid var(--b1)">
+          <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">🎓 Данные ученика (справочно)</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+            <div>
+              <label style="font-size:11px;color:var(--t2);display:block;margin-bottom:3px">Имя ученика</label>
+              <input id="crm-f-childname" placeholder="Иван" style="width:100%;background:var(--bg2);border:1px solid var(--b2);border-radius:6px;color:var(--t1);font-family:var(--fb);font-size:12px;padding:6px 9px;box-sizing:border-box"/>
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--t2);display:block;margin-bottom:3px">📱 Телефон ученика</label>
+              <input id="crm-f-childphone" placeholder="+7 700 000 00 00" style="width:100%;background:var(--bg2);border:1px solid var(--b2);border-radius:6px;color:var(--t1);font-family:var(--fb);font-size:12px;padding:6px 9px;box-sizing:border-box"/>
+            </div>
+          </div>
+          <div style="margin-bottom:8px">
+            <label style="font-size:11px;color:var(--t2);display:block;margin-bottom:3px">💳 Номер для счёта (Kaspi и др.)</label>
+            <input id="crm-f-billphone" placeholder="+7 700 000 00 00" style="width:100%;background:var(--bg2);border:1px solid var(--b2);border-radius:6px;color:var(--t1);font-family:var(--fb);font-size:12px;padding:6px 9px;box-sizing:border-box"/>
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--t2);display:block;margin-bottom:3px">📅 Предварительный слот</label>
+            <select id="crm-f-slothint"
+              style="width:100%;background:var(--bg2);border:1px solid var(--b2);border-radius:6px;color:var(--t1);font-family:var(--fb);font-size:12px;padding:6px 9px;box-sizing:border-box">
+              <option value="">— Не выбран —</option>
+            </select>
+            <div style="font-size:10px;color:var(--t3);margin-top:4px">💡 Справочно — слот не бронируется, только как пометка</div>
+          </div>
+        </div>
+
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
           <div class="fr">
             <label>Источник</label>
