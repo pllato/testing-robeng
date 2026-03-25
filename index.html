@@ -12104,20 +12104,24 @@ async function renderCallsLog(){
 
   const calls = [];
 
-  // ── Source 1: binotelCalls (new worker) ──────────────────────────
+  // ── Source 1: binotelCalls ────────────────────────────────────────
   const binotelRaw = binotelSnap?.val() || {};
   const usedBinotelKeys = new Set();
+
+  console.group('%c📞 renderCallsLog — загрузка данных', 'color:#a87fff;font-weight:bold;font-size:13px');
+  console.log('binotelCalls — записей в Firebase:', Object.keys(binotelRaw).length);
+  console.log('binotelCalls — сырые данные:', binotelRaw);
+
   Object.values(binotelRaw).forEach(c => {
-    if(!c.ts) return;
-    // Нормализуем callType — поддерживаем все форматы Binotel
+    if(!c.ts) { console.warn('binotelCalls: запись без ts, пропускаем', c); return; }
     const ct = resolveCallType(c.callType, c.rawCallType);
-    // pending=true значит CALL_SETTINGS пришёл но COMPLETED ещё нет
-    // через 10+ мин такой звонок считаем пропущенным
     const isPending = !!c.pending;
     const pendingAge = isPending ? (Date.now() - new Date(c.ts||0).getTime()) : 0;
-    const treatAsMissed = isPending && pendingAge > 10*60*1000; // >10 мин = пропущен
-    if(isPending && !treatAsMissed) return; // ещё «в процессе» — не показываем
-
+    const treatAsMissed = isPending && pendingAge > 10*60*1000;
+    if(isPending && !treatAsMissed) {
+      console.log('binotelCalls: pending (ещё идёт), пропускаем:', c.phone, c.ts);
+      return;
+    }
     calls.push({
       ts: c.ts, phone: c.phone||'', callType: ct,
       duration: c.duration||0, answered: !!(c.answered||c.duration>0),
@@ -12127,21 +12131,24 @@ async function renderCallsLog(){
       internalNumber: c.internalNumber||'', src:'binotelCalls',
       rawCallType: c.rawCallType||'',
     });
-    usedBinotelKeys.add(c.phone + '|' + c.ts.slice(0,16)); // minute-level dedup
+    usedBinotelKeys.add(c.phone + '|' + c.ts.slice(0,16));
   });
+  console.log('binotelCalls → добавлено в calls:', calls.length);
 
-  // ── Source 2: crmChats — read per lead ───────────────────────────
+  // ── Source 2: crmChats ───────────────────────────────────────────
   const leadsRaw = leadsSnap?.val() || {};
   const chatsRaw = chatsSnap?.val() || {};
+  console.log('crmChats — лидов:', Object.keys(leadsRaw).length, '| чатов:', Object.keys(chatsRaw).length);
+
+  let chatCallsFound = 0;
+  let chatRecordingsFound = 0;
 
   Object.entries(chatsRaw).forEach(([leadId, msgs]) => {
     if(!msgs || typeof msgs !== 'object') return;
     const lead = leadsRaw[leadId] || {};
     const leadPhone = lead.phone || '';
     const leadName  = lead.name  || '';
-
-    // Group: find system Binotel messages + their paired recording
-    const byMinute = {}; // "YYYY-MM-DDTHH:MM" → entry
+    const byMinute = {};
 
     Object.values(msgs).forEach(m => {
       if(!m.ts) return;
@@ -12150,20 +12157,17 @@ async function renderCallsLog(){
       if(m.type === 'call_recording' && m.mediaUrl){
         if(!byMinute[minute]) byMinute[minute] = {};
         byMinute[minute].recording = m.mediaUrl;
-        byMinute[minute].duration  = m.duration || byMinute[minute]?.duration || 0;
+        byMinute[minute].duration  = m.duration || 0;
+        chatRecordingsFound++;
+        console.log('crmChats: запись разговора найдена:', leadName||leadPhone, m.mediaUrl.slice(0,60));
       }
 
       if(m.type === 'system' && m.name === 'Binotel' && m.text){
-        const txt   = m.text;
-        // Поддерживаем оба формата:
-        // Новый: "📞↗ ✅ Звонок: 2 мин 15 сек"
-        // Старый: "📞 Исходящий звонок: 77773520009 → +77011239999"
-        // Определяем направление из иконки в тексте сообщения
+        const txt = m.text;
         const isOut = txt.includes('📞↗') || txt.includes('↗️') || txt.includes('Исходящий');
         const isIn  = txt.includes('📞↙') || txt.includes('↙️') || txt.includes('Входящий');
-        // Если нет явного признака — считаем входящим (безопаснее)
         const answered = txt.includes('✅') || /\d+ мин \d+ сек/.test(txt);
-        const missed   = !answered && (isIn || !isOut); // пропущен только если входящий
+        const missed   = !answered && (isIn || !isOut);
         const durMatch = txt.match(/(\d+) мин (\d+) сек/);
         const dur = durMatch ? parseInt(durMatch[1])*60 + parseInt(durMatch[2]) : 0;
         if(!byMinute[minute]) byMinute[minute] = {};
@@ -12172,27 +12176,43 @@ async function renderCallsLog(){
           duration: dur, answered, isMissed: missed,
           leadId, leadName, internalNumber: '', src: 'chat',
         });
+        console.log('crmChats: Binotel сообщение:', leadName||leadPhone,
+          '| направление:', isOut?'ИСХОДЯЩИЙ':isIn?'ВХОДЯЩИЙ':'НЕИЗВЕСТНО',
+          '| answered:', answered, '| missed:', missed,
+          '| текст:', txt.slice(0,80));
       }
     });
 
     Object.entries(byMinute).forEach(([minute, entry]) => {
       if(!entry.ts) return;
-      // Skip if already in binotelCalls (dedup by phone+minute)
-      if(usedBinotelKeys.has(leadPhone+'|'+minute)) return;
+      if(usedBinotelKeys.has(leadPhone+'|'+minute)) {
+        console.log('crmChats: дубль binotelCalls, пропускаем:', leadPhone, minute);
+        return;
+      }
       calls.push({
         ts: entry.ts, phone: entry.phone||leadPhone,
         callType: entry.callType||'0',
-        duration: entry.recording ? (entry.duration||0) : (entry.duration||0),
+        duration: entry.duration||0,
         answered: !!entry.answered, isMissed: !!entry.isMissed,
         recordingLink: entry.recording||'',
         leadId: entry.leadId||leadId, leadName: entry.leadName||leadName,
-        internalNumber: entry.internalNumber||'', src:'chat',
+        internalNumber: '', src:'chat',
       });
+      chatCallsFound++;
       usedBinotelKeys.add(leadPhone+'|'+minute);
     });
   });
 
+  console.log('crmChats → добавлено звонков:', chatCallsFound, '| записей разговоров:', chatRecordingsFound);
+  console.log('ИТОГО calls:', calls.length);
+
   calls.sort((a,b) => (b.ts||'').localeCompare(a.ts||''));
+
+  const byDir = calls.reduce((acc,c)=>{ acc[c.callType]=(acc[c.callType]||0)+1; return acc; }, {});
+  const byStatus = { answered: calls.filter(c=>c.answered).length, missed: calls.filter(c=>c.isMissed).length, rec: calls.filter(c=>c.recordingLink).length };
+  console.log('По направлению — callType=0(входящий):', byDir['0']||0, '| callType=1(исходящий):', byDir['1']||0, '| остальные:', JSON.stringify(byDir));
+  console.log('По статусу — отвечено:', byStatus.answered, '| пропущено:', byStatus.missed, '| с записью:', byStatus.rec);
+  console.groupEnd();
 
   const missed = calls.filter(c => c.isMissed).length;
   const badge = document.getElementById('missed-badge');
@@ -12297,6 +12317,45 @@ async function showBinotelDebug(){
 
   const dbgList = Object.values(dbgSnap?.val()||{}).sort((a,b)=>(b.ts||'').localeCompare(a.ts||''));
   const callsList = Object.values(callsSnap?.val()||{}).sort((a,b)=>(b.ts||'').localeCompare(a.ts||''));
+
+  // ── Console debug output ──────────────────────────────────────
+  console.group('%c🔍 Binotel Debug', 'color:#a87fff;font-weight:bold;font-size:14px');
+
+  console.group('%c📡 binotelDebug (' + dbgList.length + ' записей)', 'color:#ff7eb3;font-weight:600');
+  dbgList.forEach((e, i) => {
+    let p = {}; try { p = JSON.parse(e.raw||'{}'); } catch(ex) {}
+    const ev = p.event || 'unknown';
+    const evStyle = ev==='CALL_COMPLETED' ? 'color:#3fd88e' : ev==='CALL_SETTINGS' ? 'color:#ff7eb3' : 'color:#f5c842';
+    console.group('%c[' + (e.ts||'').slice(0,19) + '] ' + ev, evStyle);
+    if(p.externalNumber) console.log('📱 externalNumber:', p.externalNumber);
+    if(p.internalNumber) console.log('☎️  internalNumber:', p.internalNumber);
+    if(p.callType !== undefined) console.log('📌 callType:', p.callType, '(raw field from Binotel)');
+    if(p.rawType  !== undefined) console.log('📌 rawType:', p.rawType);
+    if(p.direction !== undefined) console.log('📌 direction:', p.direction);
+    if(p.billsec  !== undefined) console.log('⏱  billsec:', p.billsec);
+    if(p.disposition !== undefined) console.log('📋 disposition:', p.disposition);
+    if(p.bodyKeys)  console.log('🔑 bodyKeys (все поля от Binotel):', p.bodyKeys);
+    if(p.fullBody)  console.log('📦 fullBody (полный объект):', p.fullBody);
+    else            console.log('📄 raw:', e.raw);
+    console.groupEnd();
+  });
+  if(!dbgList.length) console.warn('Нет записей в binotelDebug — задеплой Worker и сделай звонок');
+  console.groupEnd();
+
+  console.group('%c📞 binotelCalls (' + callsList.length + ' записей)', 'color:#3fc8d8;font-weight:600');
+  callsList.forEach(c => {
+    const ctIcon = c.callType==='0' ? '📞↙ ВХОДЯЩИЙ' : c.callType==='1' ? '📞↗ ИСХОДЯЩИЙ' : '❓ НЕИЗВЕСТНО';
+    const status = c.isMissed ? '❌ ПРОПУЩЕН' : c.answered ? '✅ ОТВЕЧЕН' : c.pending ? '⏳ В ПРОЦЕССЕ' : '— нет ответа';
+    console.group(ctIcon + ' | ' + (c.phone||'—') + ' | ' + (c.ts||'').slice(0,16));
+    console.log('callType:', c.callType, '| rawCallType:', c.rawCallType||'нет');
+    console.log('Статус:', status, '| billsec:', c.duration||0, 'с');
+    if(c.leadName) console.log('Лид:', c.leadName, '(' + c.leadId + ')');
+    console.groupEnd();
+  });
+  if(!callsList.length) console.warn('Нет записей в binotelCalls');
+  console.groupEnd();
+
+  console.groupEnd(); // end Binotel Debug
 
   const overlay = document.createElement('div');
   overlay.id = 'binotel-dbg-modal';
