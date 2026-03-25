@@ -12077,6 +12077,20 @@ let _wachatsFilterAssignee = ''; // uid or '' for all
 // ─── CALLS LOG ───────────────────────────────────────────────────────
 let _callsFilter = 'all';
 
+
+// Нормализация callType из Binotel — поддерживает все версии API
+function resolveCallType(callType, rawCallType){
+  // Проверяем все возможные форматы
+  const check = v => {
+    if(v === null || v === undefined) return null;
+    const s = String(v).toLowerCase().trim();
+    if(s === '1' || s === 'out' || s === 'outbound' || s === 'outgoing') return '1';
+    if(s === '0' || s === 'in'  || s === 'inbound'  || s === 'incoming') return '0';
+    return null;
+  };
+  return check(callType) || check(rawCallType) || '0'; // по умолчанию входящий
+}
+
 async function renderCallsLog(){
   const body = document.getElementById('callslog-body');
   if(!body) return;
@@ -12095,12 +12109,15 @@ async function renderCallsLog(){
   const usedBinotelKeys = new Set();
   Object.values(binotelRaw).forEach(c => {
     if(!c.ts) return;
+    // Нормализуем callType — поддерживаем все форматы Binotel
+    const ct = resolveCallType(c.callType, c.rawCallType);
     calls.push({
-      ts: c.ts, phone: c.phone||'', callType: String(c.callType||'0'),
+      ts: c.ts, phone: c.phone||'', callType: ct,
       duration: c.duration||0, answered: !!(c.answered||c.duration>0),
       isMissed: !!c.isMissed, recordingLink: c.recordingLink||'',
       leadId: c.leadId||'', leadName: c.leadName||'',
       internalNumber: c.internalNumber||'', src:'binotelCalls',
+      rawCallType: c.rawCallType||'',
     });
     usedBinotelKeys.add(c.phone + '|' + c.ts.slice(0,16)); // minute-level dedup
   });
@@ -12133,9 +12150,12 @@ async function renderCallsLog(){
         // Поддерживаем оба формата:
         // Новый: "📞↗ ✅ Звонок: 2 мин 15 сек"
         // Старый: "📞 Исходящий звонок: 77773520009 → +77011239999"
-        const isOut = txt.includes('📞↗') || txt.includes('Исходящий') || txt.includes('↗');
+        // Определяем направление из иконки в тексте сообщения
+        const isOut = txt.includes('📞↗') || txt.includes('↗️') || txt.includes('Исходящий');
+        const isIn  = txt.includes('📞↙') || txt.includes('↙️') || txt.includes('Входящий');
+        // Если нет явного признака — считаем входящим (безопаснее)
         const answered = txt.includes('✅') || /\d+ мин \d+ сек/.test(txt);
-        const missed   = !answered && !isOut;
+        const missed   = !answered && (isIn || !isOut); // пропущен только если входящий
         const durMatch = txt.match(/(\d+) мин (\d+) сек/);
         const dur = durMatch ? parseInt(durMatch[1])*60 + parseInt(durMatch[2]) : 0;
         if(!byMinute[minute]) byMinute[minute] = {};
@@ -12201,7 +12221,8 @@ async function renderCallsLog(){
   const rows = filtered.map(c=>{
     const isOut = String(c.callType)==='1';
     const unk   = c.callType==='?';
-    const dirIcon  = unk?'📞': isOut?'📞↗':'📞↙';
+    const dirIcon  = c.isMissed ? '📵' : isOut ? '📞↗' : '📞↙';
+    const dirLabel = c.isMissed ? 'Пропущен' : isOut ? 'Исходящий' : 'Входящий';
     const statusColor = c.isMissed?'var(--rd)': c.answered?'var(--gn)':'var(--t3)';
     const statusLabel = c.isMissed?'❌ Пропущен': c.answered?'✅ Отвечен':'— Нет ответа';
     const durStr = c.duration>0?`${Math.floor(c.duration/60)}м ${c.duration%60}с`:'—';
@@ -12228,9 +12249,10 @@ async function renderCallsLog(){
       :'';
 
     return`<div style="display:grid;grid-template-columns:52px 1fr auto;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--b1)">
-      <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
-        <span style="font-size:18px">${dirIcon}</span>
-        <span style="font-size:9px;font-weight:700;color:${statusColor};text-align:center;line-height:1.2">${statusLabel}</span>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:1px;min-width:44px">
+        <span style="font-size:20px">${dirIcon}</span>
+        <span style="font-size:8px;font-weight:600;color:${isOut?'var(--ac2)':c.isMissed?'var(--rd)':'var(--gn)'};text-align:center;line-height:1.2">${dirLabel}</span>
+        <span style="font-size:8px;color:${statusColor};text-align:center;line-height:1.2">${c.isMissed?'':c.answered?'':'нет отв.'}</span>
       </div>
       <div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
