@@ -12278,11 +12278,30 @@ async function renderCallsLog(){
 }
 
 async function showBinotelDebug(){
-  // Read BOTH binotelDebug (new worker) AND scan crmChats for Binotel system messages
-  const [debugSnap, chatsSnap] = await Promise.all([
-    fbDb.ref('binotelDebug').limitToLast(10).once('value').catch(()=>null),
+  // Read binotelDebug + last 5 binotelCalls + crmChats
+  const [debugSnap, callsSnap, chatsSnap] = await Promise.all([
+    fbDb.ref('binotelDebug').limitToLast(20).once('value').catch(()=>null),
+    fbDb.ref('binotelCalls').limitToLast(5).once('value').catch(()=>null),
     fbDb.ref('crmChats').once('value').catch(()=>null),
   ]);
+
+  // Show last binotelCalls entries with their raw callType
+  const callsRaw = callsSnap?.val() || {};
+  const lastCalls = Object.values(callsRaw).sort((a,b)=>(b.ts||'').localeCompare(a.ts||''));
+  const callsDebugHtml = lastCalls.length
+    ? `<div style="margin-bottom:16px">
+        <div style="font-size:11px;font-weight:700;color:var(--am);margin-bottom:6px">📞 Последние записи binotelCalls (callType из Firebase):</div>
+        ${lastCalls.map(c=>`
+        <div style="display:grid;grid-template-columns:auto auto auto auto 1fr;gap:8px;align-items:center;padding:5px 8px;background:var(--bg);border:1px solid var(--b2);border-radius:5px;margin-bottom:4px;font-size:10px">
+          <span style="color:var(--t3)">${(c.ts||'').slice(0,16)}</span>
+          <span style="font-weight:700;color:var(--am)">callType=<b style="color:var(--rd)">"${c.callType}"</b></span>
+          <span style="color:var(--t3)">rawCallType="${c.rawCallType||'нет'}"</span>
+          <span style="color:${c.isMissed?'var(--rd)':c.answered?'var(--gn)':'var(--t3)'}">${c.isMissed?'❌пропущ':c.answered?'✅отвеч':'нет отв.'}</span>
+          <span style="color:var(--t2)">${c.phone||''} ${c.leadName?'('+c.leadName+')':''}</span>
+        </div>`).join('')}
+        <div style="font-size:10px;color:var(--rd);margin-top:4px">⚠️ Если callType везде "1" — Binotel шлёт неправильный тип. Нужно видеть fullBody в debug ниже.</div>
+      </div>`
+    : '';
 
   // Collect crmChats Binotel messages
   const chatMsgs = [];
@@ -12323,6 +12342,7 @@ async function showBinotelDebug(){
       <b style="color:var(--t1)">🔍 Диагностика Binotel</b>
       <button onclick="this.closest('[style]').remove()" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:18px">✕</button>
     </div>
+    ${callsDebugHtml}
     <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:6px">📨 Сообщения в чатах (тип Binotel):</div>
     <div style="margin-bottom:16px">${chatHtml}</div>
     <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:6px">📡 Raw-вебхуки (только новый воркер):</div>
