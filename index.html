@@ -542,6 +542,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
     </div>
     <!-- SCHEDULE -->
     <div class="panel" id="panel-schedule">
+      <div id="sched-occ-bar" class="admin-only" style="background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);padding:8px 14px;margin-bottom:10px;display:flex;align-items:center;gap:14px;flex-wrap:wrap"></div>
       <div class="filters">
         <div class="view-toggle">
           <button class="vt-btn active" id="vt-one" onclick="setView('one')">По преподавателю</button>
@@ -3464,11 +3465,7 @@ function renderCompanyPulse(){
         <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">❤️ Пульс компании</div>
         <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
           <span style="font-family:var(--fd);font-size:42px;font-weight:700;color:${pulseColor};line-height:1">${todayScore}</span>
-          <div>
-            <div style="font-size:12px;font-weight:700;color:${diffColor}">${diff===0?'—':diffSign+Math.abs(diff)} к вчера</div>
-            <div style="font-size:10px;color:var(--t3)">тиков за день</div>
-          </div>
-          <span style="font-size:28px;margin-left:4px">${pulseEmoji}</span>
+          <span style="font-size:28px;margin-left:8px">${pulseEmoji}</span>
         </div>
         <!-- Текущий пульс (скользящий час) -->
         <div class="ph-wrap" style="margin-top:10px">
@@ -3499,10 +3496,16 @@ function renderCompanyPulse(){
         </div>
       </div>
 
-      <!-- Chart -->
+      <!-- Chart collapsible -->
       <div style="flex:1;min-width:240px">
-        <div style="font-size:10px;color:var(--t3);margin-bottom:6px">По дням (абс. значения)</div>
-        ${svgStr}
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <span style="font-size:10px;color:var(--t3)">По дням (абс. значения)</span>
+          <button onclick="(el=>el.style.display=el.style.display==='none'?'block':'none')(this.parentElement.nextElementSibling);this.textContent=this.textContent.trim()==='▾'?'▸':'▾'"
+            style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:13px;padding:0 2px;line-height:1">▾</button>
+        </div>
+        <div class="pulse-day-chart">
+          ${svgStr}
+        </div>
       </div>
     </div>
 
@@ -3837,7 +3840,6 @@ function renderDashboard(){
         </div>`:''}
       </div>
     </div>
-    <div class="stat"><div class="stat-lbl">Занятость слотов</div><div class="stat-val cv">${occPct}%</div><div class="stat-sub">${occ} из ${tot} мест</div></div>
     ${(()=>{const vs=calcVideoStats(activeEnrolls.map(e=>e.id),dates);return`
     <div class="stat" style="border-color:var(--acb)">
       <div class="stat-lbl">🎥 Видео уроков</div>
@@ -4744,6 +4746,19 @@ function buildSchedTable(tid,wd,today,isCurWeek){
 }
 
 function renderSchedule(){
+  // Занятость слотов — только для админа
+  const occBar = document.getElementById('sched-occ-bar');
+  if(occBar && currentRole==='admin'){
+    const _tot=totalSlots(), _occ=occupiedSlots(), _pct=_tot>0?Math.round(_occ/_tot*100):0;
+    const pctColor = _pct>=80?'var(--rd)':_pct>=50?'var(--am)':'var(--gn)';
+    occBar.innerHTML=`
+      <span style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em">📊 Занятость слотов</span>
+      <span style="font-family:var(--fd);font-size:22px;font-weight:700;color:${pctColor}">${_pct}%</span>
+      <span style="font-size:12px;color:var(--t3)">${_occ} из ${_tot} мест занято</span>
+      <div style="flex:1;min-width:120px;height:6px;background:var(--bg4);border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${_pct}%;background:${pctColor};border-radius:3px;transition:width .3s"></div>
+      </div>`;
+  }
   const wd=window._wd||[];
   const today=new Date().toISOString().slice(0,10);
   const isCurWeek=weekOffset===0;
