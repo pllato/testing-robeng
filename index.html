@@ -12312,7 +12312,7 @@ async function showBinotelDebug(){
       var bodyStr = p.fullBody ? JSON.stringify(p.fullBody, null, 2) : (e.raw||'');
       var id = 'dbg-body-'+i;
       return '<div style="margin-bottom:8px;border:1px solid var(--b1);border-radius:8px;overflow:hidden">'
-        + '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg3);cursor:pointer" onclick="var x=document.getElementById(''+id+'');x.style.display=x.style.display==='none'?'block':'none'">'
+        + '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg3);cursor:pointer" onclick="var x=document.getElementById(\''+id+'\');x.style.display=x.style.display===\'none\'?\'block\':\'none\'">'
         + '<span style="font-size:10px;font-weight:700;color:'+evColor+';background:'+evColor+'22;padding:2px 8px;border-radius:6px">'+ev+'</span>'
         + '<span style="font-size:11px;color:var(--t3)">'+(e.ts||'').slice(0,19)+'</span>'
         + (p.externalNumber ? '<span style="font-size:11px;color:var(--t1)">📱 '+p.externalNumber+'</span>' : '')
