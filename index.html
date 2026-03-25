@@ -453,7 +453,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
       <div id="reminder-fail-block" class="admin-only"></div>
       <div id="dup-warn-dash"></div>
       <div class="stats-row" id="stats"></div>
-      <div id="dash-rpt-stats"></div>
+      <div id="dash-pulse-block" class="admin-only"></div>
       <div id="dash-charts-block" class="admin-only"></div>
       <div id="dash-survey-block" class="admin-only"></div>
       <div id="dash-leaderboard-block" class="admin-only"></div>
@@ -3195,6 +3195,282 @@ function buildLineChartSVG(data,max,colorHex,quota=0){
   return svg;
 }
 
+
+// ═══════════════════════════════════════════════════════
+//  ПУЛЬС КОМПАНИИ — бесконечная шкала, ~10–1000
+// ═══════════════════════════════════════════════════════
+
+// Веса тиков (очки за каждое событие)
+const PULSE_W = {
+  // CRM / продажи
+  enroll:           50,  // новый старт — большое событие
+  renewal:          40,  // продление
+  extend:           40,
+  payment_received: 30,  // оплата
+  crm_stage:        15,  // смена стадии
+  crm_new:          20,  // новое обращение
+  // Обучение
+  report:           25,  // видео-отчёт загружен
+  attendance:        8,  // отметка посещаемости
+  vacation:          5,
+  reactivate:       20,
+  start_confirmed:  30,
+  // Коммуникация
+  wa_in:             5,  // входящее WA сообщение
+  wa_out:            8,  // исходящее (ответ)
+  survey_done:      20,  // опрос заполнен родителем
+  survey_sent:      10,  // опрос отправлен
+  video_approved:   15,  // видео одобрено
+  // Система
+  other:             3,
+  teacher:           5,
+  // Отрицательные
+  deactivate:      -40,  // ученик ушёл
+  payment_delayed: -10,
+};
+
+// Категории для разбивки
+const PULSE_CATS = {
+  crm_new:         { icon:'📥', label:'Входящие обращения',   who:'Регистраторы',               color:'var(--tl)' },
+  enroll:          { icon:'🚀', label:'Новые старты',         who:'Регистраторы',               color:'var(--ac2)' },
+  renewal:         { icon:'🔄', label:'Продления',             who:'Регистраторы + Препод.',     color:'var(--tl)' },
+  payment_received:{ icon:'💰', label:'Оплаты',               who:'Регистраторы',               color:'var(--gn)' },
+  crm_stage:       { icon:'💼', label:'Смены стадий CRM',     who:'Регистраторы',               color:'#ff7eb3' },
+  attendance:      { icon:'✅', label:'Отметки посещаемости', who:'Преподаватели',              color:'var(--gn)' },
+  report:          { icon:'🎥', label:'Видео-отчёты',         who:'Преподаватели',              color:'#3fc8d8' },
+  video_approved:  { icon:'✅', label:'Видео одобрено',       who:'Администратор',              color:'var(--gn)' },
+  wa_in:           { icon:'💬', label:'Входящие WA',          who:'Родители/Ученики',           color:'#3fd88e' },
+  wa_out:          { icon:'💬', label:'Исходящие WA',         who:'Регистраторы',               color:'var(--ac2)' },
+  survey_done:     { icon:'📋', label:'Опросы заполнены',     who:'Родители',                   color:'#e8a838' },
+  survey_sent:     { icon:'📋', label:'Опросы отправлены',    who:'Система',                    color:'#e8a838' },
+  deactivate:      { icon:'📉', label:'Деактивации',          who:'⚠️ Отток',                  color:'var(--rd)' },
+  payment_delayed: { icon:'⏳', label:'Задержки оплаты',      who:'Регистраторы',               color:'var(--am)' },
+};
+
+function renderCompanyPulse(){
+  const el = document.getElementById('dash-pulse-block');
+  if(!el) return;
+
+  const journal = S.journal || [];
+  const att = S.attendance || {};
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+
+  // 7 дней
+  const days7 = [];
+  for(let i=6;i>=0;i--){
+    const d = new Date(now); d.setDate(d.getDate()-i);
+    days7.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
+  }
+
+  const dayScores = {};
+  const dayCounts = {};
+  days7.forEach(d=>{ dayScores[d]=0; dayCounts[d]={}; });
+
+  function addTick(date, cat, n=1){
+    if(!days7.includes(date)) return;
+    const w = (PULSE_W[cat]||0) * n;
+    dayScores[date] = (dayScores[date]||0) + w;
+    dayCounts[date][cat] = (dayCounts[date][cat]||0) + n;
+  }
+
+  // ── CRM: новые обращения ──
+  const crmLeads = window._crmLeadsCache ? Object.values(window._crmLeadsCache) : [];
+  crmLeads.forEach(l=>{ addTick((l.createdAt||'').slice(0,10), 'crm_new'); });
+
+  // ── CRM: входящие WA сообщения (msgCount приращение неудобно считать,
+  //    считаем лиды у кого lastContact попал в день)
+  crmLeads.forEach(l=>{
+    const d = (l.lastContact||'').slice(0,10);
+    if(d && d !== (l.createdAt||'').slice(0,10)) addTick(d, 'wa_in');
+  });
+
+  // ── Journal actions ──
+  journal.forEach(j=>{
+    const d = j.isoDate;
+    if(!days7.includes(d)) return;
+    const type = j.type==='extend'?'renewal':j.type;
+
+    // Видео одобрено — из журнала 'other' с текстом 'одобрено'
+    if(j.type==='other' && (j.msg||'').toLowerCase().includes('одобр')){
+      addTick(d,'video_approved'); return;
+    }
+    // Опрос отправлен
+    if(j.type==='other' && (j.msg||'').toLowerCase().includes('опрос')){
+      addTick(d,'survey_sent'); return;
+    }
+    // Видео загружено — считаем как report
+    if(j.type==='other' && (j.msg||'').toLowerCase().includes('видео')){
+      addTick(d,'report'); return;
+    }
+    if(PULSE_W[type] !== undefined) addTick(d, type);
+    else if(PULSE_W[j.type] !== undefined) addTick(d, j.type);
+    else addTick(d,'other');
+  });
+
+  // ── Посещаемость: считаем отметки done/makeup за каждый день ──
+  Object.entries(att).forEach(([k,v])=>{
+    if(v!=='done'&&v!=='makeup'&&v!=='miss') return;
+    const parts = k.split('_');
+    const d = parts[parts.length-1]; // enrollId_YYYY-MM-DD
+    if(!days7.includes(d)) return;
+    addTick(d, 'attendance');
+  });
+
+  // ── Опросы заполненные (surveyResults) ──
+  // (async — если уже есть в _analyticsCache)
+  if(window._analyticsCache?.surveys){
+    Object.values(window._analyticsCache.surveys).forEach(r=>{
+      addTick((r.submittedAt||'').slice(0,10), 'survey_done');
+    });
+  }
+
+  // Сырые очки — без нормализации
+  const todayScore = Math.max(0, dayScores[todayStr]||0);
+  const yesterdayStr = days7[days7.length-2];
+  const yesterdayScore = Math.max(0, dayScores[yesterdayStr]||0);
+  const diff = todayScore - yesterdayScore;
+  const diffColor = diff>0?'var(--gn)':diff<0?'var(--rd)':'var(--t3)';
+  const diffSign  = diff>0?'+':diff<0?'':'+';
+
+  // Цвет пульса — абсолютные пороги
+  const pulseColor = todayScore>=200?'var(--gn)':todayScore>=80?'var(--am)':'var(--rd)';
+  const pulseEmoji = todayScore>=200?'🔥':todayScore>=80?'⚡':'💤';
+
+  // ── SVG линейный график ──
+  const W=440,H=90,padL=38,padR=8,padT=10,padB=24;
+  const cW=W-padL-padR, cH=H-padT-padB;
+  const n=days7.length;
+  const step=cW/(n-1||1);
+  const maxSc = Math.max(1,...Object.values(dayScores).map(s=>Math.max(0,s)));
+  const DAYS=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+
+  // Points
+  const pts = days7.map((d,i)=>{
+    const sc = Math.max(0, dayScores[d]||0);
+    return { x: padL+i*step, y: padT+cH*(1-sc/maxSc), sc, d };
+  });
+
+  // Y labels
+  let svgStr = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block">`;
+  [0,0.5,1].forEach(frac=>{
+    const yp = padT+cH*(1-frac);
+    const val = Math.round(maxSc*frac);
+    svgStr+=`<line x1="${padL}" y1="${yp}" x2="${W-padR}" y2="${yp}" stroke="rgba(255,255,255,.07)" stroke-width="1" stroke-dasharray="3,3"/>`;
+    svgStr+=`<text x="${padL-3}" y="${yp+3}" text-anchor="end" font-size="8" fill="#5e5c78" font-family="Manrope">${val}</text>`;
+  });
+
+  // Gradient fill
+  svgStr+=`<defs><linearGradient id="pg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#7c5cfc" stop-opacity=".25"/><stop offset="100%" stop-color="#7c5cfc" stop-opacity=".02"/></linearGradient></defs>`;
+  if(pts.length>1){
+    const area=[`${pts[0].x},${padT+cH}`,...pts.map(p=>`${p.x},${p.y}`),`${pts[pts.length-1].x},${padT+cH}`].join(' ');
+    svgStr+=`<polygon points="${area}" fill="url(#pg)"/>`;
+  }
+  // Line
+  for(let i=0;i<pts.length-1;i++){
+    svgStr+=`<line x1="${pts[i].x}" y1="${pts[i].y}" x2="${pts[i+1].x}" y2="${pts[i+1].y}" stroke="#7c5cfc" stroke-width="2.2" stroke-linecap="round"/>`;
+  }
+  // Dots + labels
+  pts.forEach((p,i)=>{
+    const isToday=p.d===todayStr;
+    const r=isToday?5.5:3.5;
+    svgStr+=`<circle cx="${p.x}" cy="${p.y}" r="${r+2}" fill="#7c5cfc" opacity=".15"/>`;
+    svgStr+=`<circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${isToday?'#a87fff':'#7c5cfc'}"/>`;
+    if(isToday) svgStr+=`<circle cx="${p.x}" cy="${p.y}" r="2.5" fill="#fff"/>`;
+    if(p.sc>0){
+      const ly=Math.max(padT+10,p.y-6);
+      svgStr+=`<text x="${p.x}" y="${ly}" text-anchor="middle" font-size="8.5" font-weight="700" fill="${isToday?'#a87fff':'#9896b0'}" font-family="Manrope">${p.sc}</text>`;
+    }
+    const dObj=new Date(p.d+'T12:00:00');
+    const dl=isToday?'Сег':DAYS[dObj.getDay()];
+    svgStr+=`<text x="${p.x}" y="${H-4}" text-anchor="middle" font-size="8.5" fill="${isToday?'#f0eefc':'#5e5c78'}" font-weight="${isToday?'700':'400'}" font-family="Manrope">${dl}</text>`;
+  });
+  svgStr+=`</svg>`;
+
+  // Today breakdown cards
+  const todayCounts = dayCounts[todayStr]||{};
+  const cats = Object.entries(PULSE_CATS).filter(([k])=>(todayCounts[k]||0)>0);
+
+  el.innerHTML=`
+  <div style="background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rl);padding:18px 20px;margin-bottom:20px">
+
+    <!-- Header row -->
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px">
+
+      <!-- Score -->
+      <div>
+        <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">❤️ Пульс компании</div>
+        <div style="display:flex;align-items:baseline;gap:10px">
+          <span style="font-family:var(--fd);font-size:42px;font-weight:700;color:${pulseColor};line-height:1">${todayScore}</span>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:${diffColor}">${diff===0?'—':diffSign+Math.abs(diff)} к вчера</div>
+            <div style="font-size:10px;color:var(--t3)">тиков сегодня</div>
+          </div>
+          <span style="font-size:28px;margin-left:4px">${pulseEmoji}</span>
+        </div>
+      </div>
+
+      <!-- Chart -->
+      <div style="flex:1;min-width:240px">
+        <div style="font-size:10px;color:var(--t3);margin-bottom:6px">По дням (абс. значения)</div>
+        ${svgStr}
+      </div>
+    </div>
+
+    <!-- Today breakdown -->
+    <div style="border-top:1px solid var(--b1);padding-top:14px">
+      <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Из чего сложился пульс сегодня</div>
+      ${cats.length ? `
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:8px;margin-bottom:14px">
+        ${cats.map(([k,def])=>{
+          const cnt = todayCounts[k]||0;
+          const pts_earned = (PULSE_W[k]||0)*cnt;
+          const isNeg = pts_earned<0;
+          return `<div style="background:var(--bg3);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;border:1px solid ${isNeg?'rgba(240,89,117,.2)':'transparent'}">
+            <span style="font-size:20px;flex-shrink:0">${def.icon}</span>
+            <div style="min-width:0">
+              <div style="display:flex;align-items:baseline;gap:5px">
+                <span style="font-size:15px;font-weight:700;color:${def.color}">${cnt}</span>
+                <span style="font-size:10px;color:${isNeg?'var(--rd)':'var(--t3)'};">${isNeg?'':'+'}${pts_earned}т</span>
+              </div>
+              <div style="font-size:10px;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${def.label}</div>
+              <div style="font-size:9px;color:var(--t3)">${def.who}</div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>` : `<div style="font-size:12px;color:var(--t3);margin-bottom:14px">💤 Активности пока нет</div>`}
+
+      <!-- Legend -->
+      <details>
+        <summary style="font-size:11px;color:var(--t3);cursor:pointer;user-select:none;padding:4px 0">ℹ️ Таблица весов — кто на что влияет</summary>
+        <div style="margin-top:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:6px">
+          ${[
+            ['+50т','Новый старт','Регистраторы',false],
+            ['+40т','Продление / перезапуск','Регистраторы + Препод.',false],
+            ['+30т','Оплата получена','Регистраторы',false],
+            ['+20т','Новое обращение в CRM','Регистраторы',false],
+            ['+20т','Опрос заполнен родителем','Родители',false],
+            ['+25т','Видео-отчёт загружен','Преподаватели',false],
+            ['+15т','Смена стадии CRM','Регистраторы',false],
+            ['+15т','Видео одобрено','Администратор',false],
+            ['+10т','Опрос отправлен','Система',false],
+            ['+8т', 'Отметка посещаемости','Преподаватели',false],
+            ['+8т', 'Исходящее WA сообщение','Регистраторы',false],
+            ['+5т', 'Входящее WA','Родители/Ученики',false],
+            ['−40т','Деактивация ученика','Отток',true],
+            ['−10т','Задержка оплаты','Регистраторы',true],
+          ].map(([score,label,who,neg])=>`
+          <div style="display:flex;align-items:center;gap:8px;font-size:11px;padding:3px 0">
+            <span style="font-weight:700;color:${neg?'var(--rd)':'var(--gn)'};min-width:36px;flex-shrink:0">${score}</span>
+            <span style="color:var(--t2);flex:1">${label}</span>
+            <span style="color:var(--t3);font-size:10px;text-align:right">${who}</span>
+          </div>`).join('')}
+        </div>
+      </details>
+    </div>
+  </div>`;
+}
+
 function renderDashboardCharts(){
   const el=document.getElementById('dash-charts-block');
   if(!el||currentRole!=='admin'){if(el)el.innerHTML='';return;}
@@ -3379,6 +3655,14 @@ function renderDashboard(){
   if(currentRole==='admin') renderDashSurveys();
   if(currentRole==='admin') renderAdminLeaderboard();
   if(currentRole==='admin') renderTeacherPulse();
+  if(currentRole==='admin'){
+    // Подгружаем CRM-лиды для пульса если ещё нет
+    if(!window._crmLeadsCache){
+      crmRef.once('value').then(s=>{window._crmLeadsCache=s.val()||{};renderCompanyPulse();});
+    } else {
+      renderCompanyPulse();
+    }
+  }
   if(currentRole==='admin') renderDashboardCharts();
   const today=new Date().toISOString().slice(0,10);
   const todayDay=(new Date().getDay()+6)%7;
@@ -3503,22 +3787,7 @@ function renderDashboard(){
     })()}`;
 
   // ── Report stats (single period)
-  const rptEl=document.getElementById('dash-rpt-stats');
-  if(rptEl)rptEl.innerHTML=`
-    <div style="background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rl);padding:16px 20px;margin-bottom:22px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-        <div style="font-size:13px;font-weight:600;color:var(--t1)">Отчёты родителям</div>
-        <div style="font-size:11px;color:var(--t3)">За ${dashPeriod} дней</div>
-      </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
-        <span style="font-size:12px;color:var(--t2)">Отправлено</span>
-        <span style="font-family:var(--fd);font-size:20px;font-weight:700;color:var(--tl)">${rptSent}<span style="font-size:13px;color:var(--t3);font-weight:400"> / ${rptTotal}</span></span>
-      </div>
-      <div style="height:6px;background:var(--bg4);border-radius:3px;overflow:hidden;margin-bottom:8px">
-        <div style="height:100%;width:${rptPct}%;background:var(--tl);border-radius:3px;transition:width .3s"></div>
-      </div>
-      <div style="font-size:11px;color:var(--t3);text-align:right">${rptPct}% выполнено</div>
-    </div>`;
+  // Плашка отчётов родителям убрана
 
   // ── Today's lessons
   const lessons=[];
@@ -3716,8 +3985,7 @@ function renderTeacherDashboard(){
 
   const dupEl=document.getElementById('dup-warn-dash');
   if(dupEl)dupEl.innerHTML='';
-  const rptEl=document.getElementById('dash-rpt-stats');
-  if(rptEl)rptEl.innerHTML='';
+
 
   // Today lessons list with action buttons
   const el=document.getElementById('today-list');
@@ -11113,6 +11381,11 @@ function crmDrop(event, newStage){
       sendTeacherStageNotify(dragId, crmStage(newStage).label);
     }
 
+    // Пульс: фиксируем смену стадии
+    logAction('crm_stage',
+      `${l.name||'Лид'} → «${crmStage(newStage).label}»`,
+      `Из «${crmStage(l.stage).label}» · ${fbAuth.currentUser?.email||'—'}`
+    );
     toast(`✓ ${l.name||'Лид'} → ${crmStage(newStage).label}`);
     // real-time слушатель сам обновит канбан
   });
