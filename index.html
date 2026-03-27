@@ -591,7 +591,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
     <div class="panel" id="panel-students">
       <!-- Universal filter bar (works across all tabs) -->
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:10px 14px">
-        <input id="stu-global-search" placeholder="🔍 Поиск по имени, телефону, преподавателю..." oninput="onStuSearch()"
+        <input id="stu-global-search" placeholder="🔍 Поиск по имени, телефону, преподавателю..." oninput="onStuSearch()" onkeydown="if(event.key==='Enter')onStuSearch()"
           style="flex:1;min-width:200px;background:var(--bg3);border:1px solid var(--b2);border-radius:7px;color:var(--t1);font-family:var(--fb);font-size:12px;padding:7px 10px"/>
         <select id="stu-global-subj" onchange="onStuSearch()" style="background:var(--bg3);border:1px solid var(--b2);border-radius:7px;color:var(--t1);font-family:var(--fb);font-size:12px;padding:6px 10px">
           <option value="">Все предметы</option>
@@ -5713,13 +5713,12 @@ function onStuSearch(){
   _stuSearchQ       = (document.getElementById('stu-global-search')?.value||'').toLowerCase().trim();
   _stuSearchSubj    = document.getElementById('stu-global-subj')?.value||'';
   _stuSearchTeacher = document.getElementById('stu-global-teacher')?.value||'';
-  // Sync legacy hidden search so renderStudents() still works
+  _stuOnlyActive    = !!(document.getElementById('stu-only-active')?.checked);
+  // Sync legacy search
   const legacyEl = document.getElementById('stu-search');
   if(legacyEl) legacyEl.value = _stuSearchQ;
-  _stuOnlyActive = !!(document.getElementById('stu-only-active')?.checked);
-  // Re-render active tab
-  const cur = document.querySelector('[id^="stab-content-"]:not([style*="display:none"])');
-  const tabId = cur ? cur.id.replace('stab-content-','') : 'all';
+  // Re-render current tab using curStuTab variable
+  const tabId = (typeof curStuTab !== 'undefined' && curStuTab) ? curStuTab : 'all';
   if(tabId==='all')          renderStudents();
   else if(tabId==='starts')  renderStarts();
   else if(tabId==='renewals')renderRenewals();
