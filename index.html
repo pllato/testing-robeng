@@ -5890,8 +5890,11 @@ function renderRenewals(){
           <div style="font-size:11px;color:var(--t3)">Обучается: ${dur} · Старт: ${fmtDateRu(e.dateStart)}</div>
           ${contactsHtml}
           ${logsHtml}
-          <div style="margin-top:6px;display:flex;gap:5px;align-items:center">
-            <input id="rnote-${e.id}" placeholder="💬 Комментарий..." style="font-size:11px;padding:4px 8px;border-radius:6px;border:1px solid var(--b2);background:var(--bg3);color:var(--t1);width:220px;font-family:var(--fb)"/>
+          <div style="margin-top:6px;display:flex;gap:5px;align-items:center;flex-wrap:wrap">
+            <input id="rnote-${e.id}" placeholder="💬 Комментарий..." onkeydown="if(event.key==='Enter')saveRenewalNote(${e.id})"
+              style="font-size:11px;padding:4px 8px;border-radius:6px;border:1px solid var(--b2);background:var(--bg3);color:var(--t1);width:200px;font-family:var(--fb)"/>
+            <button onclick="saveRenewalNote(${e.id})" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--b2);background:var(--bg3);color:var(--t2);cursor:pointer;font-family:var(--fb)">💾 Сохранить</button>
+            ${isVac?`<button onclick="cancelVacation(${e.id})" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid rgba(56,189,248,.3);background:rgba(56,189,248,.08);color:var(--tl);cursor:pointer;font-family:var(--fb)">✕ Отменить отпуск</button>`:''}
           </div>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start;flex-shrink:0">
@@ -6011,6 +6014,37 @@ function setVacationUI(enrollId){
   document.body.appendChild(modal);
 }
 
+
+function saveRenewalNote(enrollId){
+  const note=getNoteInput(enrollId);
+  if(!note){toast('Введи комментарий',true);return;}
+  addRenewalLog(enrollId,'Комментарий','💬','var(--t3)',note);
+  const el=document.getElementById('rnote-'+enrollId);
+  if(el)el.value='';
+  save();renderRenewals();toast('Комментарий сохранён');
+}
+
+function cancelVacation(enrollId){
+  const idx=S.enrollments.findIndex(e=>e.id===enrollId);
+  if(idx<0)return;
+  const e=S.enrollments[idx];
+  const today2=new Date().toISOString().slice(0,10);
+  const vacIdx=(e.vacations||[]).findIndex(v=>v.to>=today2&&v.from<=today2);
+  if(vacIdx<0){toast('Активный отпуск не найден',true);return;}
+  const vac=e.vacations[vacIdx];
+  if(!confirm('Отменить отпуск с '+fmtDateRu(vac.from)+' по '+fmtDateRu(vac.to)+'?\nАбонемент будет скорректирован обратно.'))return;
+  // Reverse the extension
+  if(vac.extendAbonement&&vac.days>0){
+    const curEnd=new Date(e.dateEnd);
+    curEnd.setDate(curEnd.getDate()-vac.days);
+    S.enrollments[idx].dateEnd=curEnd.toISOString().slice(0,10);
+  }
+  S.enrollments[idx].vacations.splice(vacIdx,1);
+  addRenewalLog(enrollId,'Отпуск отменён','✕','var(--rd)',`был ${fmtDateRu(vac.from)}–${fmtDateRu(vac.to)}`);
+  logAction('vacation','Отпуск отменён: '+(S.students?.find(s=>s.id===e.studentId)?.name||'-'),'');
+  save();renderRenewals();toast('Отпуск отменён');
+}
+
 function saveVacationUI(enrollId){
   const idx=S.enrollments.findIndex(e=>e.id===enrollId);
   if(idx<0)return;
@@ -6046,13 +6080,39 @@ function saveVacationUI(enrollId){
 
 // ─── Продлить с логом ────────────────────────────────────────────
 function renewEnrollUI(enrollId){
+  const existing=document.getElementById('renew-modal-'+enrollId);
+  if(existing){existing.remove();return;}
+  const e=S.enrollments.find(x=>x.id===enrollId);
+  if(!e)return;
+  const stu=S.students?.find(s=>s.id===e.studentId);
+  const oldEnd=new Date(e.dateEnd||new Date());
+  const newEnd=new Date(oldEnd);newEnd.setMonth(newEnd.getMonth()+1);
+  const defaultEnd=newEnd.toISOString().slice(0,10);
+  const modal=document.createElement('div');
+  modal.id='renew-modal-'+enrollId;
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:flex;align-items:center;justify-content:center';
+  modal.innerHTML=`<div style="background:var(--bg2);border:1px solid var(--b1);border-radius:14px;padding:24px;max-width:360px;width:94%">
+    <div style="font-size:14px;font-weight:700;color:var(--t1);margin-bottom:4px">🔄 Продлить — ${stu?.name||''}</div>
+    <div style="font-size:12px;color:var(--t3);margin-bottom:16px">Текущий конец: ${fmtDateRu(e.dateEnd)}</div>
+    <div class="fr" style="margin-bottom:16px">
+      <label style="font-size:12px;color:var(--t2);margin-bottom:4px;display:block">Новая дата окончания</label>
+      <input type="date" id="renew-date-${enrollId}" value="${defaultEnd}" style="width:100%;background:var(--bg3);border:1px solid var(--b2);border-radius:8px;color:var(--t1);padding:8px 10px;font-family:var(--fb);font-size:13px"/>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button onclick="document.getElementById('renew-modal-${enrollId}').remove()" style="padding:8px 16px;border-radius:8px;border:1px solid var(--b2);background:var(--bg3);color:var(--t2);cursor:pointer;font-family:var(--fb);font-size:13px">Отмена</button>
+      <button onclick="saveRenewUI(${enrollId})" style="padding:8px 18px;border-radius:8px;border:none;background:var(--ac);color:#fff;cursor:pointer;font-family:var(--fb);font-size:13px;font-weight:600">🔄 Продлить</button>
+    </div>
+  </div>`;
+  modal.addEventListener('click',ev=>{if(ev.target===modal)modal.remove();});
+  document.body.appendChild(modal);
+}
+
+function saveRenewUI(enrollId){
+  const newEndStr=document.getElementById('renew-date-'+enrollId)?.value;
+  if(!newEndStr){toast('Выбери дату',true);return;}
   const idx=S.enrollments.findIndex(e=>e.id===enrollId);
   if(idx<0)return;
   const e=S.enrollments[idx];
-  const oldEnd=new Date(e.dateEnd||new Date());
-  const newEnd=new Date(oldEnd);newEnd.setMonth(newEnd.getMonth()+1);
-  const newEndStr=newEnd.toISOString().slice(0,10);
-  if(!confirm('Продлить до '+fmtDateRu(newEndStr)+'?'))return;
   S.enrollments[idx].dateEnd=newEndStr;
   S.enrollments[idx].renewalHandled=false;
   S.enrollments[idx].paymentDelayed=false;
@@ -6061,15 +6121,42 @@ function renewEnrollUI(enrollId){
   addRenewalLog(enrollId,'Продлено','🔄','var(--gn)',note);
   const stuName=S.students?.find(s=>s.id===e.studentId)?.name||'-';
   logAction('renewal','Продлено: '+stuName,'до '+newEndStr);
-  save();renderRenewals();toast('Абонемент продлён до '+fmtDateRu(newEndStr));
+  save();
+  document.getElementById('renew-modal-'+enrollId)?.remove();
+  renderRenewals();toast('Абонемент продлён до '+fmtDateRu(newEndStr));
 }
 
 // ─── Оплата задерживается с логом ───────────────────────────────
 function markDelayedUI(enrollId){
+  const existing=document.getElementById('delayed-modal-'+enrollId);
+  if(existing){existing.remove();return;}
+  const e=S.enrollments.find(x=>x.id===enrollId);
+  if(!e)return;
+  const stu=S.students?.find(s=>s.id===e.studentId);
+  const defaultDate=new Date(Date.now()+7*86400000).toISOString().slice(0,10);
+  const modal=document.createElement('div');
+  modal.id='delayed-modal-'+enrollId;
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:flex;align-items:center;justify-content:center';
+  modal.innerHTML=`<div style="background:var(--bg2);border:1px solid var(--b1);border-radius:14px;padding:24px;max-width:360px;width:94%">
+    <div style="font-size:14px;font-weight:700;color:var(--t1);margin-bottom:16px">⏳ Оплата задерживается — ${stu?.name||''}</div>
+    <div class="fr" style="margin-bottom:16px">
+      <label style="font-size:12px;color:var(--t2);margin-bottom:4px;display:block">Ожидаем оплату до</label>
+      <input type="date" id="delayed-date-${enrollId}" value="${defaultDate}" style="width:100%;background:var(--bg3);border:1px solid var(--b2);border-radius:8px;color:var(--t1);padding:8px 10px;font-family:var(--fb);font-size:13px"/>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button onclick="document.getElementById('delayed-modal-${enrollId}').remove()" style="padding:8px 16px;border-radius:8px;border:1px solid var(--b2);background:var(--bg3);color:var(--t2);cursor:pointer;font-family:var(--fb);font-size:13px">Отмена</button>
+      <button onclick="saveDelayedUI(${enrollId})" style="padding:8px 18px;border-radius:8px;border:none;background:var(--am);color:#000;cursor:pointer;font-family:var(--fb);font-size:13px;font-weight:600">⏳ Сохранить</button>
+    </div>
+  </div>`;
+  modal.addEventListener('click',ev=>{if(ev.target===modal)modal.remove();});
+  document.body.appendChild(modal);
+}
+
+function saveDelayedUI(enrollId){
+  const dueDate=document.getElementById('delayed-date-'+enrollId)?.value;
+  if(!dueDate){toast('Выбери дату',true);return;}
   const idx=S.enrollments.findIndex(e=>e.id===enrollId);
   if(idx<0)return;
-  const dueDate=prompt('Ожидаемая дата оплаты:',new Date(Date.now()+7*86400000).toISOString().slice(0,10));
-  if(!dueDate)return;
   S.enrollments[idx].paymentDelayed=true;
   S.enrollments[idx].paymentDueDate=dueDate;
   S.enrollments[idx].renewalHandled=true;
@@ -6077,7 +6164,9 @@ function markDelayedUI(enrollId){
   addRenewalLog(enrollId,'Оплата задерж.','⏳','var(--am)',note);
   const stuName=S.students?.find(s=>s.id===S.enrollments[idx].studentId)?.name||'-';
   logAction('payment_delayed','Оплата задерживается: '+stuName,'до '+dueDate);
-  save();renderRenewals();toast('Отмечено — ожидаем оплату до '+fmtDateRu(dueDate));
+  save();
+  document.getElementById('delayed-modal-'+enrollId)?.remove();
+  renderRenewals();toast('Отмечено — ожидаем оплату до '+fmtDateRu(dueDate));
 }
 
 // ─── Деактивация с логом ─────────────────────────────────────────
