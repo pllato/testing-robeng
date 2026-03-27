@@ -589,6 +589,19 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
     </div>
     <!-- STUDENTS -->
     <div class="panel" id="panel-students">
+      <!-- Universal filter bar (works across all tabs) -->
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:10px 14px">
+        <input id="stu-global-search" placeholder="🔍 Поиск по имени, телефону, преподавателю..." oninput="onStuSearch()"
+          style="flex:1;min-width:200px;background:var(--bg3);border:1px solid var(--b2);border-radius:7px;color:var(--t1);font-family:var(--fb);font-size:12px;padding:7px 10px"/>
+        <select id="stu-global-subj" onchange="onStuSearch()" style="background:var(--bg3);border:1px solid var(--b2);border-radius:7px;color:var(--t1);font-family:var(--fb);font-size:12px;padding:6px 10px">
+          <option value="">Все предметы</option>
+        </select>
+        <select id="stu-global-teacher" onchange="onStuSearch()" style="background:var(--bg3);border:1px solid var(--b2);border-radius:7px;color:var(--t1);font-family:var(--fb);font-size:12px;padding:6px 10px">
+          <option value="">Все преподаватели</option>
+        </select>
+        <button onclick="clearStuSearch()" style="font-size:11px;padding:6px 12px;border-radius:7px;border:1px solid var(--b2);background:var(--bg3);color:var(--t3);cursor:pointer;font-family:var(--fb)">✕ Сбросить</button>
+        <span id="stu-search-count" style="font-size:11px;color:var(--t3)"></span>
+      </div>
       <!-- Tabs -->
       <div style="display:flex;gap:4px;padding:0 0 12px;flex-wrap:wrap">
         <button class="btn btn-sm" id="stab-all" onclick="setStuTab('all')" style="font-size:12px">📋 Все</button>
@@ -599,11 +612,9 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
       </div>
       <!-- All students tab -->
       <div id="stab-content-all">
-        <div class="filters">
-          <input class="fsel" id="stu-search" placeholder="🔍 Поиск по имени, телефону, родителю..." oninput="renderStudents()" style="min-width:260px"/>
-          <span class="fl">Предмет:</span>
+        <div class="filters" style="display:none">
+          <input class="fsel" id="stu-search" placeholder="🔍 Поиск..." oninput="renderStudents()" style="min-width:260px"/>
           <select class="fsel" id="stu-subj-f" onchange="renderStudents()"><option value="">Все</option></select>
-          <span class="fl">Статус:</span>
           <select class="fsel" id="stu-status-f" onchange="renderStudents()">
             <option value="">Все</option><option value="active">Активные</option><option value="inactive">Неактивные</option><option value="ended">Завершённые</option>
           </select>
@@ -621,10 +632,6 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
       <!-- Renewals tab -->
       <div id="stab-content-renewals" style="display:none">
         <div id="stu-renewals-list"></div>
-      </div>
-      <!-- Delayed payments tab -->
-      <div id="stab-content-delayed" style="display:none">
-        <div id="stu-delayed-list"></div>
       </div>
       <!-- Lost tab -->
       <div id="stab-content-lost" style="display:none">
@@ -835,6 +842,33 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
 
         <div style="display:flex;align-items:center;gap:10px;margin-top:16px">
           <div id="settings-saved" style="display:none;font-size:12px;color:var(--gn);background:var(--gnbg);border:1px solid rgba(63,216,142,.3);border-radius:6px;padding:5px 12px">✓ Настройки сохранены</div>
+        </div>
+
+        <!-- RENEWAL WA TEMPLATE -->
+        <div style="margin-top:28px;padding-top:20px;border-top:1px solid var(--b1)">
+          <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:4px">💬 WhatsApp — напоминание об оплате</div>
+          <div style="font-size:11px;color:var(--t3);margin-bottom:14px">
+            Шаблон отправляется вручную (кнопка 💬 WhatsApp в Перестартах) или автоматически в день окончания абонемента.<br>
+            Переменные: <b>{name}</b> — имя ученика, <b>{dateEnd}</b> — дата окончания, <b>{teacher}</b> — преподаватель.
+          </div>
+          <textarea id="set-renewal-template" rows="5" onchange="saveAppSettings()"
+            style="width:100%;background:var(--bg3);border:1px solid var(--b2);border-radius:8px;color:var(--t1);font-family:var(--fb);font-size:12px;padding:10px 12px;resize:vertical;line-height:1.5"
+            placeholder="Текст сообщения..."></textarea>
+          <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:12px 0 0;margin-top:4px">
+            <input type="checkbox" id="set-renewal-auto" onchange="saveAppSettings()" style="width:16px;height:16px;margin-top:2px;accent-color:var(--ac);cursor:pointer;flex-shrink:0">
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--t1)">📅 Авто-отправка в день окончания абонемента</div>
+              <div style="font-size:11px;color:var(--t3);margin-top:2px">Сообщение отправится автоматически в день когда заканчивается абонемент ученика (один раз).</div>
+            </div>
+          </label>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:8px;margin-left:28px">
+            <span style="font-size:11px;color:var(--t2)">Время отправки:</span>
+            <input type="number" id="set-renewal-hour" min="8" max="20" value="10" onchange="saveAppSettings()"
+              style="width:52px;background:var(--bg3);border:1px solid var(--b2);border-radius:6px;color:var(--t1);font-size:12px;padding:3px 7px;font-family:var(--fb)"/>
+            <span style="font-size:11px;color:var(--t3)">:00</span>
+          </div>
+          <button class="btn btn-sm btn-a" onclick="saveAppSettings();document.getElementById('settings-saved').style.display='block';setTimeout(()=>document.getElementById('settings-saved').style.display='none',2000)"
+            style="margin-top:12px;font-size:12px">💾 Сохранить шаблон</button>
         </div>
 
         <!-- CRM SETTINGS -->
@@ -1972,7 +2006,7 @@ function renderPanel(p){
     renderSchedule();
   }
   else if(p==='freeSlots'){fillFsFilters();renderFreeSlots();}
-  else if(p==='students'){fillSubjSel();renderStudents();}
+  else if(p==='students'){fillSubjSel();fillStuTeacherFilter();fillGlobalSubjSel();renderStudents();}
   else if(p==='reports'){renderReports();}
   else if(p==='journal'){renderJournal();}
   else if(p==='notifylog'){renderNotifyLog();}
@@ -5530,7 +5564,7 @@ function renderStudents(){
   fillSubjSel();
   const subjF=document.getElementById('stu-subj-f')?.value||'';
   const statusF=document.getElementById('stu-status-f')?.value||'';
-  const search=(document.getElementById('stu-search')?.value||'').toLowerCase().trim();
+  const search=_stuSearchQ||(document.getElementById('stu-search')?.value||'').toLowerCase().trim();
   const today=new Date().toISOString().slice(0,10);
 
   // One card per student — filter students first
@@ -5649,6 +5683,185 @@ function renderStudents(){
 // ── STUDENT TABS ──────────────────────────────────────────────────
 let curStuTab = 'all';
 
+
+// ═══════════════════════════════════════════════════════
+//  UNIVERSAL STUDENT SEARCH (works across all tabs)
+// ═══════════════════════════════════════════════════════
+let _stuSearchQ = '';
+let _stuSearchSubj = '';
+let _stuSearchTeacher = '';
+
+
+function fillGlobalSubjSel(){
+  const sel=document.getElementById('stu-global-subj');
+  if(!sel) return;
+  const cur=sel.value;
+  const topics=[...new Set((S.enrollments||[]).map(e=>e.topic||'').filter(Boolean))].sort();
+  sel.innerHTML='<option value="">Все предметы</option>'+topics.map(t=>`<option value="${t}">${t}</option>`).join('');
+  sel.value=cur;
+  // Also sync the legacy subject filter
+  const subF=document.getElementById('stu-subj-f');
+  if(subF){
+    const legCur=subF.value;
+    subF.innerHTML='<option value="">Все</option>'+topics.map(t=>`<option value="${t}">${t}</option>`).join('');
+    subF.value=legCur;
+  }
+}
+
+function onStuSearch(){
+  _stuSearchQ       = (document.getElementById('stu-global-search')?.value||'').toLowerCase().trim();
+  _stuSearchSubj    = document.getElementById('stu-global-subj')?.value||'';
+  _stuSearchTeacher = document.getElementById('stu-global-teacher')?.value||'';
+  // Sync legacy hidden search so renderStudents() still works
+  const legacyEl = document.getElementById('stu-search');
+  if(legacyEl) legacyEl.value = _stuSearchQ;
+  // Re-render active tab
+  const cur = document.querySelector('[id^="stab-content-"]:not([style*="display:none"])');
+  const tabId = cur ? cur.id.replace('stab-content-','') : 'all';
+  if(tabId==='all')          renderStudents();
+  else if(tabId==='active')  renderActive();
+  else if(tabId==='starts')  renderStarts();
+  else if(tabId==='renewals')renderRenewals();
+  else if(tabId==='lost')    renderLost();
+}
+
+function clearStuSearch(){
+  const els=['stu-global-search','stu-global-subj','stu-global-teacher'];
+  els.forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  _stuSearchQ=''; _stuSearchSubj=''; _stuSearchTeacher='';
+  const legacyEl = document.getElementById('stu-search');
+  if(legacyEl) legacyEl.value='';
+  const subF=document.getElementById('stu-subj-f');
+  if(subF) subF.value='';
+  onStuSearch();
+}
+
+// Returns true if enrollment+student matches current search filters
+function stuMatchesFilter(e){
+  if(!_stuSearchQ && !_stuSearchSubj && !_stuSearchTeacher) return true;
+  const stu = S.students?.find(s=>s.id===e.studentId)||{};
+  const tch = S.teachers?.find(t=>String(t.id)===String(e.teacherId))||{};
+  if(_stuSearchSubj && (e.topic||'').toLowerCase().indexOf(_stuSearchSubj.toLowerCase())<0) return false;
+  if(_stuSearchTeacher && String(e.teacherId)!==String(_stuSearchTeacher)) return false;
+  if(_stuSearchQ){
+    const hay=[
+      stu.name||'', stu.phone||'', stu.parentPhone||'', stu.parentName||'',
+      e.topic||'', tch.name||'', e.notes||''
+    ].join(' ').toLowerCase();
+    if(!hay.includes(_stuSearchQ)) return false;
+  }
+  return true;
+}
+
+// Fill teacher filter dropdown
+function fillStuTeacherFilter(){
+  const sel=document.getElementById('stu-global-teacher');
+  if(!sel) return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="">Все преподаватели</option>'
+    +(S.teachers||[]).map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+  sel.value=cur;
+}
+
+// ═══════════════════════════════════════════════════════
+//  SEND RENEWAL WA (manual button + auto)
+// ═══════════════════════════════════════════════════════
+function getRenewalMsg(enrollId){
+  const e=S.enrollments?.find(x=>x.id===enrollId);
+  if(!e)return'';
+  const stu=S.students?.find(s=>s.id===e.studentId)||{};
+  const tch=S.teachers?.find(t=>String(t.id)===String(e.teacherId))||{};
+  const tmpl=S.settings?.renewalWaTemplate||'Здравствуйте! 👋\n\nНапоминаем, что абонемент ученика *{name}* заканчивается {dateEnd}.\n\nПреподаватель: {teacher}\n\nДля продления свяжитесь с нами! 🎓';
+  return tmpl
+    .replace(/{name}/g, stu.name||'-')
+    .replace(/{dateEnd}/g, fmtDateRu(e.dateEnd||''))
+    .replace(/{teacher}/g, tch.name||'-');
+}
+
+async function sendRenewalWA(enrollId){
+  const e=S.enrollments?.find(x=>x.id===enrollId);
+  if(!e){toast('Запись не найдена',true);return;}
+  const stu=S.students?.find(s=>s.id===e.studentId)||{};
+  const phone=stu.parentPhone||stu.phone||'';
+  if(!phone){toast('Нет номера телефона у ученика',true);return;}
+  const msg=getRenewalMsg(enrollId);
+  const clean=phone.replace(/\D/g,'');
+  // Preview modal
+  const modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:flex;align-items:center;justify-content:center';
+  const box=document.createElement('div');
+  box.style.cssText='background:var(--bg2);border:1px solid var(--b1);border-radius:14px;padding:24px;max-width:420px;width:94%';
+  const title=document.createElement('div');
+  title.style.cssText='font-size:14px;font-weight:700;color:var(--t1);margin-bottom:12px';
+  title.textContent='💬 Отправить в WhatsApp — '+stu.name;
+  box.appendChild(title);
+  const ph=document.createElement('div');
+  ph.style.cssText='font-size:11px;color:var(--t3);margin-bottom:10px';
+  ph.textContent='📱 '+phone;
+  box.appendChild(ph);
+  const ta=document.createElement('textarea');
+  ta.value=msg;
+  ta.rows=6;
+  ta.style.cssText='width:100%;background:var(--bg3);border:1px solid var(--b2);border-radius:8px;color:var(--t1);font-family:var(--fb);font-size:12px;padding:10px;resize:vertical;margin-bottom:14px';
+  box.appendChild(ta);
+  const btns=document.createElement('div');
+  btns.style.cssText='display:flex;gap:8px;justify-content:flex-end';
+  const cancelBtn=document.createElement('button');
+  cancelBtn.textContent='Отмена';
+  cancelBtn.style.cssText='padding:8px 16px;border-radius:8px;border:1px solid var(--b2);background:var(--bg3);color:var(--t2);cursor:pointer;font-family:var(--fb);font-size:13px';
+  cancelBtn.onclick=()=>modal.remove();
+  const sendBtn=document.createElement('button');
+  sendBtn.textContent='📨 Отправить WA';
+  sendBtn.style.cssText='padding:8px 18px;border-radius:8px;border:none;background:#25d366;color:#fff;cursor:pointer;font-family:var(--fb);font-size:13px;font-weight:600';
+  sendBtn.onclick=async()=>{
+    sendBtn.disabled=true;sendBtn.textContent='Отправка...';
+    try{
+      await notifyWhatsApp('+'+clean, ta.value);
+      addRenewalLog(enrollId,'WA отправлен','💬','#25d366','Напоминание об оплате отправлено');
+      save();renderRenewals();
+      toast('WhatsApp отправлен '+stu.name);
+      modal.remove();
+    }catch(err){toast('Ошибка отправки',true);sendBtn.disabled=false;sendBtn.textContent='📨 Отправить WA';}
+  };
+  btns.appendChild(cancelBtn);
+  btns.appendChild(sendBtn);
+  box.appendChild(btns);
+  modal.appendChild(box);
+  modal.addEventListener('click',ev=>{if(ev.target===modal)modal.remove();});
+  document.body.appendChild(modal);
+}
+
+// Auto-send renewal WA on subscription end date
+async function autoSendRenewalWA(){
+  if(!S.settings?.renewalAutoSend) return;
+  const hour=S.settings.renewalSendHour||10;
+  const now=new Date();
+  if(now.getHours()!==hour) return;
+  const today=now.toISOString().slice(0,10);
+  const enrollments=S.enrollments||[];
+  for(const e of enrollments){
+    if(e.inactive||!e.dateEnd) continue;
+    if(e.dateEnd!==today) continue;
+    // Check if already sent today
+    const sentKey='renewalWaSent_'+e.id+'_'+today;
+    if(e[sentKey]) continue;
+    const stu=S.students?.find(s=>s.id===e.studentId)||{};
+    const phone=(stu.parentPhone||stu.phone||'').replace(/\D/g,'');
+    if(!phone) continue;
+    try{
+      const msg=getRenewalMsg(e.id);
+      await notifyWhatsApp('+'+phone, msg);
+      // Mark sent
+      const idx=S.enrollments.findIndex(x=>x.id===e.id);
+      if(idx>=0){
+        S.enrollments[idx][sentKey]=true;
+        addRenewalLog(e.id,'WA авто','💬','#25d366','Авто-напоминание об оплате отправлено');
+      }
+    }catch(err){}
+  }
+  save();
+}
+
 function setStuTab(tab){
   curStuTab = tab;
   ['all','active','starts','renewals','lost'].forEach(t=>{
@@ -5667,7 +5880,7 @@ function setStuTab(tab){
 function renderLost(){
   const el=document.getElementById('stu-lost-list');
   if(!el)return;
-  const items=(S.enrollments||[]).filter(e=>e.inactive)
+  const items=(S.enrollments||[]).filter(e=>e.inactive&&stuMatchesFilter(e))
     .sort((a,b)=>(b.deactivationDate||'').localeCompare(a.deactivationDate||''));
   if(!items.length){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--t3);font-size:13px">Нет деактивированных учеников</div>';return;}
   el.innerHTML=items.map(e=>{
@@ -5778,6 +5991,7 @@ function renderStarts(){
   const items=(S.enrollments||[]).filter(e=>{
     if(e.inactive)return false;
     if(!e.dateStart)return false;
+    if(!stuMatchesFilter(e))return false;
     const days=daysUntil(e.dateStart);
     // Show all upcoming starts not yet confirmed
     return !e.startConfirmed;
@@ -5819,21 +6033,27 @@ function renderRenewals(){
   const items=(S.enrollments||[]).filter(e=>{
     if(e.inactive)return false;
     if(!e.dateEnd)return false;
-    // Include paymentDelayed ones too (merge from delayed tab)
-    // Exclude vacationing (vacation not ended yet)
+    if(!stuMatchesFilter(e)) return false;
     const activeVac = (e.vacations||[]).find(v=>v.to>=today2&&v.from<=today2);
-    if(activeVac) return true; // show vacation items
+    if(activeVac) return true;
     return !e.renewalHandled || e.paymentDelayed;
   }).sort((a,b)=>{
-    // Overdue first (days < 0), then by dateEnd ascending
     const da=daysUntil(a.dateEnd), db=daysUntil(b.dateEnd);
     if(da<0&&db>=0)return -1;
     if(db<0&&da>=0)return 1;
-    return a.dateEnd.localeCompare(b.dateEnd);
+    const vacA=(a.vacations||[]).find(v=>v.to>=today2&&v.from<=today2);
+    const vacB=(b.vacations||[]).find(v=>v.to>=today2&&v.from<=today2);
+    const sortA=vacA?vacA.from:(a.dateEnd||'');
+    const sortB=vacB?vacB.from:(b.dateEnd||'');
+    return sortA.localeCompare(sortB);
   });
 
   const badge=document.getElementById('renewals-badge');
   if(badge){badge.textContent=items.length;badge.style.display=items.length?'':'none';}
+  const cnt=document.getElementById('stu-search-count');
+  if(cnt&&(_stuSearchQ||_stuSearchSubj||_stuSearchTeacher)){
+    cnt.textContent='Найдено: '+items.length;
+  } else if(cnt){ cnt.textContent=''; }
 
   if(!items.length){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--t3);font-size:13px">✅ Нет предстоящих продлений</div>';return;}
 
@@ -5901,6 +6121,7 @@ function renderRenewals(){
           <button class="btn btn-sm" onclick="setVacationUI(${e.id})" style="font-size:11px;background:rgba(56,189,248,.1);color:var(--tl)">🏖 Отпуск</button>
           <button class="btn btn-sm btn-a" onclick="renewEnrollUI(${e.id})" style="font-size:11px">🔄 Продлить</button>
           <button class="btn btn-sm" onclick="markDelayedUI(${e.id})" style="font-size:11px;background:rgba(245,200,66,.15);color:var(--am)">⏳ Оплата задерж.</button>
+          <button class="btn btn-sm" onclick="sendRenewalWA(${e.id})" style="font-size:11px;background:rgba(37,211,102,.12);color:#25d366">💬 WhatsApp</button>
           <button class="btn btn-sm" onclick="deactivateEnrollUI(${e.id})" style="font-size:11px;background:rgba(240,89,117,.1);color:var(--rd)">✕ Деактивировать</button>
         </div>
       </div>
@@ -9270,6 +9491,7 @@ async function checkAndAutoSendSurveys(){
   localStorage.setItem(lastAutoKey, '1');
   console.log('[Surveys] Авто-рассылка запущена:', todayStr);
   await autoSendSurveys();
+  await autoSendRenewalWACheck();
   updateSurveysBadge();
 }
 
@@ -9326,6 +9548,10 @@ ${link}
 // Стабильный «день» считается из ID ученика: studentDayOfMonth = (id % 28) + 1
 function getSurveyDayOfMonth(studentId){
   return (Math.abs(parseInt(studentId)||0) % 28) + 1; // 1..28
+}
+
+async function autoSendRenewalWACheck(){
+  try { await autoSendRenewalWA(); } catch(e){}
 }
 
 async function autoSendSurveys(){
@@ -9629,6 +9855,13 @@ function renderAppSettings(){
   renderCRMStagesEditor();
   renderCRMStageSettings();
   renderCRMDistribSettings();
+  // Renewal WA template
+  const tmplEl=document.getElementById("set-renewal-template");
+  if(tmplEl) tmplEl.value=S.settings.renewalWaTemplate||"Здравствуйте! 👋\n\nНапоминаем, что абонемент ученика *{name}* заканчивается {dateEnd}.\n\nПреподаватель: {teacher}\n\nДля продления свяжитесь с нами — мы будем рады продолжить занятия! 🎓";
+  const autoRenEl=document.getElementById("set-renewal-auto");
+  if(autoRenEl) autoRenEl.checked=!!S.settings.renewalAutoSend;
+  const renHEl=document.getElementById("set-renewal-hour");
+  if(renHEl) renHEl.value=S.settings.renewalSendHour||10;
 }
 
 function renderCRMStageSettings(){
@@ -9991,6 +10224,14 @@ function saveAppSettings(){
   renderSurveyDayPreview();
   const freqEl=document.querySelector("input[name=\"video-freq\"]:checked");
   if(freqEl) S.settings.videoFrequency=freqEl.value;
+
+  // Renewal WA template
+  const tmplEl=document.getElementById("set-renewal-template");
+  if(tmplEl) S.settings.renewalWaTemplate=tmplEl.value;
+  const autoRenEl=document.getElementById("set-renewal-auto");
+  if(autoRenEl) S.settings.renewalAutoSend=autoRenEl.checked;
+  const renHEl=document.getElementById("set-renewal-hour");
+  if(renHEl) S.settings.renewalSendHour=parseInt(renHEl.value)||10;
 
   save();
   const saved=document.getElementById("settings-saved");
