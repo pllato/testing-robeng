@@ -595,7 +595,6 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
         <button class="btn btn-sm" id="stab-active" onclick="setStuTab('active')" style="font-size:12px">✅ Активные</button>
         <button class="btn btn-sm" id="stab-starts" onclick="setStuTab('starts')" style="font-size:12px">🚀 Старты</button>
         <button class="btn btn-sm" id="stab-renewals" onclick="setStuTab('renewals')" style="font-size:12px">🔄 Перестарты <span id="renewals-badge" style="background:var(--rd);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;margin-left:2px;display:none"></span></button>
-        <button class="btn btn-sm" id="stab-delayed" onclick="setStuTab('delayed')" style="font-size:12px">⏳ Оплата задерживается</button>
         <button class="btn btn-sm" id="stab-lost" onclick="setStuTab('lost')" style="font-size:12px">💔 Потерянные</button>
       </div>
       <!-- All students tab -->
@@ -5652,7 +5651,7 @@ let curStuTab = 'all';
 
 function setStuTab(tab){
   curStuTab = tab;
-  ['all','active','starts','renewals','delayed','lost'].forEach(t=>{
+  ['all','active','starts','renewals','lost'].forEach(t=>{
     const btn=document.getElementById('stab-'+t);
     const content=document.getElementById('stab-content-'+t);
     if(btn) btn.className = 'btn btn-sm' + (t===tab?' btn-a':'');
@@ -5661,7 +5660,7 @@ function setStuTab(tab){
   if(tab==='active') renderActive();
   if(tab==='starts') renderStarts();
   if(tab==='renewals') renderRenewals();
-  if(tab==='delayed') renderDelayed();
+  if(tab==='lost') renderLost();
   if(tab==='lost') renderLost();
 }
 
@@ -5675,13 +5674,27 @@ function renderLost(){
     const stu=S.students?.find(s=>s.id===e.studentId);
     const t=S.teachers?.find(t=>String(t.id)===String(e.teacherId));
     const dur=stuDuration(e.dateStart,e.deactivationDate||e.dateEnd);
+    const parentPhone=stu?.parentPhone||stu?.phone||'';
+    const stuPhone=stu?.phone||'';
+    const contactsHtml=(parentPhone||stuPhone)?`<div style="font-size:11px;color:var(--t3);margin-top:3px;display:flex;gap:12px;flex-wrap:wrap">
+      ${parentPhone?`<span>📱 <a href="tel:${parentPhone}" style="color:var(--tl);text-decoration:none">${parentPhone}</a></span>`:''}
+      ${stuPhone&&stuPhone!==parentPhone?`<span>👦 <a href="tel:${stuPhone}" style="color:var(--t2);text-decoration:none">${stuPhone}</a></span>`:''}
+    </div>`:'';
+    const logs=e.renewalLogs||[];
+    const logsHtml=logs.length?`<div style="margin-top:6px;display:flex;flex-direction:column;gap:3px">
+      ${logs.slice(-3).map(l=>`<div style="font-size:10px;color:var(--t3);padding:3px 8px;background:var(--bg3);border-radius:6px;border-left:2px solid ${l.color||'var(--b2)'}">
+        ${l.icon||'📌'} <b style="color:var(--t2)">${l.action}</b>${l.note?' — '+l.note:''} · ${l.ts||''}
+      </div>`).join('')}
+    </div>`:'';
     return `<div class="card" style="margin-bottom:10px;padding:14px 16px;border-left:3px solid var(--rd)">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
-        <div>
+        <div style="flex:1;min-width:0">
           <div style="font-size:15px;font-weight:700;color:var(--t1);cursor:pointer;text-decoration:underline dotted" onclick="openStudentModal(${e.id})">${stu?.name||'—'}</div>
           <div style="font-size:12px;color:var(--t3);margin-top:2px">${t?.name||'—'} · Обучался: ${dur}</div>
           <div style="font-size:12px;color:var(--t3);margin-top:2px">Старт: ${fmtDateRu(e.dateStart)} · Деактивирован: ${fmtDateRu(e.deactivationDate||'')}</div>
           <div style="font-size:12px;color:var(--rd);margin-top:3px">Причина: ${e.deactivationReason||'—'}</div>
+          ${contactsHtml}
+          ${logsHtml}
         </div>
         <button class="btn btn-sm btn-a" onclick="reactivateEnroll(${e.id})" style="font-size:12px">↩ Восстановить</button>
       </div>
@@ -5800,14 +5813,25 @@ function renderStarts(){
 function renderRenewals(){
   const el=document.getElementById('stu-renewals-list');
   if(!el)return;
+  const today2=new Date().toISOString().slice(0,10);
+
+  // Vacation-ended items: vacation was set, dateEnd is now past vacation end
   const items=(S.enrollments||[]).filter(e=>{
     if(e.inactive)return false;
     if(!e.dateEnd)return false;
-    const days=daysUntil(e.dateEnd);
-    return !e.renewalHandled;
-  }).sort((a,b)=>a.dateEnd.localeCompare(b.dateEnd));
+    // Include paymentDelayed ones too (merge from delayed tab)
+    // Exclude vacationing (vacation not ended yet)
+    const activeVac = (e.vacations||[]).find(v=>v.to>=today2&&v.from<=today2);
+    if(activeVac) return true; // show vacation items
+    return !e.renewalHandled || e.paymentDelayed;
+  }).sort((a,b)=>{
+    // Overdue first (days < 0), then by dateEnd ascending
+    const da=daysUntil(a.dateEnd), db=daysUntil(b.dateEnd);
+    if(da<0&&db>=0)return -1;
+    if(db<0&&da>=0)return 1;
+    return a.dateEnd.localeCompare(b.dateEnd);
+  });
 
-  // Update badge
   const badge=document.getElementById('renewals-badge');
   if(badge){badge.textContent=items.length;badge.style.display=items.length?'':'none';}
 
@@ -5817,27 +5841,64 @@ function renderRenewals(){
     const stu=S.students?.find(s=>s.id===e.studentId);
     const t=S.teachers?.find(t=>String(t.id)===String(e.teacherId));
     const days=daysUntil(e.dateEnd);
-    const daysLabel=days===0?'<span style="color:var(--rd);font-weight:700">Сегодня</span>':
+    const isToday=days===0, isPast=days<0;
+    const activeVac=(e.vacations||[]).find(v=>v.to>=today2&&v.from<=today2);
+    const isVac=!!activeVac;
+
+    const daysLabel=days===0?'<span style="color:var(--gn);font-weight:700">Сегодня</span>':
       days<0?`<span style="color:var(--rd);font-weight:700">Просрочено ${Math.abs(days)} дн.</span>`:
       `<span style="color:var(--am)">через ${days} дн.</span>`;
     const dur=stuDuration(e.dateStart, null);
-    const isToday=days===0;
-    const isPast=days<0;
-    const cardBorder=isToday?'border:2px solid var(--gn);background:rgba(63,216,142,.05)':isPast?'border:2px solid var(--rd)':'';
-    return `<div class="card" style="margin-bottom:10px;padding:14px 16px;${cardBorder}">
-      ${isToday?'<div style="font-size:11px;font-weight:700;color:var(--gn);margin-bottom:6px;letter-spacing:.05em">💳 ВЫСТАВИТЬ СЧЁТ СЕГОДНЯ</div>':''}
+
+    // Border color: overdue=red, vacation=teal, delayed=yellow, today=green, else default
+    let cardStyle='margin-bottom:10px;padding:14px 16px;';
+    if(isPast) cardStyle+='border:2px solid var(--rd);background:rgba(240,89,117,.04)';
+    else if(isVac) cardStyle+='border:2px solid var(--tl);background:rgba(56,189,248,.04)';
+    else if(e.paymentDelayed) cardStyle+='border:2px solid var(--am);background:rgba(245,200,66,.04)';
+    else if(isToday) cardStyle+='border:2px solid var(--gn);background:rgba(63,216,142,.04)';
+
+    // Contacts
+    const parentPhone=stu?.parentPhone||stu?.phone||'';
+    const stuPhone=stu?.phone||'';
+    const contactsHtml=(parentPhone||stuPhone)?`<div style="font-size:11px;color:var(--t3);margin-top:3px;display:flex;gap:12px;flex-wrap:wrap">
+      ${parentPhone?`<span>📱 <a href="tel:${parentPhone}" style="color:var(--tl);text-decoration:none">${parentPhone}</a></span>`:''}
+      ${stuPhone&&stuPhone!==parentPhone?`<span>👦 <a href="tel:${stuPhone}" style="color:var(--t2);text-decoration:none">${stuPhone}</a></span>`:''}
+    </div>`:'';
+
+    // Logs
+    const logs=e.renewalLogs||[];
+    const logsHtml=logs.length?`<div style="margin-top:6px;display:flex;flex-direction:column;gap:3px">
+      ${logs.slice(-3).map(l=>`<div style="font-size:10px;color:var(--t3);padding:3px 8px;background:var(--bg3);border-radius:6px;border-left:2px solid ${l.color||'var(--b2)'}">
+        ${l.icon||'📌'} <b style="color:var(--t2)">${l.action}</b>${l.note?' — '+l.note:''} · <span style="color:var(--t3)">${l.ts||''}</span>
+      </div>`).join('')}
+    </div>`:'';
+
+    // Status badges
+    const statusBadges=`
+      ${isVac?`<span style="font-size:10px;font-weight:700;color:var(--tl);background:rgba(56,189,248,.15);padding:2px 8px;border-radius:8px">🏖 ОТПУСК до ${fmtDateRu(activeVac.to)}</span>`:''}
+      ${e.paymentDelayed?`<span style="font-size:10px;font-weight:700;color:var(--am);background:rgba(245,200,66,.15);padding:2px 8px;border-radius:8px">⏳ Оплата до ${e.paymentDueDate?fmtDateRu(e.paymentDueDate):'?'}</span>`:''}
+      ${isPast?`<span style="font-size:10px;font-weight:700;color:var(--rd);background:rgba(240,89,117,.15);padding:2px 8px;border-radius:8px">🔴 ПРОСРОЧЕНО</span>`:''}`;
+
+    return `<div class="card" style="${cardStyle}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
-        <div>
-          <div style="font-size:15px;font-weight:700;color:var(--t1);cursor:pointer;text-decoration:underline dotted" onclick="openStudentModal(${e.id})">${stu?.name||'-'}</div>
-          <div style="font-size:12px;color:var(--t3);margin-top:2px">${t?.name||'-'} · Оканчивается ${fmtDateRu(e.dateEnd)} · ${daysLabel}</div>
-          <div style="font-size:11px;color:var(--t3);margin-top:2px">Обучается: ${dur} · Старт: ${fmtDateRu(e.dateStart)}</div>
-          ${e.renewalComment?`<div style="font-size:11px;color:var(--am);margin-top:3px">💬 ${e.renewalComment}</div>`:''}
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px">
+            <span style="font-size:15px;font-weight:700;color:var(--t1);cursor:pointer;text-decoration:underline dotted" onclick="openStudentModal(${e.id})">${stu?.name||'-'}</span>
+            ${statusBadges}
+          </div>
+          <div style="font-size:12px;color:var(--t3)">${t?.name||'-'} · Оканчивается ${fmtDateRu(e.dateEnd)} · ${daysLabel}</div>
+          <div style="font-size:11px;color:var(--t3)">Обучается: ${dur} · Старт: ${fmtDateRu(e.dateStart)}</div>
+          ${contactsHtml}
+          ${logsHtml}
+          <div style="margin-top:6px;display:flex;gap:5px;align-items:center">
+            <input id="rnote-${e.id}" placeholder="💬 Комментарий..." style="font-size:11px;padding:4px 8px;border-radius:6px;border:1px solid var(--b2);background:var(--bg3);color:var(--t1);width:220px;font-family:var(--fb)"/>
+          </div>
         </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button class="btn btn-sm" onclick="setVacation(${e.id})" style="font-size:12px;background:rgba(56,189,248,.1);color:var(--tl)">🏖 Отпуск</button>
-          <button class="btn btn-sm btn-a" onclick="renewEnroll(${e.id})" style="font-size:12px">🔄 Продлить</button>
-          <button class="btn btn-sm" onclick="markDelayed(${e.id})" style="font-size:12px;background:rgba(245,200,66,.15);color:var(--am)">⏳ Оплата задерживается</button>
-          <button class="btn btn-sm" onclick="deactivateEnroll(${e.id})" style="font-size:12px;background:rgba(240,89,117,.1);color:var(--rd)">✕ Деактивировать</button>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start;flex-shrink:0">
+          <button class="btn btn-sm" onclick="setVacationUI(${e.id})" style="font-size:11px;background:rgba(56,189,248,.1);color:var(--tl)">🏖 Отпуск</button>
+          <button class="btn btn-sm btn-a" onclick="renewEnrollUI(${e.id})" style="font-size:11px">🔄 Продлить</button>
+          <button class="btn btn-sm" onclick="markDelayedUI(${e.id})" style="font-size:11px;background:rgba(245,200,66,.15);color:var(--am)">⏳ Оплата задерж.</button>
+          <button class="btn btn-sm" onclick="deactivateEnrollUI(${e.id})" style="font-size:11px;background:rgba(240,89,117,.1);color:var(--rd)">✕ Деактивировать</button>
         </div>
       </div>
     </div>`;
@@ -5890,6 +5951,153 @@ function confirmStart(enrollId){
   }
   logAction('start_confirmed','Старт подтверждён: '+(S.students?.find(s=>s.id===S.enrollments[idx].studentId)?.name||'-'),'');
   save();renderStarts();toast('Старт отмечен!');
+}
+
+
+// ─── Добавить запись в лог действий по записи ───────────────────
+function addRenewalLog(enrollId, action, icon, color, note){
+  const idx=S.enrollments.findIndex(e=>e.id===enrollId);
+  if(idx<0)return;
+  if(!S.enrollments[idx].renewalLogs)S.enrollments[idx].renewalLogs=[];
+  const ts=new Date().toLocaleString('ru',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+  S.enrollments[idx].renewalLogs.push({action,icon,color,note:note||'',ts});
+  // Keep last 10
+  if(S.enrollments[idx].renewalLogs.length>10)
+    S.enrollments[idx].renewalLogs=S.enrollments[idx].renewalLogs.slice(-10);
+}
+
+function getNoteInput(enrollId){
+  const el=document.getElementById('rnote-'+enrollId);
+  return el?el.value.trim():'';
+}
+
+// ─── Vacation с календарём ───────────────────────────────────────
+function setVacationUI(enrollId){
+  const idx=S.enrollments.findIndex(e=>e.id===enrollId);
+  if(idx<0)return;
+  const e=S.enrollments[idx];
+  const stu=S.students?.find(s=>s.id===e.studentId);
+  const today=new Date().toISOString().slice(0,10);
+
+  // Создаём модальное окно с календарём
+  const existing=document.getElementById('vac-modal-'+enrollId);
+  if(existing){existing.remove();return;}
+
+  const modal=document.createElement('div');
+  modal.id='vac-modal-'+enrollId;
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:flex;align-items:center;justify-content:center';
+
+  const tmr=new Date(); tmr.setDate(tmr.getDate()+14);
+  const defaultTo=tmr.toISOString().slice(0,10);
+
+  modal.innerHTML=`<div style="background:var(--bg2);border:1px solid var(--b1);border-radius:14px;padding:24px;max-width:380px;width:94%">
+    <div style="font-size:14px;font-weight:700;color:var(--t1);margin-bottom:16px">🏖 Отпуск — ${stu?.name||'ученик'}</div>
+    <div class="fr" style="margin-bottom:12px">
+      <label style="font-size:12px;color:var(--t2);margin-bottom:4px;display:block">Отпуск с</label>
+      <input type="date" id="vac-from-${enrollId}" value="${today}" style="width:100%;background:var(--bg3);border:1px solid var(--b2);border-radius:8px;color:var(--t1);padding:8px 10px;font-family:var(--fb);font-size:13px"/>
+    </div>
+    <div class="fr" style="margin-bottom:16px">
+      <label style="font-size:12px;color:var(--t2);margin-bottom:4px;display:block">Отпуск по</label>
+      <input type="date" id="vac-to-${enrollId}" value="${defaultTo}" style="width:100%;background:var(--bg3);border:1px solid var(--b2);border-radius:8px;color:var(--t1);padding:8px 10px;font-family:var(--fb);font-size:13px"/>
+    </div>
+    <div style="font-size:11px;color:var(--t3);margin-bottom:14px">Абонемент будет продлён на количество уроков в период отпуска</div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button onclick="document.getElementById('vac-modal-${enrollId}').remove()" style="padding:8px 16px;border-radius:8px;border:1px solid var(--b2);background:var(--bg3);color:var(--t2);cursor:pointer;font-family:var(--fb);font-size:13px">Отмена</button>
+      <button onclick="saveVacationUI(${enrollId})" style="padding:8px 18px;border-radius:8px;border:none;background:var(--tl);color:#fff;cursor:pointer;font-family:var(--fb);font-size:13px;font-weight:600">🏖 Сохранить</button>
+    </div>
+  </div>`;
+
+  modal.addEventListener('click',e=>{if(e.target===modal)modal.remove();});
+  document.body.appendChild(modal);
+}
+
+function saveVacationUI(enrollId){
+  const idx=S.enrollments.findIndex(e=>e.id===enrollId);
+  if(idx<0)return;
+  const e=S.enrollments[idx];
+  const from=document.getElementById('vac-from-'+enrollId)?.value;
+  const to=document.getElementById('vac-to-'+enrollId)?.value;
+  if(!from||!to){toast('Выбери даты',true);return;}
+  const dFrom=new Date(from), dTo=new Date(to);
+  if(isNaN(dFrom)||isNaN(dTo)||dFrom>dTo){toast('Неверные даты',true);return;}
+
+  const slots=e.slots||[];
+  const lessonDays=slots.map(sl=>sl.day);
+  let vacDays=0;
+  const cur=new Date(dFrom);
+  while(cur<=dTo){const dow=(cur.getDay()+6)%7;if(lessonDays.includes(dow))vacDays++;cur.setDate(cur.getDate()+1);}
+
+  if(!S.enrollments[idx].vacations)S.enrollments[idx].vacations=[];
+  S.enrollments[idx].vacations.push({from,to,days:vacDays,extendAbonement:true,ts:Date.now()});
+
+  // Extend dateEnd
+  const newEnd=new Date(e.dateEnd||from);
+  newEnd.setDate(newEnd.getDate()+vacDays);
+  S.enrollments[idx].dateEnd=newEnd.toISOString().slice(0,10);
+
+  const note=getNoteInput(enrollId)||`с ${fmtDateRu(from)} по ${fmtDateRu(to)}, +${vacDays} ур.`;
+  addRenewalLog(enrollId,'Отпуск','🏖','var(--tl)',note);
+  logAction('vacation','Отпуск: '+(S.students?.find(s=>s.id===e.studentId)?.name||'-'),from+' - '+to);
+  save();
+  document.getElementById('vac-modal-'+enrollId)?.remove();
+  renderRenewals();
+  toast(`Отпуск сохранён, абонемент продлён на ${vacDays} уроков`);
+}
+
+// ─── Продлить с логом ────────────────────────────────────────────
+function renewEnrollUI(enrollId){
+  const idx=S.enrollments.findIndex(e=>e.id===enrollId);
+  if(idx<0)return;
+  const e=S.enrollments[idx];
+  const oldEnd=new Date(e.dateEnd||new Date());
+  const newEnd=new Date(oldEnd);newEnd.setMonth(newEnd.getMonth()+1);
+  const newEndStr=newEnd.toISOString().slice(0,10);
+  if(!confirm('Продлить до '+fmtDateRu(newEndStr)+'?'))return;
+  S.enrollments[idx].dateEnd=newEndStr;
+  S.enrollments[idx].renewalHandled=false;
+  S.enrollments[idx].paymentDelayed=false;
+  S.enrollments[idx].paymentDueDate='';
+  const note=getNoteInput(enrollId)||('до '+fmtDateRu(newEndStr));
+  addRenewalLog(enrollId,'Продлено','🔄','var(--gn)',note);
+  const stuName=S.students?.find(s=>s.id===e.studentId)?.name||'-';
+  logAction('renewal','Продлено: '+stuName,'до '+newEndStr);
+  save();renderRenewals();toast('Абонемент продлён до '+fmtDateRu(newEndStr));
+}
+
+// ─── Оплата задерживается с логом ───────────────────────────────
+function markDelayedUI(enrollId){
+  const idx=S.enrollments.findIndex(e=>e.id===enrollId);
+  if(idx<0)return;
+  const dueDate=prompt('Ожидаемая дата оплаты:',new Date(Date.now()+7*86400000).toISOString().slice(0,10));
+  if(!dueDate)return;
+  S.enrollments[idx].paymentDelayed=true;
+  S.enrollments[idx].paymentDueDate=dueDate;
+  S.enrollments[idx].renewalHandled=true;
+  const note=getNoteInput(enrollId)||('ожидаем до '+fmtDateRu(dueDate));
+  addRenewalLog(enrollId,'Оплата задерж.','⏳','var(--am)',note);
+  const stuName=S.students?.find(s=>s.id===S.enrollments[idx].studentId)?.name||'-';
+  logAction('payment_delayed','Оплата задерживается: '+stuName,'до '+dueDate);
+  save();renderRenewals();toast('Отмечено — ожидаем оплату до '+fmtDateRu(dueDate));
+}
+
+// ─── Деактивация с логом ─────────────────────────────────────────
+function deactivateEnrollUI(enrollId){
+  const REASONS=['Дорого','Не устроило качество','Личные причины'];
+  const msg='Причина деактивации:\n1. Дорого\n2. Не устроило качество\n3. Личные причины\n4. Другое\n\nВведи номер или свою причину:';
+  const reason=prompt(msg,'');
+  if(reason===null)return;
+  const num=parseInt(reason);
+  const reasonText=(num>=1&&num<=REASONS.length)?REASONS[num-1]:reason;
+  const idx=S.enrollments.findIndex(e=>e.id===enrollId);
+  if(idx<0)return;
+  const note=getNoteInput(enrollId)||reasonText;
+  addRenewalLog(enrollId,'Деактивирован','✕','var(--rd)',note);
+  S.enrollments[idx].inactive=true;
+  S.enrollments[idx].deactivationReason=reasonText;
+  S.enrollments[idx].deactivationDate=new Date().toISOString().slice(0,10);
+  const stuName=S.students?.find(s=>s.id===S.enrollments[idx].studentId)?.name||'-';
+  logAction('deactivate','Деактивирован: '+stuName,'Причина: '+reasonText);
+  save();renderRenewals();renderStudents();toast('Ученик деактивирован');
 }
 
 function renewEnroll(enrollId){
