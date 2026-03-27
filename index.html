@@ -603,12 +603,15 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
         <span id="stu-search-count" style="font-size:11px;color:var(--t3)"></span>
       </div>
       <!-- Tabs -->
-      <div style="display:flex;gap:4px;padding:0 0 12px;flex-wrap:wrap">
-        <button class="btn btn-sm" id="stab-all" onclick="setStuTab('all')" style="font-size:12px">📋 Все</button>
-        <button class="btn btn-sm" id="stab-active" onclick="setStuTab('active')" style="font-size:12px">✅ Активные</button>
+      <div style="display:flex;gap:4px;padding:0 0 12px;flex-wrap:wrap;align-items:center">
+        <button class="btn btn-sm" id="stab-all" onclick="setStuTab('all')" style="font-size:12px">📋 Ученики</button>
         <button class="btn btn-sm" id="stab-starts" onclick="setStuTab('starts')" style="font-size:12px">🚀 Старты</button>
         <button class="btn btn-sm" id="stab-renewals" onclick="setStuTab('renewals')" style="font-size:12px">🔄 Перестарты <span id="renewals-badge" style="background:var(--rd);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;margin-left:2px;display:none"></span></button>
         <button class="btn btn-sm" id="stab-lost" onclick="setStuTab('lost')" style="font-size:12px">💔 Потерянные</button>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-left:8px;font-size:12px;color:var(--t2)">
+          <input type="checkbox" id="stu-only-active" onchange="onStuSearch()" style="accent-color:var(--ac);width:14px;height:14px">
+          Только активные
+        </label>
       </div>
       <!-- All students tab -->
       <div id="stab-content-all">
@@ -621,10 +624,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
         </div>
         <div id="stu-list"></div>
       </div>
-      <!-- Active tab -->
-      <div id="stab-content-active" style="display:none">
-        <div id="stu-active-list"></div>
-      </div>
+
       <!-- Starts tab -->
       <div id="stab-content-starts" style="display:none">
         <div id="stu-starts-list"></div>
@@ -5562,8 +5562,8 @@ function pickEnrollment(stuId){
 function renderStudents(){
   updateRenewalsBadge();
   fillSubjSel();
-  const subjF=document.getElementById('stu-subj-f')?.value||'';
-  const statusF=document.getElementById('stu-status-f')?.value||'';
+  const subjF=_stuSearchSubj||document.getElementById('stu-subj-f')?.value||'';
+  const statusF=_stuOnlyActive?'active':(document.getElementById('stu-status-f')?.value||'');
   const search=_stuSearchQ||(document.getElementById('stu-search')?.value||'').toLowerCase().trim();
   const today=new Date().toISOString().slice(0,10);
 
@@ -5690,6 +5690,7 @@ let curStuTab = 'all';
 let _stuSearchQ = '';
 let _stuSearchSubj = '';
 let _stuSearchTeacher = '';
+let _stuOnlyActive = false;
 
 
 function fillGlobalSubjSel(){
@@ -5715,11 +5716,11 @@ function onStuSearch(){
   // Sync legacy hidden search so renderStudents() still works
   const legacyEl = document.getElementById('stu-search');
   if(legacyEl) legacyEl.value = _stuSearchQ;
+  _stuOnlyActive = !!(document.getElementById('stu-only-active')?.checked);
   // Re-render active tab
   const cur = document.querySelector('[id^="stab-content-"]:not([style*="display:none"])');
   const tabId = cur ? cur.id.replace('stab-content-','') : 'all';
   if(tabId==='all')          renderStudents();
-  else if(tabId==='active')  renderActive();
   else if(tabId==='starts')  renderStarts();
   else if(tabId==='renewals')renderRenewals();
   else if(tabId==='lost')    renderLost();
@@ -5728,16 +5729,24 @@ function onStuSearch(){
 function clearStuSearch(){
   const els=['stu-global-search','stu-global-subj','stu-global-teacher'];
   els.forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
-  _stuSearchQ=''; _stuSearchSubj=''; _stuSearchTeacher='';
+  _stuSearchQ=''; _stuSearchSubj=''; _stuSearchTeacher=''; _stuOnlyActive=false;
   const legacyEl = document.getElementById('stu-search');
   if(legacyEl) legacyEl.value='';
   const subF=document.getElementById('stu-subj-f');
   if(subF) subF.value='';
+  const activeCheck=document.getElementById('stu-only-active');
+  if(activeCheck) activeCheck.checked=false;
   onStuSearch();
 }
 
 // Returns true if enrollment+student matches current search filters
 function stuMatchesFilter(e){
+  if(_stuOnlyActive){
+    const today2=new Date().toISOString().slice(0,10);
+    if(e.inactive) return false;
+    if(!e.dateStart||e.dateStart>today2) return false;
+    if(e.dateEnd&&e.dateEnd<today2) return false;
+  }
   if(!_stuSearchQ && !_stuSearchSubj && !_stuSearchTeacher) return true;
   const stu = S.students?.find(s=>s.id===e.studentId)||{};
   const tch = S.teachers?.find(t=>String(t.id)===String(e.teacherId))||{};
@@ -5864,16 +5873,15 @@ async function autoSendRenewalWA(){
 
 function setStuTab(tab){
   curStuTab = tab;
-  ['all','active','starts','renewals','lost'].forEach(t=>{
+  ['all','starts','renewals','lost'].forEach(t=>{
     const btn=document.getElementById('stab-'+t);
     const content=document.getElementById('stab-content-'+t);
     if(btn) btn.className = 'btn btn-sm' + (t===tab?' btn-a':'');
     if(content) content.style.display = t===tab?'':'none';
   });
-  if(tab==='active') renderActive();
+  if(tab==='all') renderStudents();
   if(tab==='starts') renderStarts();
   if(tab==='renewals') renderRenewals();
-  if(tab==='lost') renderLost();
   if(tab==='lost') renderLost();
 }
 
@@ -6563,7 +6571,7 @@ function setVacation(enrollId){
   }
 
   logAction('vacation','Отпуск: '+(stu?.name||'-'),from+' - '+to+(choice?' (абонемент продлён)':' (пропуск)'));
-  save();renderActive();renderRenewals();
+  save();renderStudents();renderRenewals();
 }
 
 function reactivateEnroll(enrollId){
