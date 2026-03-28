@@ -12336,7 +12336,28 @@ function loadCRMChatPreview(id){
           </div>
         </div>`;
       }
-      if(isSys) return `<div style="text-align:center;margin:6px 0"><span style="font-size:10px;color:var(--t3);background:var(--bg3);padding:2px 8px;border-radius:8px">${m.text}</span></div>`;
+      if(isSys){
+        // Binotel call cards
+        const txt = m.text||'';
+        const isCall = m.name==='Binotel' && (txt.includes('📞') || txt.includes('📵'));
+        if(isCall){
+          const isMissedCall = txt.includes('📵') || txt.includes('Пропущен');
+          const isOutCall    = txt.includes('📞↗') || txt.includes('Исходящий');
+          const isAnswered   = txt.includes('✅');
+          const iconColor    = isMissedCall ? 'var(--rd)' : isOutCall ? 'var(--ac2)' : 'var(--gn)';
+          const bgColor      = isMissedCall ? 'rgba(240,89,117,.08)' : isOutCall ? 'rgba(168,127,255,.08)' : 'rgba(63,216,142,.08)';
+          const bordColor    = isMissedCall ? 'rgba(240,89,117,.3)' : isOutCall ? 'rgba(168,127,255,.3)' : 'rgba(63,216,142,.3)';
+          const ts2 = new Date(m.ts).toLocaleString('ru',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+          return `<div style="display:flex;justify-content:center;margin:6px 0">
+            <div style="display:inline-flex;align-items:center;gap:8px;background:${bgColor};border:1px solid ${bordColor};border-radius:10px;padding:7px 12px;font-size:11px;max-width:90%">
+              <span style="font-size:16px">${isMissedCall?'📵':isOutCall?'📞↗':'📞↙'}</span>
+              <span style="color:${iconColor};font-weight:600">${txt.replace(/📵|📞↗|📞↙/g,'').trim()}</span>
+              <span style="color:var(--t3);font-size:10px">${ts2}</span>
+            </div>
+          </div>`;
+        }
+        return `<div style="text-align:center;margin:6px 0"><span style="font-size:10px;color:var(--t3);background:var(--bg3);padding:2px 8px;border-radius:8px">${m.text||''}</span></div>`;
+      }
       const ts = new Date(m.ts).toLocaleString('ru',{hour:'2-digit',minute:'2-digit'});
       // Render media attachments (images, video, audio, documents)
       let mediaHtml = '';
@@ -12436,7 +12457,28 @@ function loadCRMStandaloneChat(id){
           </div>
         </div>`;
       }
-      if(isSys) return `<div style="text-align:center;margin:6px 0"><span style="font-size:10px;color:var(--t3);background:var(--bg3);padding:2px 8px;border-radius:8px">${m.text}</span></div>`;
+      if(isSys){
+        // Binotel call cards
+        const txt = m.text||'';
+        const isCall = m.name==='Binotel' && (txt.includes('📞') || txt.includes('📵'));
+        if(isCall){
+          const isMissedCall = txt.includes('📵') || txt.includes('Пропущен');
+          const isOutCall    = txt.includes('📞↗') || txt.includes('Исходящий');
+          const isAnswered   = txt.includes('✅');
+          const iconColor    = isMissedCall ? 'var(--rd)' : isOutCall ? 'var(--ac2)' : 'var(--gn)';
+          const bgColor      = isMissedCall ? 'rgba(240,89,117,.08)' : isOutCall ? 'rgba(168,127,255,.08)' : 'rgba(63,216,142,.08)';
+          const bordColor    = isMissedCall ? 'rgba(240,89,117,.3)' : isOutCall ? 'rgba(168,127,255,.3)' : 'rgba(63,216,142,.3)';
+          const ts2 = new Date(m.ts).toLocaleString('ru',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+          return `<div style="display:flex;justify-content:center;margin:6px 0">
+            <div style="display:inline-flex;align-items:center;gap:8px;background:${bgColor};border:1px solid ${bordColor};border-radius:10px;padding:7px 12px;font-size:11px;max-width:90%">
+              <span style="font-size:16px">${isMissedCall?'📵':isOutCall?'📞↗':'📞↙'}</span>
+              <span style="color:${iconColor};font-weight:600">${txt.replace(/📵|📞↗|📞↙/g,'').trim()}</span>
+              <span style="color:var(--t3);font-size:10px">${ts2}</span>
+            </div>
+          </div>`;
+        }
+        return `<div style="text-align:center;margin:6px 0"><span style="font-size:10px;color:var(--t3);background:var(--bg3);padding:2px 8px;border-radius:8px">${m.text||''}</span></div>`;
+      }
       const ts = new Date(m.ts).toLocaleString('ru',{hour:'2-digit',minute:'2-digit'});
       let mediaHtml = '';
       if(m.mediaUrl){
@@ -13426,7 +13468,25 @@ function openWAChat(leadId, _fromRender){
         const isOut = m.type==='out'||m.uid===myUid;
         const isSys = m.type==='system';
         const isRec = m.type==='call_recording';
-        if(isSys) return `<div style="text-align:center;margin:4px 0"><span style="font-size:10px;color:var(--t3);background:var(--bg3);padding:2px 8px;border-radius:8px">${m.text}</span></div>`;
+        if(isSys){
+          const txt3=m.text||'';
+          const isCall3=m.name==='Binotel'&&(txt3.includes('📞')||txt3.includes('📵'));
+          if(isCall3){
+            const isMC=txt3.includes('📵')||txt3.includes('Пропущен');
+            const isOC=txt3.includes('📞↗')||txt3.includes('Исходящий');
+            const ic=isMC?'var(--rd)':isOC?'var(--ac2)':'var(--gn)';
+            const bg=isMC?'rgba(240,89,117,.08)':isOC?'rgba(168,127,255,.08)':'rgba(63,216,142,.08)';
+            const bd=isMC?'rgba(240,89,117,.3)':isOC?'rgba(168,127,255,.3)':'rgba(63,216,142,.3)';
+            const ts3=new Date(m.ts).toLocaleString('ru',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+            return `<div style="display:flex;justify-content:center;margin:5px 0">
+              <div style="display:inline-flex;align-items:center;gap:7px;background:${bg};border:1px solid ${bd};border-radius:10px;padding:6px 11px;font-size:11px">
+                <span style="font-size:15px">${isMC?'📵':isOC?'📞↗':'📞↙'}</span>
+                <span style="color:${ic};font-weight:600">${txt3.replace(/📵|📞↗|📞↙/g,'').trim()}</span>
+                <span style="color:var(--t3);font-size:10px">${ts3}</span>
+              </div></div>`;
+          }
+          return `<div style="text-align:center;margin:4px 0"><span style="font-size:10px;color:var(--t3);background:var(--bg3);padding:2px 8px;border-radius:8px">${m.text||''}</span></div>`;
+        }
         if(isRec){
           const dur = m.duration > 0 ? Math.floor(m.duration/60)+'м '+(m.duration%60)+'с' : '';
           return `<div style="text-align:center;margin:8px 0">
