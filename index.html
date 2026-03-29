@@ -12992,9 +12992,10 @@ async function renderCallsLog(){
       :'';
 
     const recHtml = c.recordingLink
-      ?`<div style="margin-top:5px;display:flex;align-items:center;gap:6px">
+      ?`<div style="margin-top:5px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
           <span style="font-size:10px;color:var(--gn)">🎙</span>
-          <audio controls src="${c.recordingLink}" style="height:28px;max-width:200px;vertical-align:middle"></audio>
+          <audio controls src="${c.recordingLink}" style="height:32px;max-width:180px;vertical-align:middle"></audio>
+          <a href="${c.recordingLink}" target="_blank" download style="font-size:10px;color:var(--ac);text-decoration:none;border:1px solid var(--ac);border-radius:4px;padding:2px 6px">⬇ скачать</a>
         </div>`
       :'';
 
@@ -13409,7 +13410,10 @@ function renderWAChatsContent(leads){
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:4px">
             <div style="font-size:12px;font-weight:${unread||missed?'700':'500'};color:${unread||missed?'var(--t1)':'var(--t2)'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.name||l.phone}${channelDot}</div>
-            ${missed?`<span style="background:var(--rd);color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;flex-shrink:0;white-space:nowrap">📵 пропущен</span>`:unread?`<span style="background:var(--gn);color:var(--bg);font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;flex-shrink:0">${unread}</span>`:''}
+            <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
+              <span style="font-size:9px;color:var(--t3)">${(()=>{const d=l.updatedAt||l.lastContact||'';if(!d)return'';const dt=new Date(d);const now=new Date();const diffH=Math.floor((now-dt)/3600000);const diffD=Math.floor(diffH/24);if(diffH<1)return'<'+String(Math.max(1,Math.floor((now-dt)/60000)))+'мин';if(diffH<24)return diffH+'ч';if(diffD<7)return diffD+'д';return dt.toLocaleDateString('ru',{day:'numeric',month:'short'});})()}</span>
+              ${missed?`<span style="background:var(--rd);color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;white-space:nowrap">📵 пропущен</span>`:unread?`<span style="background:var(--gn);color:var(--bg);font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px">${unread}</span>`:''}
+            </div>
           </div>
           <div style="font-size:10px;color:var(--t3);margin-top:1px">${l.phone||''}</div>
           <div style="display:flex;align-items:center;gap:5px;margin-top:3px">
