@@ -1,0 +1,43 @@
+{
+  "name": "Robeng ELC Portal",
+  "short_name": "Robeng",
+  "description": "Портал управления школой Robeng ELC",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#1a1830",
+  "background_color": "#1a1830",
+  "lang": "ru",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='32' fill='%231a1830'/><text x='96' y='130' font-size='110' text-anchor='middle'>📚</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='80' fill='%231a1830'/><text x='256' y='340' font-size='280' text-anchor='middle'>📚</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "productivity"],
+  "shortcuts": [
+    {
+      "name": "CRM",
+      "url": "./#crm",
+      "description": "Управление лидами"
+    },
+    {
+      "name": "Чаты",
+      "url": "./#wachats",
+      "description": "WhatsApp чаты"
+    },
+    {
+      "name": "Звонки",
+      "url": "./#callslog",
+      "description": "Журнал звонков"
+    }
+  ]
+}
