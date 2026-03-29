@@ -15093,7 +15093,7 @@ function mobNavActive(el){
   if(el) el.classList.add('active');
 }
 
-// Sync badges from desktop to mobile nav
+// Sync badges — simple interval, no MutationObserver
 function syncMobBadges(){
   const sync = (src, mob) => {
     const srcEl = document.getElementById(src);
@@ -15107,22 +15107,7 @@ function syncMobBadges(){
   sync('wachats-badge','mob-chat-badge');
   sync('missed-badge','mob-calls-badge');
 }
-// Watch badge changes
-new MutationObserver(syncMobBadges).observe(document.body, {childList:true, subtree:true, characterData:true});
-
-// Mark active mob-nav item based on current page
-const _origNav = typeof nav === 'function' ? nav : null;
-if(_origNav){
-  const origNav = window.nav;
-  window.nav = function(el){
-    origNav.call(this, el);
-    const p = typeof el === 'string' ? el : el?.dataset?.p;
-    const map = {dashboard:0, crm:1, wachats:2, callslog:3, schedule:4};
-    const idx = map[p];
-    const btns = document.querySelectorAll('.mob-nav-item');
-    btns.forEach((b,i)=>b.classList.toggle('active', i===idx));
-  };
-}
+setInterval(syncMobBadges, 3000);
 
 // Register service worker for PWA
 if('serviceWorker' in navigator){
