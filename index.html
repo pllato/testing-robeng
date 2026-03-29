@@ -15078,26 +15078,16 @@ if(typeof fbAuth !== 'undefined') {
 
 // ── MOBILE NAV ────────────────────────────────────────────────
 // Force mobile layout via JS (backup for CSS cache issues)
-(function applyMobileLayout(){
-  function check(){
-    const isMob = window.innerWidth <= 768;
-    const sidebar = document.querySelector('.sidebar');
-    const mobNav = document.getElementById('mob-nav');
-    const content = document.querySelector('.content');
-    if(sidebar)  sidebar.style.display = isMob ? 'none' : '';
-    if(mobNav)   mobNav.style.display  = isMob ? 'flex' : 'none';
-    if(content && isMob) content.style.paddingBottom = '76px';
-    if(!isMob && content) content.style.paddingBottom = '';
-  }
-  // Run now and on resize
-  document.addEventListener('DOMContentLoaded', check);
-  window.addEventListener('resize', check);
-  // Also run immediately in case DOM already loaded
-  check();
-  // Re-run after app shows (login)
-  const obs = new MutationObserver(check);
-  obs.observe(document.body, {childList:true, subtree:false});
-})();
+function applyMobileLayout(){
+  const isMob = window.innerWidth <= 768;
+  const sidebar = document.querySelector('.sidebar');
+  const mobNav  = document.getElementById('mob-nav');
+  if(sidebar) sidebar.style.display = isMob ? 'none' : '';
+  if(mobNav)  mobNav.style.display  = isMob ? 'flex' : 'none';
+}
+document.addEventListener('DOMContentLoaded', applyMobileLayout);
+window.addEventListener('resize', applyMobileLayout);
+applyMobileLayout();
 function mobNavActive(el){
   document.querySelectorAll('.mob-nav-item').forEach(b=>b.classList.remove('active'));
   if(el) el.classList.add('active');
