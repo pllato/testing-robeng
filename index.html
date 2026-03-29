@@ -11715,7 +11715,14 @@ function buildCRMKanban(leads){
   let html = `<div id="crm-kanban-wrap" style="display:flex;gap:10px;overflow-x:auto;padding-bottom:12px;min-height:400px">`;
   CRM_STAGES.forEach(stage=>{
     const cards = leads.filter(l=>l.stage===stage.id)
-      .sort((a,b)=>(b.unreadCount||0)-(a.unreadCount||0));
+      .sort((a,b)=>{
+        // Пропущенные звонки — вверх
+        if(b.missedCall&&!a.missedCall) return 1;
+        if(a.missedCall&&!b.missedCall) return -1;
+        // Затем непрочитанные
+        return (b.unreadCount||0)-(a.unreadCount||0);
+      });
+
     html += `
     <div class="crm-col" data-stage="${stage.id}"
       style="min-width:220px;max-width:240px;flex-shrink:0;background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rl);display:flex;flex-direction:column;max-height:calc(100vh - 200px)">
@@ -11832,6 +11839,7 @@ function buildCRMCard(l){
   const daysSince = l.lastContact ? Math.floor((Date.now()-new Date(l.lastContact).getTime())/86400000) : null;
   const staleWarn = daysSince!==null && daysSince>3 && l.stage!=='active' && l.stage!=='lost';
   const unread = l.unreadCount||0;
+  const missed = !!l.missedCall;
 
   // Ищем ученика по телефону
   const phone = (l.phone||'').replace(/\D/g,'');
@@ -11845,8 +11853,18 @@ function buildCRMCard(l){
   const isHighlighted = _crmHighlightIds && _crmHighlightIds.has(l.id);
   const isSearchMatch = _crmFilter.search && isHighlighted;
 
+  // Border priority: missed > search > stale > unread > default
+  const borderColor = missed ? 'rgba(240,89,117,.6)'
+    : isSearchMatch ? 'rgba(124,92,252,.6)'
+    : staleWarn ? 'rgba(240,89,117,.35)'
+    : unread ? 'rgba(63,216,142,.35)'
+    : 'var(--b1)';
+  const boxShadow = missed ? ';box-shadow:0 0 0 2px rgba(240,89,117,.15)'
+    : isSearchMatch ? ';box-shadow:0 0 0 2px rgba(124,92,252,.2)' : '';
+
   return `<div draggable="true" class="crm-card" data-id="${l.id}"
-    style="background:var(--bg3);border:1px solid ${isSearchMatch?'rgba(124,92,252,.6)':staleWarn?'rgba(240,89,117,.35)':unread?'rgba(63,216,142,.35)':'var(--b1)'};border-radius:10px;padding:10px 12px;cursor:grab;transition:border-color .15s,opacity .15s;user-select:none${isSearchMatch?';box-shadow:0 0 0 2px rgba(124,92,252,.2)':''}">
+    style="background:var(--bg3);border:1px solid ${borderColor};border-radius:10px;padding:10px 12px;cursor:grab;transition:border-color .15s,opacity .15s;user-select:none${boxShadow}">
+    ${missed?`<div style="background:rgba(240,89,117,.12);border:1px solid rgba(240,89,117,.35);border-radius:6px;padding:4px 8px;margin-bottom:7px;display:flex;align-items:center;gap:5px;cursor:pointer" onclick="event.stopPropagation();if(confirm('Пометить пропущенный звонок как обработанный?')){crmRef.child('${l.id}/missedCall').remove();toast('Готово');}"><span style="font-size:13px">📵</span><span style="font-size:11px;font-weight:700;color:var(--rd);flex:1">Пропущенный звонок</span><span style="font-size:9px;color:var(--t3)">✕</span></div>`:''}
     ${l.notes?`<div style="font-size:12px;font-weight:700;color:var(--t1);margin-bottom:5px;line-height:1.45;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">${l.notes}</div>`:''}
     <div style="font-size:11px;font-weight:400;color:var(--t2);margin-bottom:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
       ${l.name||'Без имени'}
@@ -13259,21 +13277,22 @@ function renderWAChatsContent(leads){
     const phone = (l.phone||'').replace(/\D/g,'');
     const linkedStudent = (S.students||[]).find(s=>(s.phone||'').replace(/\D/g,'')=== phone || (s.parentPhone||'').replace(/\D/g,'')=== phone);
     const isArchived = !!l.archived;
+    const missed = !!l.missedCall;
     const channelDot = `<span style="font-size:8px;color:var(--gn);margin-left:3px">📱</span>`;
-    return `<div style="position:relative;border-bottom:1px solid var(--b1)" data-chat-item="${l.id}"
+    return `<div style="position:relative;border-bottom:1px solid var(--b1)${missed?';border-left:3px solid var(--rd)':''}" data-chat-item="${l.id}"
       onmouseenter="this.querySelector('.chat-actions').style.opacity='1'"
       onmouseleave="this.querySelector('.chat-actions').style.opacity='0'">
       <div onclick="openWAChat('${l.id}')"
-        style="padding:10px 12px;cursor:pointer;background:${isOpen?'var(--acbg)':'transparent'};display:flex;gap:10px;align-items:flex-start"
+        style="padding:10px 12px;cursor:pointer;background:${isOpen?'var(--acbg)':missed?'rgba(240,89,117,.06)':'transparent'};display:flex;gap:10px;align-items:flex-start"
         onmouseenter="if('${l.id}'!==_wachatOpenId)this.style.background='var(--bg3)'"
-        onmouseleave="if('${l.id}'!==_wachatOpenId)this.style.background='${isOpen?'var(--acbg)':'transparent'}'">
-        <div style="width:36px;height:36px;border-radius:50%;background:${stage.hex}33;border:2px solid ${stage.hex}66;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">
-          ${linkedStudent?'🎓':'👤'}
+        onmouseleave="if('${l.id}'!==_wachatOpenId)this.style.background='${isOpen?'var(--acbg)':missed?'rgba(240,89,117,.06)':'transparent'}'">
+        <div style="width:36px;height:36px;border-radius:50%;background:${missed?'rgba(240,89,117,.2)':stage.hex+'33'};border:2px solid ${missed?'rgba(240,89,117,.5)':stage.hex+'66'};display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">
+          ${missed?'📵':linkedStudent?'🎓':'👤'}
         </div>
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:4px">
-            <div style="font-size:12px;font-weight:${unread?'700':'500'};color:${unread?'var(--t1)':'var(--t2)'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.name||l.phone}${channelDot}</div>
-            ${unread?`<span style="background:var(--gn);color:var(--bg);font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;flex-shrink:0">${unread}</span>`:''}
+            <div style="font-size:12px;font-weight:${unread||missed?'700':'500'};color:${unread||missed?'var(--t1)':'var(--t2)'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.name||l.phone}${channelDot}</div>
+            ${missed?`<span style="background:var(--rd);color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;flex-shrink:0;white-space:nowrap">📵 пропущен</span>`:unread?`<span style="background:var(--gn);color:var(--bg);font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;flex-shrink:0">${unread}</span>`:''}
           </div>
           <div style="font-size:10px;color:var(--t3);margin-top:1px">${l.phone||''}</div>
           <div style="display:flex;align-items:center;gap:5px;margin-top:3px">
