@@ -12809,9 +12809,21 @@ async function renderCallsLog(){
   });
 
   console.log('crmChats → добавлено звонков:', chatCallsFound, '| записей разговоров:', chatRecordingsFound);
-  console.log('ИТОГО calls:', calls.length);
 
+  // Дедупликация — убираем дубли (Binotel retry: одинаковый phone+duration+callType в течение 5 мин)
+  const deduped = [];
+  const seen = new Set();
   calls.sort((a,b) => (b.ts||'').localeCompare(a.ts||''));
+  for(const c of calls){
+    const tMin = c.ts ? Math.floor(new Date(c.ts).getTime() / (5*60*1000)) : 0;
+    const key = `${c.phone}|${c.callType}|${c.duration}|${tMin}`;
+    if(seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(c);
+  }
+  calls.length = 0; deduped.forEach(c => calls.push(c));
+
+  console.log('ИТОГО calls:', calls.length);
 
   const byDir = calls.reduce((acc,c)=>{ acc[c.callType]=(acc[c.callType]||0)+1; return acc; }, {});
   const byStatus = { answered: calls.filter(c=>c.answered).length, missed: calls.filter(c=>c.isMissed).length, rec: calls.filter(c=>c.recordingLink).length };
