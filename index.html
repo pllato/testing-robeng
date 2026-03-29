@@ -12273,12 +12273,12 @@ function crmAutoSave(){
   _crmAutoSaveTimer = setTimeout(()=>{
     const name = document.getElementById('crm-f-name')?.value.trim();
     if(!name) return;
-    saveCRMCard();
+    saveCRMCard(true); // silent=true — не закрывать карточку
     if(indicator){ indicator.textContent = '✓ сохранено'; indicator.style.color='var(--gn)'; setTimeout(()=>{ if(indicator) indicator.textContent=''; }, 2000); }
   }, 1500);
 }
 
-function saveCRMCard(){
+function saveCRMCard(silent=false){
   const name = document.getElementById('crm-f-name').value.trim();
   if(!name){ toast('Введите имя клиента',true); return; }  const now = new Date().toISOString();
   const data = {
@@ -12327,8 +12327,7 @@ function saveCRMCard(){
             sendTeacherStageNotify(_crmEditId, crmStage(data.stage).label);
           }
         }
-        close1('m-crm-card'); renderCRM(); toast('Карточка сохранена');
-      });
+        if(silent){ toast('✓ Сохранено'); } else { close1('m-crm-card'); renderCRM(); toast('Карточка сохранена'); }
     });
   } else {
     data.createdAt = now;
