@@ -3,8 +3,14 @@
 <head>
 <meta charset="UTF-8"/>
 <script src="./jssip.min.js"></script>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <title>Robeng — ELC Roblox English</title>
+<meta name="theme-color" content="#1a1830"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Robeng ELC"/>
+<link rel="manifest" href="manifest.json"/>
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet">
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -352,6 +358,69 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px}
+
+/* ── MOBILE / PWA ─────────────────────────────────────────────── */
+#mob-nav{display:none}
+@media screen and (max-width:768px){
+  /* Layout */
+  html body .layout .sidebar{display:none!important}
+  .main{width:100vw}
+  .topbar{padding:10px 14px;gap:8px}
+  .topbar-title{font-size:12px}
+  .content{padding:12px;padding-bottom:76px}
+  .layout{flex-direction:column}
+
+  /* Bottom nav */
+  #mob-nav{
+    display:flex;position:fixed;bottom:0;left:0;right:0;z-index:1000;
+    background:var(--bg2);border-top:1px solid var(--b1);
+    padding:0 4px;padding-bottom:env(safe-area-inset-bottom,0);
+    box-shadow:0 -2px 12px rgba(0,0,0,.25)
+  }
+  .mob-nav-item{
+    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:8px 2px;cursor:pointer;color:var(--t3);font-size:9px;font-weight:600;
+    gap:3px;position:relative;border:none;background:none;font-family:var(--fb);
+    transition:color .15s;min-width:0;letter-spacing:.02em;text-transform:uppercase;
+    -webkit-tap-highlight-color:transparent
+  }
+  .mob-nav-item.active,.mob-nav-item:hover{color:var(--ac)}
+  .mob-nav-item .mnicon{font-size:20px;line-height:1}
+  .mob-nav-item .mnbadge{
+    position:absolute;top:4px;right:calc(50% - 14px);min-width:16px;height:16px;
+    background:var(--rd);color:#fff;font-size:9px;font-weight:700;border-radius:8px;
+    padding:0 4px;display:none;align-items:center;justify-content:center;
+    pointer-events:none
+  }
+
+  /* Modals full-screen */
+  .mo .modal,.mo .modal-xl,.mo .modal-lg{
+    width:100vw!important;max-width:100vw!important;height:100vh!important;
+    max-height:100vh!important;border-radius:0!important;margin:0;
+    overflow-y:auto!important
+  }
+  .mo{align-items:flex-start!important}
+
+  /* Tables scrollable */
+  table{font-size:11px}
+  .content table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+  /* CRM kanban → force list on mobile */
+  #crm-kanban-wrap{flex-direction:column!important}
+  .crm-col{min-width:unset!important;max-width:unset!important;width:100%!important}
+
+  /* Topbar compact */
+  #topbar-sip,#topbar-theme,#topbar-role{display:none}
+  .topbar>div:last-child{gap:6px}
+
+  /* Chat layouts */
+  #wachat-wrap{flex-direction:column!important;height:calc(100vh - 130px)!important}
+  #wachat-list-panel{width:100%!important;min-width:unset!important;max-width:unset!important;height:220px!important;overflow-y:auto!important;border-right:none!important;border-bottom:1px solid var(--b1)!important}
+  #wachat-main{height:1px!important;flex:1!important}
+
+  /* Schedule */
+  .week-nav{flex-wrap:wrap;gap:4px}
+}
 </style>
 </head>
 <body>
@@ -1413,6 +1482,28 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
   </div>
 </div>
 </div><!-- /#app -->
+
+<!-- ── MOBILE BOTTOM NAV ─────────────────────────────────────── -->
+<nav id="mob-nav">
+  <button class="mob-nav-item" onclick="nav(document.querySelector('[data-p=dashboard]'));mobNavActive(this)">
+    <span class="mnicon">◈</span><span>Главная</span>
+  </button>
+  <button class="mob-nav-item admin-only" onclick="nav(document.querySelector('[data-p=crm]'));mobNavActive(this)">
+    <span class="mnicon">💼</span><span>CRM</span>
+    <span class="mnbadge" id="mob-crm-badge"></span>
+  </button>
+  <button class="mob-nav-item admin-only" onclick="nav(document.querySelector('[data-p=wachats]'));mobNavActive(this)">
+    <span class="mnicon">💬</span><span>Чаты</span>
+    <span class="mnbadge" id="mob-chat-badge"></span>
+  </button>
+  <button class="mob-nav-item admin-only" onclick="nav(document.querySelector('[data-p=callslog]'));mobNavActive(this)">
+    <span class="mnicon">📞</span><span>Звонки</span>
+    <span class="mnbadge" id="mob-calls-badge"></span>
+  </button>
+  <button class="mob-nav-item" onclick="nav(document.querySelector('[data-p=schedule]'));mobNavActive(this)">
+    <span class="mnicon">📅</span><span>Расписание</span>
+  </button>
+</nav>
 
 <div class="toast" id="toast"></div>
 
@@ -14982,6 +15073,71 @@ if(typeof fbAuth !== 'undefined') {
       }, 500);
       setTimeout(sipInit, 2000);
     }
+  });
+}
+
+// ── MOBILE NAV ────────────────────────────────────────────────
+// Force mobile layout via JS (backup for CSS cache issues)
+(function applyMobileLayout(){
+  function check(){
+    const isMob = window.innerWidth <= 768;
+    const sidebar = document.querySelector('.sidebar');
+    const mobNav = document.getElementById('mob-nav');
+    const content = document.querySelector('.content');
+    if(sidebar)  sidebar.style.display = isMob ? 'none' : '';
+    if(mobNav)   mobNav.style.display  = isMob ? 'flex' : 'none';
+    if(content && isMob) content.style.paddingBottom = '76px';
+    if(!isMob && content) content.style.paddingBottom = '';
+  }
+  // Run now and on resize
+  document.addEventListener('DOMContentLoaded', check);
+  window.addEventListener('resize', check);
+  // Also run immediately in case DOM already loaded
+  check();
+  // Re-run after app shows (login)
+  const obs = new MutationObserver(check);
+  obs.observe(document.body, {childList:true, subtree:false});
+})();
+function mobNavActive(el){
+  document.querySelectorAll('.mob-nav-item').forEach(b=>b.classList.remove('active'));
+  if(el) el.classList.add('active');
+}
+
+// Sync badges from desktop to mobile nav
+function syncMobBadges(){
+  const sync = (src, mob) => {
+    const srcEl = document.getElementById(src);
+    const mobEl = document.getElementById(mob);
+    if(!mobEl) return;
+    const v = srcEl?.textContent?.trim();
+    mobEl.textContent = v||'';
+    mobEl.style.display = v ? 'flex' : 'none';
+  };
+  sync('crm-badge','mob-crm-badge');
+  sync('wachats-badge','mob-chat-badge');
+  sync('missed-badge','mob-calls-badge');
+}
+// Watch badge changes
+new MutationObserver(syncMobBadges).observe(document.body, {childList:true, subtree:true, characterData:true});
+
+// Mark active mob-nav item based on current page
+const _origNav = typeof nav === 'function' ? nav : null;
+if(_origNav){
+  const origNav = window.nav;
+  window.nav = function(el){
+    origNav.call(this, el);
+    const p = typeof el === 'string' ? el : el?.dataset?.p;
+    const map = {dashboard:0, crm:1, wachats:2, callslog:3, schedule:4};
+    const idx = map[p];
+    const btns = document.querySelectorAll('.mob-nav-item');
+    btns.forEach((b,i)=>b.classList.toggle('active', i===idx));
+  };
+}
+
+// Register service worker for PWA
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
   });
 }
 </script>
