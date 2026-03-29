@@ -15059,20 +15059,10 @@ function sipTogglePanel() {
   toast('📞 SIP: ' + lbl);
 }
 
-// Запускаем SIP после авторизации — прямой вызов
-if(typeof fbAuth !== 'undefined') {
+// Запускаем SIP только на десктопе
+if(typeof fbAuth !== 'undefined' && window.innerWidth > 768) {
   fbAuth.onAuthStateChanged(u => {
-    if(u) {
-      console.log('[SIP] User logged in, starting SIP in 2s...');
-      // Тест прямого WebSocket
-      setTimeout(() => {
-        const testWs = new WebSocket('wss://sip52.binotel.com', 'sip');
-        testWs.onopen = () => { console.log('[WS TEST] Connected!'); testWs.close(); };
-        testWs.onerror = (e) => console.error('[WS TEST] Error:', e);
-        testWs.onclose = (e) => console.log('[WS TEST] Closed:', e.code, e.reason);
-      }, 500);
-      setTimeout(sipInit, 2000);
-    }
+    if(u) setTimeout(sipInit, 2000);
   });
 }
 
