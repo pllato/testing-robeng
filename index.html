@@ -12263,10 +12263,24 @@ function openCRMCard(id){
   }
 }
 
+// ── Автосохранение карточки CRM (debounce 1.5с) ──────────────────
+let _crmAutoSaveTimer = null;
+function crmAutoSave(){
+  if(!_crmEditId) return; // только для существующих лидов
+  clearTimeout(_crmAutoSaveTimer);
+  const indicator = document.getElementById('crm-autosave-indicator');
+  if(indicator){ indicator.textContent = ''; indicator.style.color='var(--t3)'; }
+  _crmAutoSaveTimer = setTimeout(()=>{
+    const name = document.getElementById('crm-f-name')?.value.trim();
+    if(!name) return;
+    saveCRMCard();
+    if(indicator){ indicator.textContent = '✓ сохранено'; indicator.style.color='var(--gn)'; setTimeout(()=>{ if(indicator) indicator.textContent=''; }, 2000); }
+  }, 1500);
+}
+
 function saveCRMCard(){
   const name = document.getElementById('crm-f-name').value.trim();
-  if(!name){ toast('Введите имя клиента',true); return; }
-  const now = new Date().toISOString();
+  if(!name){ toast('Введите имя клиента',true); return; }  const now = new Date().toISOString();
   const data = {
     name,
     phone: document.getElementById('crm-f-phone').value.trim(),
@@ -14473,11 +14487,11 @@ function addCRMLinkToStudent(studentEl, phone){
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
       <!-- Left: fields -->
       <div style="display:flex;flex-direction:column;gap:0">
-        <div class="fr"><label>💬 Комментарий</label><textarea id="crm-f-notes" placeholder="Важные детали, история, договорённости..." rows="3" style="font-size:13px"></textarea></div>
-        <div class="fr"><label>ФИО / Имя клиента</label><input id="crm-f-name" placeholder="Иванова Татьяна"/></div>
+        <div class="fr"><label>💬 Комментарий</label><textarea id="crm-f-notes" oninput="crmAutoSave()" placeholder="Важные детали, история, договорённости..." rows="3" style="font-size:13px"></textarea></div>
+        <div class="fr"><label>ФИО / Имя клиента</label><input id="crm-f-name" oninput="crmAutoSave()" placeholder="Иванова Татьяна"/></div>
         <div class="fr">
           <label>📱 Телефон WhatsApp клиента</label>
-          <input id="crm-f-phone" placeholder="+7 700 000 00 00"/>
+          <input id="crm-f-phone" oninput="crmAutoSave()" placeholder="+7 700 000 00 00"/>
           <div style="display:flex;gap:5px;margin-top:5px" id="crm-card-call-btns">
             <button onclick="crmWACall(_crmEditId)" style="background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.3);border-radius:6px;color:var(--gn);cursor:pointer;padding:4px 11px;font-size:11px;font-weight:600">📞 WA</button>
             <button onclick="crmCall(_crmEditId)" style="background:rgba(124,92,252,.1);border:1px solid rgba(124,92,252,.3);border-radius:6px;color:var(--ac2);cursor:pointer;padding:4px 11px;font-size:11px;font-weight:600">📞 Binotel</button>
@@ -14485,7 +14499,7 @@ function addCRMLinkToStudent(studentEl, phone){
         </div>
         <div class="fr">
           <label>💳 Номер для счёта (Kaspi и др.)</label>
-          <input id="crm-f-billphone" placeholder="+7 700 000 00 00"/>
+          <input id="crm-f-billphone" oninput="crmAutoSave()" placeholder="+7 700 000 00 00"/>
           <div style="display:flex;gap:5px;margin-top:5px">
             <button onclick="crmCallNumber(document.getElementById('crm-f-billphone').value,'wa')" style="background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.3);border-radius:6px;color:var(--gn);cursor:pointer;padding:4px 11px;font-size:11px;font-weight:600">📞 WA</button>
             <button onclick="crmCallNumber(document.getElementById('crm-f-billphone').value,'binotel')" style="background:rgba(124,92,252,.1);border:1px solid rgba(124,92,252,.3);border-radius:6px;color:var(--ac2);cursor:pointer;padding:4px 11px;font-size:11px;font-weight:600">📞 Binotel</button>
@@ -14523,7 +14537,7 @@ function addCRMLinkToStudent(studentEl, phone){
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
           <div class="fr">
             <label>Источник</label>
-            <select id="crm-f-source" style="background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:13px;padding:8px 11px;width:100%">
+            <select id="crm-f-source" onchange="crmAutoSave()" style="background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:13px;padding:8px 11px;width:100%">
               <option value="">— Не указан —</option>
               <option value="whatsapp">WhatsApp</option>
               <option value="instagram">Instagram</option>
@@ -14535,19 +14549,19 @@ function addCRMLinkToStudent(studentEl, phone){
           </div>
           <div class="fr">
             <label>📖 Предмет / Курс</label>
-            <select id="crm-f-interest" style="background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:13px;padding:8px 11px;width:100%">
+            <select id="crm-f-interest" onchange="crmAutoSave()" style="background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:13px;padding:8px 11px;width:100%">
               <option value="">— Не выбран —</option>
             </select>
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-          <div class="fr"><label>👶 Возраст ребёнка</label><input id="crm-f-age" type="number" min="3" max="18" placeholder="Возраст"/></div>
-          <div class="fr"><label>💰 Бюджет</label><input id="crm-f-budget" placeholder="20 000 тг/мес"/></div>
+          <div class="fr"><label>👶 Возраст ребёнка</label><input id="crm-f-age" type="number" min="3" max="18" oninput="crmAutoSave()" placeholder="Возраст"/></div>
+          <div class="fr"><label>💰 Бюджет</label><input id="crm-f-budget" oninput="crmAutoSave()" placeholder="20 000 тг/мес"/></div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
           <div class="fr"><label>📅 Дата и время пробного урока</label>
             <div style="display:flex;gap:6px">
-              <input id="crm-f-trialdate" type="date" style="flex:1"/>
+              <input id="crm-f-trialdate" type="date" onchange="crmAutoSave()" style="flex:1"/>
               <input id="crm-f-trialtime" type="time" value="14:00" style="width:90px;background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:13px;padding:8px 8px"/>
             </div>
           </div>
@@ -14559,7 +14573,7 @@ function addCRMLinkToStudent(studentEl, phone){
           </div>
           <div class="fr">
             <label>👤 Ответственный</label>
-            <select id="crm-f-assignee" style="background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:13px;padding:8px 11px;width:100%">
+            <select id="crm-f-assignee" onchange="crmAutoSave()" style="background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:13px;padding:8px 11px;width:100%">
               <option value="">— Не назначен —</option>
             </select>
           </div>
@@ -14567,6 +14581,7 @@ function addCRMLinkToStudent(studentEl, phone){
         <div style="display:flex;gap:8px;margin-top:4px">
           <button class="btn" onclick="close1('m-crm-card')">Отмена</button>
           <button class="btn btn-a" onclick="saveCRMCard()">💾 Сохранить</button>
+          <span id="crm-autosave-indicator" style="font-size:11px;color:var(--gn);align-self:center;transition:opacity .3s"></span>
         </div>
       </div>
       <!-- Right: chat -->
@@ -14574,15 +14589,14 @@ function addCRMLinkToStudent(studentEl, phone){
         <div style="font-size:12px;font-weight:600;color:var(--t2)">💬 Переписка</div>
         <div id="crm-chat-preview" style="flex:1;min-height:300px;max-height:360px;overflow-y:auto;background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);padding:10px"></div>
         <div style="display:flex;gap:6px">
-          <textarea id="crm-chat-inp" placeholder="Заметка или ответ..." rows="2"
+          <textarea id="crm-chat-inp" placeholder="Сообщение клиенту в WhatsApp..." rows="2"
             style="flex:1;background:var(--bg3);border:1px solid var(--b2);border-radius:8px;color:var(--t1);font-family:var(--fb);font-size:12px;padding:7px 10px;resize:none"
-            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendCRMMsg();}"></textarea>
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendCRMMsgWA();}"></textarea>
           <div style="display:flex;flex-direction:column;gap:4px">
-            <button onclick="sendCRMMsg()" style="background:var(--bg3);border:1px solid var(--b2);border-radius:6px;color:var(--t2);cursor:pointer;padding:5px 9px;font-size:12px" title="Внутренняя заметка">📝</button>
-            <button onclick="sendCRMMsgWA()" style="background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.25);border-radius:6px;color:var(--gn);cursor:pointer;padding:5px 9px;font-size:12px" title="Отправить в WhatsApp">📲</button>
+            <button onclick="sendCRMMsgWA()" style="background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.25);border-radius:6px;color:var(--gn);cursor:pointer;padding:5px 9px;font-size:16px" title="Отправить в WhatsApp">📲</button>
           </div>
         </div>
-        <div style="font-size:10px;color:var(--t3)">📝 — заметка внутри &nbsp;·&nbsp; 📲 — в WhatsApp клиенту</div>
+        <div style="font-size:10px;color:var(--t3)">Enter — отправить в WhatsApp клиенту</div>
       </div>
     </div>
 
