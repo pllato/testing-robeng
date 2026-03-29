@@ -916,7 +916,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
 </div>
 
 <!-- Modal: Add User -->
-<div class="mo" id="m-add-user">
+<div class="mo" id="m-add-user" onclick="if(event.target===this)close1('m-add-user')">
   <div class="modal modal-xl">
     <div class="mt" id="m-add-user-ttl">Добавить пользователя</div>
     <div class="auth-err" id="m-user-err" style="display:none;margin-bottom:12px"></div>
@@ -968,7 +968,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
 </div>
 
 <!-- Modal: Video link -->
-<div class="mo" id="m-video">
+<div class="mo" id="m-video" onclick="if(event.target===this)close1('m-video')">
   <div class="modal">
     <div class="mt">🎥 Загрузить запись урока</div>
     <div id="m-video-info" style="font-size:12px;color:var(--t2);background:var(--bg3);padding:8px 12px;border-radius:var(--r);margin-bottom:14px"></div>
@@ -1047,7 +1047,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
 </div>
 
 <!-- Modal: Video review (admin) -->
-<div class="mo" id="m-video-review">
+<div class="mo" id="m-video-review" onclick="if(event.target===this)close1('m-video-review')">
   <div class="modal modal-lg">
     <div class="mt">🎥 Проверка записи урока</div>
     <div id="m-vr-info" style="margin-bottom:14px"></div>
@@ -1093,7 +1093,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
 </div>
 
 <!-- Modal: Task -->
-<div class="mo" id="m-task">
+<div class="mo" id="m-task" onclick="if(event.target===this)close1('m-task')">
   <div class="modal modal-lg">
     <div class="mt" id="m-task-ttl">Новая задача</div>
     <div class="fr"><label>Название</label><input type="text" id="task-title" placeholder="Что нужно сделать?"/></div>
@@ -1125,7 +1125,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
 </div>
 
 <!-- Modal: Task Detail -->
-<div class="mo" id="m-task-detail">
+<div class="mo" id="m-task-detail" onclick="if(event.target===this)close1('m-task-detail')">
   <div class="modal modal-lg" style="max-height:90vh">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;gap:10px">
       <div class="mt" id="m-td-title" style="margin-bottom:0;flex:1"></div>
@@ -1152,7 +1152,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
 </div>
 
 <!-- Modal: Makeup lesson time -->
-<div class="mo" id="m-makeup">
+<div class="mo" id="m-makeup" onclick="if(event.target===this)close1('m-makeup')">
   <div class="modal">
     <div class="mt">Отработка пропуска</div>
     <div id="m-makeup-info" style="margin-bottom:14px;font-size:12px;color:var(--t2)"></div>
@@ -1172,7 +1172,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
 </div>
 
 <!-- Modal: Teacher (with built-in avail grid for new) -->
-<div class="mo" id="m-teacher">
+<div class="mo" id="m-teacher" onclick="if(event.target===this)close1('m-teacher')">
   <div class="modal modal-xl">
     <div class="mt" id="m-teacher-ttl">Добавить преподавателя</div>
     <div class="fr-row">
@@ -1199,7 +1199,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
 </div>
 
 <!-- Modal: Student -->
-<div class="mo" id="m-student">
+<div class="mo" id="m-student" onclick="if(event.target===this)close1('m-student')">
   <div class="modal modal-lg">
     <div class="mt" id="m-stu-ttl">Добавить ученика</div>
     <div class="fr-row">
@@ -1340,7 +1340,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
 </div>
 
 <!-- Modal: Detail -->
-<div class="mo" id="m-detail">
+<div class="mo" id="m-detail" onclick="if(event.target===this)close1('m-detail')">
   <div class="modal">
     <div class="mt">Информация об уроке</div>
     <div id="detail-body"></div>
@@ -1352,7 +1352,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
 </div>
 
 <!-- Modal: Edit subject -->
-<div class="mo" id="m-subj">
+<div class="mo" id="m-subj" onclick="if(event.target===this)close1('m-subj')">
   <div class="modal">
     <div class="mt">Редактировать предмет</div>
     <div class="fr"><label>Название</label><input id="subj-edit-name"/></div>
@@ -1374,7 +1374,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
 </div>
 
 <!-- Modal: Extend enrollment -->
-<div class="mo" id="m-extend">
+<div class="mo" id="m-extend" onclick="if(event.target===this)close1('m-extend')">
   <div class="modal modal-lg">
     <div class="mt" id="m-ext-ttl">Продлить запись</div>
     <div id="m-ext-info" style="margin-bottom:14px"></div>
@@ -14429,7 +14429,7 @@ function addCRMLinkToStudent(studentEl, phone){
 </div>
 
 <!-- Modal: CRM Dedup -->
-<div class="mo" id="m-crm-dedup">
+<div class="mo" id="m-crm-dedup" onclick="if(event.target===this)close1('m-crm-dedup')">
   <div class="modal" style="max-width:700px;width:95vw;max-height:90vh;overflow-y:auto">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <div class="mt">🔀 Объединение дублей</div>
@@ -14439,7 +14439,7 @@ function addCRMLinkToStudent(studentEl, phone){
   </div>
 </div>
 <!-- ── CRM: CARD MODAL ──────────────────────────────────────── -->
-<div class="mo" id="m-crm-card">
+<div class="mo" id="m-crm-card" onclick="if(event.target===this)close1('m-crm-card')">
   <div class="modal modal-xl" style="max-height:94vh;overflow-y:auto;max-width:960px;width:96vw">
     <!-- Header -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px">
@@ -14682,7 +14682,7 @@ function addCRMLinkToStudent(studentEl, phone){
 </div>
 
 <!-- ── CRM: STANDALONE CHAT MODAL ──────────────────────────────── -->
-<div class="mo" id="m-crm-chat">
+<div class="mo" id="m-crm-chat" onclick="if(event.target===this)close1('m-crm-chat')">
   <div class="modal modal-lg" style="max-height:88vh;display:flex;flex-direction:column">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;gap:10px">
       <div style="flex:1;min-width:0">
