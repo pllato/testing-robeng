@@ -2058,7 +2058,7 @@ function countFree(){
 
 // ── NAVIGATION ───────────────────────────────────────────────────
 const TITLES={today:'Сегодня ☀️',tasks:'Задачи',teamchat:'Командный чат',dashboard:'Главная',subjects:'Предметы',teachers:'Преподаватели',availability:'Время работы',schedule:'Расписание',freeSlots:'Свободные слоты',students:'Ученики',reports:'Отчёты по преподавателям',journal:'Журнал действий',notifylog:'📨 Журнал уведомлений',analytics:'🧠 Аналитика',trash:'Корзина',backups:'Резервные копии',users:'Пользователи',videoreviews:'Видео уроков',surveys:'Опросы',crm:'CRM — Клиенты',wachats:'Чаты',callslog:'Журнал звонков'};
-const ACTS={today:'',tasks:'',teamchat:'',dashboard:'+',subjects:'',teachers:'+ Преподаватель',availability:'',schedule:'',freeSlots:'',students:'+ Ученик',reports:'',journal:'',notifylog:'',analytics:'',trash:'',backups:'',users:'',videoreviews:'',surveys:'',crm:'',wachats:'',callslog:''};
+const ACTS={today:'',tasks:'',teamchat:'',dashboard:'+',subjects:'',teachers:'+ Преподаватель',availability:'',schedule:'',freeSlots:'',students:'+ Ученик',reports:'',journal:'',notifylog:'',analytics:'',trash:'',backups:'',users:'',videoreviews:'',surveys:'',crm:'',wachats:'',callslog:'📞 Позвонить'};
 function curPanel(){return document.querySelector('.ni.active')?.dataset.p||'dashboard';}
 function nav(el){
   // Close more menu on nav
@@ -2076,7 +2076,7 @@ function nav(el){
   document.getElementById('exp-btn').style.display=p==='schedule'?'':'none';
   renderPanel(p);
 }
-function mainAct(){const p=curPanel();if(p==='teachers')openTeacherModal();else openStudentModal();}
+function mainAct(){const p=curPanel();if(p==='callslog')openDialer();else if(p==='teachers')openTeacherModal();else openStudentModal();}
 function renderPanel(p){
   if(p==='today'){renderToday();return;}
   if(p==='tasks'){renderTasks();return;}
@@ -13012,7 +13012,9 @@ async function renderCallsLog(){
       ?`<button onclick="nav(document.querySelector('[data-p=crm]'));setTimeout(()=>openCRMCard('${c.leadId}'),300)"
           style="background:var(--acbg);border:1px solid var(--acb);border-radius:5px;color:var(--ac2);cursor:pointer;padding:3px 9px;font-size:11px;font-family:var(--fb)">
           💼 ${c.leadName||'Сделка'}</button>`
-      :'';
+      :`<button onclick="createLeadFromCall('${c.phone}','${c.leadName||''}')"
+          style="background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.3);border-radius:5px;color:var(--gn);cursor:pointer;padding:3px 9px;font-size:11px;font-family:var(--fb)">
+          ➕ в CRM</button>`;
 
     const callBtns = c.phone
       ?`<button onclick="crmWACallByPhone('${c.phone}')"
@@ -13318,6 +13320,83 @@ function crmWACallByPhone(phone){
   const clean = (phone||'').replace(/\D/g,'');
   if(!clean){ toast('Нет номера',true); return; }
   window.open('https://wa.me/'+clean, '_blank');
+}
+
+
+// ── БЫСТРЫЙ ЗВОНОК без сделки ─────────────────────────────────
+async function quickCallByPhone(phoneRaw){
+  const phone = (phoneRaw||'').replace(/[^\d]/g,'');
+  if(!phone){ toast('Введите номер телефона',true); return; }
+  const myUid = fbAuth.currentUser?.uid;
+  if(!myUid){ toast('Не авторизован',true); return; }
+  const meSnap = await usersRef.child(myUid).once('value');
+  const meData = meSnap.val()||{};
+  if(!meData.phone){ toast('⚠ Укажите свой телефон в профиле (Пользователи → Редактировать)',true); return; }
+  showCallModal({
+    operatorPhone: meData.phone,
+    operatorName: meData.name || meData.email || 'Вы',
+    clientName: '+'+phone, clientPhone: '+'+phone,
+    leadId: null,
+    assigneeData: meData,
+  });
+}
+
+// ── СОЗДАТЬ СДЕЛКУ из звонка ─────────────────────────────────
+async function createLeadFromCall(phone, name){
+  const now = new Date().toISOString();
+  const cleanPhone = '+' + (phone||'').replace(/[^\d]/g,'');
+  const snap = await crmRef.once('value');
+  const raw = snap.val()||{};
+  const existing = Object.entries(raw).find(([,l])=>(l.phone||'').replace(/\D/g,'') === (phone||'').replace(/\D/g,''));
+  if(existing){
+    toast('Сделка уже есть — открываю...');
+    nav(document.querySelector('[data-p=crm]'));
+    setTimeout(()=>openCRMCard(existing[0]),400);
+    return;
+  }
+  const ref = crmRef.push();
+  await ref.set({
+    name: name||cleanPhone, phone: cleanPhone,
+    stage:'new', createdAt:now, updatedAt:now, lastContact:now,
+    source:'callslog',
+  });
+  toast('✅ Сделка создана!');
+  nav(document.querySelector('[data-p=crm]'));
+  setTimeout(()=>openCRMCard(ref.key),400);
+}
+
+// ── ДИАЛЕР (модал быстрого звонка) ──────────────────────────
+function openDialer(){
+  const existing = document.getElementById('m-dialer');
+  if(existing){ existing.remove(); return; }
+  const d = document.createElement('div');
+  d.id = 'm-dialer';
+  d.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;display:flex;align-items:flex-end;justify-content:center';
+  d.innerHTML = `
+    <div style="background:var(--bg2);border-radius:var(--rl) var(--rl) 0 0;padding:20px;width:100%;max-width:400px;box-shadow:0 -8px 40px rgba(0,0,0,.4)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <span style="font-size:14px;font-weight:700;color:var(--t1)">📞 Быстрый звонок</span>
+        <button onclick="document.getElementById('m-dialer').remove()" style="background:none;border:none;color:var(--t3);font-size:18px;cursor:pointer">✕</button>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <input id="dialer-phone" type="tel" placeholder="+7 (___) ___-__-__" autofocus
+          style="flex:1;background:var(--bg4);border:1px solid var(--b2);border-radius:8px;color:var(--t1);font-family:var(--fb);font-size:15px;padding:10px 12px"
+          onkeydown="if(event.key==='Enter')document.getElementById('dialer-call-btn').click()"/>
+        <button id="dialer-call-btn" onclick="quickCallByPhone(document.getElementById('dialer-phone').value)"
+          style="background:var(--ac);border:none;border-radius:8px;color:#fff;font-size:20px;padding:0 18px;cursor:pointer">📞</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+        ${['1','2','3','4','5','6','7','8','9','*','0','#'].map(k=>`
+          <button onclick="document.getElementById('dialer-phone').value+='${k}'"
+            style="background:var(--bg3);border:1px solid var(--b1);border-radius:8px;color:var(--t1);font-size:18px;font-weight:600;padding:12px;cursor:pointer;-webkit-tap-highlight-color:transparent">${k}</button>
+        `).join('')}
+      </div>
+      <button onclick="const i=document.getElementById('dialer-phone');i.value=i.value.slice(0,-1)"
+        style="width:100%;margin-top:8px;background:var(--bg3);border:1px solid var(--b1);border-radius:8px;color:var(--t2);font-size:13px;padding:8px;cursor:pointer">⌫ Удалить</button>
+    </div>`;
+  d.addEventListener('click', e=>{ if(e.target===d) d.remove(); });
+  document.body.appendChild(d);
+  setTimeout(()=>document.getElementById('dialer-phone')?.focus(), 100);
 }
 
 async function crmCallByPhone(phone, leadId){
