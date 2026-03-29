@@ -420,6 +420,17 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
 
   /* Schedule */
   .week-nav{flex-wrap:wrap;gap:4px}
+
+  /* More menu buttons */
+  .mob-more-btn{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:2px;padding:10px 4px;border:1px solid var(--b1);border-radius:10px;
+    background:var(--bg3);color:var(--t2);font-size:9px;font-weight:600;
+    cursor:pointer;font-family:var(--fb);text-transform:uppercase;letter-spacing:.03em;
+    line-height:1.3;-webkit-tap-highlight-color:transparent;min-height:60px
+  }
+  .mob-more-btn:active{background:var(--acbg);color:var(--ac)}
+  .mob-more-btn span{font-size:9px;text-align:center}
 }
 </style>
 </head>
@@ -1500,10 +1511,29 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
     <span class="mnicon">📞</span><span>Звонки</span>
     <span class="mnbadge" id="mob-calls-badge"></span>
   </button>
-  <button class="mob-nav-item" onclick="nav(document.querySelector('[data-p=schedule]'));mobNavActive(this)">
-    <span class="mnicon">📅</span><span>Расписание</span>
+  <button class="mob-nav-item" onclick="toggleMobMore(this)">
+    <span class="mnicon">•••</span><span>Ещё</span>
   </button>
 </nav>
+
+<!-- Mobile More Menu -->
+<div id="mob-more-menu" style="display:none;position:fixed;bottom:60px;left:0;right:0;z-index:999;background:var(--bg2);border-top:1px solid var(--b1);box-shadow:0 -4px 20px rgba(0,0,0,.3);padding:8px;padding-bottom:env(safe-area-inset-bottom,0)">
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+    <button class="mob-more-btn" onclick="mobMoreNav('schedule')">📅<br><span>Расписание</span></button>
+    <button class="mob-more-btn" onclick="mobMoreNav('students')">🎓<br><span>Ученики</span></button>
+    <button class="mob-more-btn" onclick="mobMoreNav('tasks')">✅<br><span>Задачи</span><span class="mnbadge" id="mob-tasks-badge" style="position:static;display:none;margin-top:2px"></span></button>
+    <button class="mob-more-btn" onclick="mobMoreNav('teamchat')">💬<br><span>Командный<br>чат</span><span class="mnbadge" id="mob-teamchat-badge" style="position:static;display:none;margin-top:2px"></span></button>
+    <button class="mob-more-btn" onclick="mobMoreNav('videoreviews')">🎥<br><span>Видео</span></button>
+    <button class="mob-more-btn" onclick="mobMoreNav('surveys')">📋<br><span>Опросы</span></button>
+    <button class="mob-more-btn" onclick="mobMoreNav('reports')">📊<br><span>Отчёты</span></button>
+    <button class="mob-more-btn admin-only" onclick="mobMoreNav('analytics')">🧠<br><span>Аналитика</span></button>
+    <button class="mob-more-btn" onclick="mobMoreNav('availability')">🕐<br><span>Время<br>работы</span></button>
+    <button class="mob-more-btn admin-only" onclick="mobMoreNav('users')">👤<br><span>Пользователи</span></button>
+    <button class="mob-more-btn admin-only" onclick="mobMoreNav('appsettings')">⚙️<br><span>Настройки</span></button>
+    <button class="mob-more-btn admin-only" onclick="mobMoreNav('freeSlots')">✦<br><span>Слоты</span></button>
+  </div>
+</div>
+<div id="mob-more-overlay" onclick="closeMobMore()" style="display:none;position:fixed;inset:0;z-index:998;background:rgba(0,0,0,.4)"></div>
 
 <div class="toast" id="toast"></div>
 
@@ -15087,6 +15117,30 @@ function mobNavActive(el){
   if(el) el.classList.add('active');
 }
 
+function toggleMobMore(btn){
+  const menu = document.getElementById('mob-more-menu');
+  const overlay = document.getElementById('mob-more-overlay');
+  const isOpen = menu.style.display !== 'none';
+  if(isOpen){ closeMobMore(); }
+  else {
+    menu.style.display = 'block';
+    overlay.style.display = 'block';
+    btn.classList.add('active');
+  }
+}
+function closeMobMore(){
+  const menu = document.getElementById('mob-more-menu');
+  const overlay = document.getElementById('mob-more-overlay');
+  if(menu) menu.style.display = 'none';
+  if(overlay) overlay.style.display = 'none';
+  document.querySelectorAll('.mob-nav-item').forEach(b=>b.classList.remove('active'));
+}
+function mobMoreNav(page){
+  closeMobMore();
+  const el = document.querySelector('[data-p='+page+']');
+  if(el) nav(el);
+}
+
 // Sync badges — simple interval, no MutationObserver
 function syncMobBadges(){
   const sync = (src, mob) => {
@@ -15100,6 +15154,8 @@ function syncMobBadges(){
   sync('crm-badge','mob-crm-badge');
   sync('wachats-badge','mob-chat-badge');
   sync('missed-badge','mob-calls-badge');
+  sync('tasks-badge','mob-tasks-badge');
+  sync('chat-badge','mob-teamchat-badge');
 }
 setInterval(syncMobBadges, 3000);
 
