@@ -12328,6 +12328,7 @@ function saveCRMCard(silent=false){
           }
         }
         if(silent){ toast('✓ Сохранено'); } else { close1('m-crm-card'); renderCRM(); toast('Карточка сохранена'); }
+      });
     });
   } else {
     data.createdAt = now;
