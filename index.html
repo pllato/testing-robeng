@@ -12474,7 +12474,9 @@ function loadCRMChatPreview(id){
   if(!el) return;
   if(_crmChatListener){ crmChatRef.off('value',_crmChatListener); _crmChatListener=null; }
   _crmChatListener = crmChatRef.child(id).limitToLast(30).on('value', snap=>{
-    const msgs = Object.values(snap.val()||{}).sort((a,b)=>a.ts.localeCompare(b.ts));
+    const msgs = [];
+    snap.forEach(ch=>{ msgs.push({...ch.val(), _key:ch.key}); });
+    msgs.sort((a,b)=>a.ts.localeCompare(b.ts));
     const myUid = fbAuth.currentUser?.uid||'';
     el.innerHTML = msgs.map(m=>{
       const isOut = m.type==='out'||m.uid===myUid;
@@ -12525,13 +12527,24 @@ function loadCRMChatPreview(id){
         else
           mediaHtml = `<div style="margin-top:6px"><a href="${m.mediaUrl}" target="_blank" download="${m.mediaName||'file'}" style="display:inline-flex;align-items:center;gap:6px;background:var(--bg2);border:1px solid var(--b2);border-radius:8px;padding:6px 10px;color:var(--ac2);text-decoration:none;font-size:11px">📎 ${m.mediaName||'Файл'}</a></div>`;
       }
-      return `<div style="display:flex;flex-direction:column;align-items:${isOut?'flex-end':'flex-start'};margin-bottom:7px">
-        <div style="font-size:10px;color:var(--t3);margin-bottom:2px">${isOut?'':m.name+' · '}${ts}</div>
+      const canDel = isOut && m._key;
+      return `<div style="display:flex;flex-direction:column;align-items:${isOut?'flex-end':'flex-start'};margin-bottom:7px"
+        onmouseenter="this.querySelector('.del-msg-btn') && (this.querySelector('.del-msg-btn').style.opacity='1')"
+        onmouseleave="this.querySelector('.del-msg-btn') && (this.querySelector('.del-msg-btn').style.opacity='0')">
+        <div style="display:flex;align-items:center;gap:5px;flex-direction:${isOut?'row-reverse':'row'};margin-bottom:2px">
+          <span style="font-size:10px;color:var(--t3)">${isOut?'':m.name+' · '}${ts}</span>
+          ${canDel?`<button class="del-msg-btn" onclick="deleteCRMMsg('${id}','${m._key}')" title="Удалить" style="opacity:0;transition:opacity .15s;background:none;border:none;color:var(--t3);font-size:11px;cursor:pointer;padding:1px 3px;line-height:1">🗑</button>`:''}
+        </div>
         <div style="max-width:80%;padding:8px 11px;border-radius:${isOut?'10px 10px 2px 10px':'10px 10px 10px 2px'};font-size:12px;line-height:1.5;${isOut?'background:var(--acbg);border:1px solid var(--acb);color:var(--t1)':'background:var(--bg3);border:1px solid var(--b1);color:var(--t1)'}">${m.text?m.text.replace(/\n/g,'<br>'):mediaHtml?'':''}${mediaHtml}</div>
       </div>`;
     }).join('');
     el.scrollTop = el.scrollHeight;
   });
+}
+
+function deleteCRMMsg(leadId, msgKey){
+  if(!confirm('Удалить сообщение?')) return;
+  crmChatRef.child(leadId).child(msgKey).remove().then(()=>toast('Удалено')).catch(()=>toast('Ошибка',true));
 }
 
 function sendCRMMsg(){
@@ -12972,17 +12985,21 @@ async function renderCallsLog(){
 
   let filtered = calls;
   if(_callsFilter==='missed')     filtered = calls.filter(c=>c.isMissed);
-  else if(_callsFilter==='in')    filtered = calls.filter(c=>String(c.callType)==='0');
-  else if(_callsFilter==='out')   filtered = calls.filter(c=>String(c.callType)==='1');
+  else if(_callsFilter==='in')    filtered = calls.filter(c=>String(c.callType)==='0' && !c.isMissed);
+  else if(_callsFilter==='out')   filtered = calls.filter(c=>String(c.callType)==='1' && !c.isMissed);
   else if(_callsFilter==='rec')   filtered = calls.filter(c=>c.recordingLink);
   else if(_callsFilter==='debug')  { showBinotelDebug(); _callsFilter='all'; return; }
 
+  const inCount  = calls.filter(c=>String(c.callType)==='0' && !c.isMissed).length;
+  const outCount = calls.filter(c=>String(c.callType)==='1' && !c.isMissed).length;
+  const recCount = calls.filter(c=>c.recordingLink).length;
+
   const tabs = [
     {k:'all',   l:`Все (${calls.length})`},
-    {k:'missed',l:`❌ Пропущенные${missed?' ('+missed+')':''}`},
-    {k:'in',    l:'📞↙ Входящие'},
-    {k:'out',   l:'📞↗ Исходящие'},
-    {k:'rec',   l:'🎙 С записью'},
+    {k:'missed',l:`📵 Пропущенные${missed?' ('+missed+')':''}`},
+    {k:'in',    l:`📞↙ Входящие${inCount?' ('+inCount+')':''}`},
+    {k:'out',   l:`📞↗ Исходящие${outCount?' ('+outCount+')':''}`},
+    {k:'rec',   l:`🎙 С записью${recCount?' ('+recCount+')':''}`},
     {k:'debug', l:'🔍 Отладка'},
   ];
   const tabBar = tabs.map(t=>`
@@ -13709,7 +13726,9 @@ function openWAChat(leadId, _fromRender){
     // Подписываемся на сообщения
     if(_wachatChatListener){ crmChatRef.off('value',_wachatChatListener); _wachatChatListener=null; }
     _wachatChatListener = crmChatRef.child(leadId).limitToLast(50).on('value', snap=>{
-      const msgs = Object.values(snap.val()||{}).sort((a,b)=>a.ts.localeCompare(b.ts));
+      const msgs = [];
+      snap.forEach(ch=>{ msgs.push({...ch.val(), _key:ch.key}); });
+      msgs.sort((a,b)=>a.ts.localeCompare(b.ts));
       const msgsEl = document.getElementById('wachat-msgs');
       if(!msgsEl) return;
       const myUid = fbAuth.currentUser?.uid||'';
@@ -13765,9 +13784,13 @@ function openWAChat(leadId, _fromRender){
             mediaHtml = `<div style="margin-top:6px"><a href="${m.mediaUrl}" target="_blank" download="${m.mediaName||'file'}" style="display:inline-flex;align-items:center;gap:6px;background:var(--bg2);border:1px solid var(--b2);border-radius:8px;padding:6px 10px;color:var(--ac2);text-decoration:none;font-size:11px">📎 ${m.mediaName||'Файл'}</a></div>`;
           }
         }
-        return `<div style="display:flex;flex-direction:column;align-items:${isOut?'flex-end':'flex-start'}">
-          <div style="font-size:9px;color:var(--t3);margin-bottom:2px;display:flex;align-items:center;gap:5px">
-            ${isOut?'':m.name+' · '}${ts} ${chIcon}
+        const canDel = isOut && m._key;
+        return `<div style="display:flex;flex-direction:column;align-items:${isOut?'flex-end':'flex-start'}"
+          onmouseenter="this.querySelector('.del-msg-btn') && (this.querySelector('.del-msg-btn').style.opacity='1')"
+          onmouseleave="this.querySelector('.del-msg-btn') && (this.querySelector('.del-msg-btn').style.opacity='0')">
+          <div style="font-size:9px;color:var(--t3);margin-bottom:2px;display:flex;align-items:center;gap:5px;flex-direction:${isOut?'row-reverse':'row'}">
+            <span>${isOut?'':m.name+' · '}${ts} ${chIcon}</span>
+            ${canDel?`<button class="del-msg-btn" onclick="deleteCRMMsg('${leadId}','${m._key}')" title="Удалить" style="opacity:0;transition:opacity .15s;background:none;border:none;color:var(--t3);font-size:11px;cursor:pointer;padding:1px 3px;line-height:1">🗑</button>`:''}
           </div>
           <div style="max-width:75%;padding:8px 12px;border-radius:${isOut?'12px 12px 2px 12px':'12px 12px 12px 2px'};font-size:13px;line-height:1.5;${isOut?'background:var(--acbg);border:1px solid var(--acb)':'background:var(--bg3);border:1px solid var(--b1)'}">
             ${m.text?m.text.replace(/\n/g,'<br>'):''}${mediaHtml}
