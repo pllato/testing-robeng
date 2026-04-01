@@ -6241,11 +6241,12 @@ function renderRenewals(){
     // Contacts
     const parentPhone=stu?.parentPhone||stu?.phone||'';
     const stuPhone=stu?.phone||'';
-    const contactsHtml=(parentPhone||stuPhone)?`<div style="font-size:11px;color:var(--t3);margin-top:3px;display:flex;gap:12px;flex-wrap:wrap">
+    const kaspiPhone=stu?.kaspiPhone||'';
+    const contactsHtml=(parentPhone||stuPhone||kaspiPhone)?`<div style="font-size:11px;color:var(--t3);margin-top:3px;display:flex;gap:12px;flex-wrap:wrap">
       ${parentPhone?`<span>📱 <a href="tel:${parentPhone}" style="color:var(--tl);text-decoration:none">${parentPhone}</a></span>`:''}
       ${stuPhone&&stuPhone!==parentPhone?`<span>👦 <a href="tel:${stuPhone}" style="color:var(--t2);text-decoration:none">${stuPhone}</a></span>`:''}
+      ${kaspiPhone?`<span>💳 <a href="tel:${kaspiPhone}" style="color:var(--am);text-decoration:none;font-weight:600">${kaspiPhone}</a></span>`:''}
     </div>`:'';
-
     // Logs
     const logs=e.renewalLogs||[];
     const logsHtml=logs.length?`<div style="margin-top:6px;display:flex;flex-direction:column;gap:3px">
@@ -11851,7 +11852,16 @@ function renderCRMContent(leads){
     html += buildCRMList(filtered);
   }
 
+  // Сохраняем позицию прокрутки канбана перед перерисовкой
+  const _prevKanbanScroll = document.getElementById('crm-kanban-wrap')?.scrollLeft || 0;
+
   el.innerHTML = html;
+
+  // Восстанавливаем позицию прокрутки канбана
+  if(_crmView === 'kanban' && _prevKanbanScroll > 0){
+    const wrap = document.getElementById('crm-kanban-wrap');
+    if(wrap) wrap.scrollLeft = _prevKanbanScroll;
+  }
 
   // Trials view — render calendar
   if(_crmView==='trials'){
