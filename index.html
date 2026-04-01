@@ -1291,6 +1291,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
       <div class="fr"><label>ФИО родителя</label><input id="s-parent" placeholder="Петрова Ирина Владимировна"/></div>
     </div>
     <div class="fr"><label>Телефон родителя</label><input id="s-parent-phone" placeholder="+7 700 000 00 00"/></div>
+    <div class="fr"><label>💳 Телефон для выставления счёта (Kaspi)</label><input id="s-kaspi-phone" placeholder="+7 700 000 00 00 (если отличается от телефона родителя)"/></div>
     <div class="fr-row">
       <div class="fr">
         <label>Возраст ученика</label>
@@ -1714,6 +1715,28 @@ async function notifyWhatsApp(phone, message){
     console.warn('WhatsApp notify failed:',e);
     return{ok:false,error:e.message||'network'};
   }
+}
+
+// Отправляет WA И сохраняет в историю чата crmChats
+async function notifyWhatsAppWithHistory(phone, message, leadId, senderName){
+  const res = await notifyWhatsApp(phone, message);
+  if(leadId){
+    const now = new Date().toISOString();
+    const uid = fbAuth.currentUser?.uid || '';
+    const name = senderName || fbAuth.currentUser?.email || 'Система';
+    crmChatRef.child(leadId).push({
+      type: 'out',
+      text: message,
+      ts: now,
+      uid,
+      name,
+      channel: 'whatsapp'
+    }).catch(()=>{});
+    if(res?.ok){
+      crmRef.child(leadId).update({lastContact: now, updatedAt: now}).catch(()=>{});
+    }
+  }
+  return res;
 }
 
 // Логируем сбой напоминания в Firebase — админ видит в дашборде
@@ -4670,8 +4693,10 @@ function setAtt(enrollId,dateStr,val,user){
     const teacherName=t?.name||'—';
     const studentName=st.name||'—';
     const msg='❌ Пропуск урока\n\n👤 Ученик: '+studentName+'\n👩‍🏫 Преподаватель: '+teacherName+'\n📅 Дата: '+dateRu+'\n\nСвяжитесь с нами для переноса урока.';
-    if(parentPhone){ notifyWhatsApp(parentPhone,msg).then(r=>{ if(r?.ok) logNotify('crm',lead.name||'—',parentPhone,msg,{stage:newStage}); }); }
-    if(studentPhone&&studentPhone!==parentPhone){ notifyWhatsApp(studentPhone,msg).then(r=>{ if(r?.ok) logNotify('crm',lead.name||'—',studentPhone,msg,{stage:newStage}); }); }
+    const _leadId = lead?.id ? String(lead.id) : null;
+    const _sender = fbAuth.currentUser?.email||'Система';
+    if(parentPhone){ notifyWhatsAppWithHistory(parentPhone,msg,_leadId,_sender).then(r=>{ if(r?.ok) logNotify('crm',lead.name||'—',parentPhone,msg,{stage:newStage}); }); }
+    if(studentPhone&&studentPhone!==parentPhone){ notifyWhatsAppWithHistory(studentPhone,msg,_leadId,_sender).then(r=>{ if(r?.ok) logNotify('crm',lead.name||'—',studentPhone,msg,{stage:newStage}); }); }
   }
 }
 function weekKey(dateStr){
@@ -4740,8 +4765,10 @@ function saveMakeup(){
     const [my,mm,md]=mkDate.split('-');
     const mkDateRu=md+' '+mkMonths[parseInt(mm)-1];
     const msg='🔄 Перенос урока\n\n👤 Ученик: '+st.name+'\n📅 Пропущен: '+dateRu+'\n📅 Отработка: '+mkDateRu+' в '+TIMES[mkTi]+'\n\nЕсли есть вопросы — свяжитесь с нами.';
-    if(parentPhone){ notifyWhatsApp(parentPhone,msg).then(r=>{ if(r?.ok) logNotify('crm',lead.name||'—',parentPhone,msg,{stage:newStage}); }); }
-    if(studentPhone&&studentPhone!==parentPhone){ notifyWhatsApp(studentPhone,msg).then(r=>{ if(r?.ok) logNotify('crm',lead.name||'—',studentPhone,msg,{stage:newStage}); }); }
+    const _mkLeadId = lead?.id ? String(lead.id) : null;
+    const _mkSender = fbAuth.currentUser?.email||'Система';
+    if(parentPhone){ notifyWhatsAppWithHistory(parentPhone,msg,_mkLeadId,_mkSender).then(r=>{ if(r?.ok) logNotify('crm',lead.name||'—',parentPhone,msg,{stage:newStage}); }); }
+    if(studentPhone&&studentPhone!==parentPhone){ notifyWhatsAppWithHistory(studentPhone,msg,_mkLeadId,_mkSender).then(r=>{ if(r?.ok) logNotify('crm',lead.name||'—',studentPhone,msg,{stage:newStage}); }); }
   }
   save();close1('m-makeup');renderSchedule();toast('Отработка сохранена');
 }
@@ -4970,6 +4997,7 @@ function openSlotAdd(tid,d,ti,time){
     document.getElementById('s-phone').value='';
     document.getElementById('s-parent').value='';
     document.getElementById('s-parent-phone').value='';
+    document.getElementById('s-kaspi-phone').value='';
     document.getElementById('s-topic').value='';
     document.getElementById('s-notes').value='';
     editSId=null;
@@ -4986,7 +5014,8 @@ function showDetail(enrollId){
   const slotStr=e.slots.map(sl=>`${DS[sl.day]} ${TIMES[sl.ti]}`).join(', ');
   document.getElementById('detail-body').innerHTML=`
     <div class="mmeta"><b>Ученик:</b> ${st?.name||'—'}${st?.phone?' &nbsp;·&nbsp; 📱 '+st.phone:''}</div>
-    ${(st?.parent||st?.parentPhone)?`<div class="mmeta"><b>Родитель:</b> ${st.parent||'—'}${st.parentPhone?' &nbsp;·&nbsp; 📱 '+st.parentPhone:''}</div>`:''}
+    ${(st?.parent||st?.parentPhone)?`<div class="mmeta"><b>Родитель:</b> ${st.parent||'—'}${st.parentPhone?' &nbsp;·&nbsp; 📱 '+st.parentPhone:''}</div>`:''}\
+    ${st?.kaspiPhone?`<div class="mmeta"><b>💳 Kaspi (счёт):</b> <a href="tel:${st.kaspiPhone}" style="color:var(--tl);text-decoration:none">${st.kaspiPhone}</a></div>`:''}
     <div class="mmeta"><b>Предмет:</b> ${sj.name}</div>
     ${(()=>{const sd=S.students.find(s=>s.id===e.studentId);return sd&&(sd.age||sd.level)?`<div class="mmeta"><b>Возраст:</b> ${sd.age||'—'} лет &nbsp;·&nbsp; <b>Уровень:</b> ${LEVEL_LABELS[sd.level||'beginner']||'—'}&nbsp;·&nbsp;${sd.age?AGE_GROUP_LABELS[getAgeGroup(sd.age)]||'':''}  </div>`:'';})()}
     <div class="mmeta"><b>Преподаватель:</b> ${t?.name||'—'}</div>
@@ -5398,6 +5427,7 @@ function openStudentModal(id,preTeacherId,preDays,preTimeIdx){
     document.getElementById('s-phone').value=st?.phone||'';
     document.getElementById('s-parent').value=st?.parent||'';
     document.getElementById('s-parent-phone').value=st?.parentPhone||'';
+    document.getElementById('s-kaspi-phone').value=st?.kaspiPhone||'';
     const sdata=S.students.find(s=>s.id===e.studentId);
     document.getElementById('s-subj').value=sdata?.subjId||S.subjects[0]?.id;
     fillTeacherSel(document.getElementById('s-subj').value,e.teacherId);
@@ -5434,6 +5464,7 @@ function openStudentModal(id,preTeacherId,preDays,preTimeIdx){
     document.getElementById('s-phone').value='';
     document.getElementById('s-parent').value='';
     document.getElementById('s-parent-phone').value='';
+    document.getElementById('s-kaspi-phone').value='';
     document.getElementById('s-topic').value='';
     document.getElementById('s-notes').value='';
     document.getElementById('s-date-start').value=today;
@@ -5595,6 +5626,7 @@ function saveStudent(){
   const phone=document.getElementById('s-phone').value.trim();
   const parent=document.getElementById('s-parent').value.trim();
   const parentPhone=document.getElementById('s-parent-phone').value.trim();
+  const kaspiPhone=document.getElementById('s-kaspi-phone').value.trim();
   const age=parseInt(document.getElementById('s-age').value)||null;
   const level=document.getElementById('s-level').value||'beginner';
   // Читаем настройки уведомлений
@@ -5608,8 +5640,8 @@ function saveStudent(){
   };
 
   let stu=S.students.find(s=>s.name.trim().toLowerCase()===name.toLowerCase()&&s.subjId===subjId);
-  if(!stu){stu={id:Date.now(),name,subjId,phone,parent,parentPhone,age,level,notify};S.students.push(stu);}
-  else{stu.phone=phone;stu.parent=parent;stu.parentPhone=parentPhone;stu.age=age;stu.level=level;stu.notify=notify;}
+  if(!stu){stu={id:Date.now(),name,subjId,phone,parent,parentPhone,kaspiPhone,age,level,notify};S.students.push(stu);}
+  else{stu.phone=phone;stu.parent=parent;stu.parentPhone=parentPhone;stu.kaspiPhone=kaspiPhone;stu.age=age;stu.level=level;stu.notify=notify;}
   const slots=days.map(d=>({day:d,ti}));
 
   if(editSId){
@@ -5697,7 +5729,7 @@ function renderStudents(){
     }
     if(subjF&&st.subjId!==parseInt(subjF))return false;
     if(search){
-      const hay=[st.name||'',st.phone||'',st.parent||'',st.parentPhone||''].join(' ').toLowerCase();
+      const hay=[st.name||'',st.phone||'',st.parent||'',st.parentPhone||'',st.kaspiPhone||''].join(' ').toLowerCase();
       if(!hay.includes(search))return false;
     }
     if(statusF){
@@ -5782,6 +5814,7 @@ function renderStudents(){
           <div style="display:flex;gap:12px;flex-wrap:wrap">
             ${st.phone?`<span style="font-size:11px;color:var(--t3)">📱 ${st.phone}</span>`:''}
             ${st.parent?`<span style="font-size:11px;color:var(--t3)">👤 ${st.parent}${st.parentPhone?' · '+st.parentPhone:''}</span>`:''}
+            ${st.kaspiPhone?`<span style="font-size:11px;color:var(--tl)">💳 ${st.kaspiPhone}</span>`:''}
             ${(()=>{const n=st.notify||{};const b=[];
               if(n.remindStudent===false)  b.push('<span style="font-size:10px;color:var(--t3)">🔕 без напомин. ученику</span>');
               if(n.remindParent===false)   b.push('<span style="font-size:10px;color:var(--t3)">🔕 без напомин. родителю</span>');
@@ -6721,7 +6754,7 @@ function editStudentInfo(stuId){
     document.getElementById('s-phone').value=st.phone||'';
     document.getElementById('s-parent').value=st.parent||'';
     document.getElementById('s-parent-phone').value=st.parentPhone||'';
-    document.getElementById('s-subj').value=st.subjId||S.subjects[0]?.id;
+    document.getElementById('s-kaspi-phone').value=st.kaspiPhone||'';
     document.getElementById('s-topic').value='';
     document.getElementById('s-notes').value='';
     const today=new Date().toISOString().slice(0,10);
@@ -7748,9 +7781,15 @@ function sendVideoToParent(record){
   }
 
   // WhatsApp — ждём генерации сообщения с опросом
+  const _videoLeadId = (()=>{
+    // Ищем leadId по телефону ученика/родителя
+    const pNorm = parentPhone;
+    const snap2 = Object.entries(S.crmLeads||{}).find(([,l])=>(l.phone||'').replace(/\D/g,'')===pNorm);
+    return snap2?snap2[0]:null;
+  })();
   buildMsg().then(msg=>{
     phones.forEach(p=>{
-      notifyWhatsApp('+'+p, msg).then(r=>{
+      notifyWhatsAppWithHistory('+'+p, msg, _videoLeadId, 'Отчёт').then(r=>{
         if(r?.ok) logNotify('report',
           `${record.studentName||'—'} (${p===parentPhone?'родитель':'ученик'})`,
           '+'+p,
@@ -12596,11 +12635,9 @@ function sendCRMMsg(){
   const now = new Date().toISOString();
   const uid = fbAuth.currentUser?.uid||'';
   const name = fbAuth.currentUser?.email||'—';
-  crmChatRef.child(_crmEditId).push({type:'in',text,ts:now,uid,name});
+  crmChatRef.child(_crmEditId).push({type:'out',text,ts:now,uid,name,channel:'internal'});
   crmRef.child(_crmEditId+'/msgCount').transaction(v=>(v||0)+1);
   crmRef.child(_crmEditId+'/lastContact').set(now);
-  // Check if we should also send to WhatsApp
-  // (Only if user confirms — show a small floating button)
 }
 
 async function sendCRMMsgWA(){
