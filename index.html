@@ -1964,6 +1964,10 @@ fbAuth.onAuthStateChanged(user=>{
         // CRM badge — новые лиды
         if(currentRole==='admin') initCRMBadge();
         if(currentRole==='admin') initWAUnreadListener();
+        if(currentRole==='admin') {
+          initAdminPushListeners();
+          initPushNotifications(); // запрашиваем разрешение и сохраняем подписку
+        }
         // Missed calls badge
         if(currentRole==='admin'){
           fbDb.ref('binotelCalls').on('value', snap=>{
@@ -15386,12 +15390,109 @@ setTimeout(checkPendingNotifications, 3000);
 setInterval(checkPendingNotifications, 5*60*1000);
 
 
-// Unregister old service workers (they were causing fetch errors)
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.getRegistrations().then(regs => {
-    regs.forEach(r => r.unregister());
-  });
+
+// ══════════════════════════════════════════════════════════════════
+//  WEB PUSH NOTIFICATIONS
+// ══════════════════════════════════════════════════════════════════
+const VAPID_PUBLIC_KEY = 'BHjw01VsaDwADSf7LU1rxSB5o2-8J5wjm_SYNrh-C0C-akmFjdrCGV_scj6n0ZTqt8Bdyux4UWNHXkF61JnJErM';
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
 }
+
+async function initPushNotifications() {
+  if(!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  try {
+    const reg = await navigator.serviceWorker.register('./sw.js');
+    let sub = await reg.pushManager.getSubscription();
+    if(!sub) {
+      const perm = await Notification.requestPermission();
+      if(perm !== 'granted') return;
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+    }
+    const uid = fbAuth.currentUser?.uid;
+    if(uid && sub) {
+      const subJson = sub.toJSON();
+      await fbDb.ref('pushSubscriptions/' + uid).set({
+        endpoint: subJson.endpoint,
+        keys: subJson.keys,
+        uid,
+        updatedAt: new Date().toISOString(),
+        role: currentRole || 'admin'
+      });
+      console.log('[Push] Subscribed & saved');
+    }
+  } catch(err) { console.warn('[Push] Error:', err); }
+}
+
+function showLocalNotification(title, body, url, tag) {
+  if(Notification.permission !== 'granted') return;
+  const n = new Notification(title, {
+    body, icon: '/testing-robeng/icon-192.png',
+    tag: tag || 'robeng-' + Date.now(),
+  });
+  n.onclick = () => {
+    window.focus();
+    if(url === 'crm') nav(document.querySelector('[data-p=crm]'));
+    else if(url === 'callslog') nav(document.querySelector('[data-p=callslog]'));
+    else if(url === 'wachats') nav(document.querySelector('[data-p=wachats]'));
+    n.close();
+  };
+}
+
+let _pushInit = false;
+function initAdminPushListeners() {
+  if(currentRole !== 'admin' || _pushInit) return;
+  _pushInit = true;
+
+  // 1. Новые лиды
+  let _leadsFirst = true;
+  crmRef.orderByChild('createdAt').limitToLast(1).on('child_added', snap => {
+    if(_leadsFirst) { _leadsFirst = false; return; }
+    const l = snap.val(); if(!l) return;
+    showLocalNotification('🆕 Новый лид', (l.name||l.phone||'Без имени') + (l.phone?' · '+l.phone:''), 'crm', 'new-lead');
+  });
+
+  // 2. Пропущенные звонки
+  let _missedFirst = true;
+  crmRef.orderByChild('missedCall').equalTo(true).on('child_added', snap => {
+    if(_missedFirst) { _missedFirst = false; return; }
+    const l = snap.val(); if(!l) return;
+    showLocalNotification('📵 Пропущенный звонок', l.name||l.phone||'Неизвестный', 'callslog', 'missed-call');
+  });
+
+  // 3. Новые сообщения в чатах (unreadCount > 0)
+  let _chatsReady = false;
+  setTimeout(() => { _chatsReady = true; }, 4000);
+  crmRef.on('child_changed', snap => {
+    if(!_chatsReady) return;
+    const l = snap.val(); if(!l || !(l.unreadCount > 0)) return;
+    showLocalNotification('💬 Новое сообщение', l.name||l.phone||'Клиент', 'wachats', 'new-msg-' + snap.key);
+  });
+
+  // 4. Новые пробные уроки (назначена дата)
+  let _trialsFirst = true;
+  const today = new Date().toISOString().slice(0,10);
+  crmRef.orderByChild('trialDate').startAt(today).on('child_added', snap => {
+    if(_trialsFirst) { _trialsFirst = false; return; }
+    const l = snap.val(); if(!l || !l.trialDate) return;
+    showLocalNotification(
+      '🧪 Новый пробный урок',
+      (l.name||l.phone||'—') + ' · ' + l.trialDate + (l.trialTime?' в '+l.trialTime:''),
+      'crm', 'trial'
+    );
+  });
+
+  console.log('[Push] Admin listeners OK');
+}
+
+
 </script>
 
 </body>
