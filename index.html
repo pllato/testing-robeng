@@ -416,7 +416,19 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
   #wachats-split{flex-direction:column!important}
   #wachats-list-col{width:100%!important;min-width:0!important;height:calc(100vh - 120px)!important;max-height:unset!important;overflow-y:auto}
   #wachats-chat-col{width:100%!important;min-width:0!important;display:none!important}
-  #wachats-chat-col.mob-chat-visible{display:flex!important;height:calc(100vh - 60px)!important;position:fixed!important;inset:0!important;z-index:500!important;background:var(--bg1)!important;flex-direction:column!important}
+  #wachats-chat-col.mob-chat-visible{
+    display:flex!important;
+    flex-direction:column!important;
+    position:fixed!important;
+    inset:0!important;
+    z-index:600!important;
+    background:var(--bg1)!important;
+    height:100%!important;
+    height:100dvh!important;
+  }
+  /* Скрываем нижний nav когда открыт чат */
+  #wachats-chat-col.mob-chat-visible ~ * #mob-nav,
+  body:has(#wachats-chat-col.mob-chat-visible) #mob-nav { display:none!important; }
   .mob-chat-back{display:flex!important}
   #wachats-list-col.mob-chat-hidden{display:none!important}
   .crm-col{min-width:unset!important;max-width:unset!important;width:100%!important}
@@ -541,7 +553,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
     <!-- DASHBOARD -->
     <div class="panel active" id="panel-dashboard">
   <!-- Mobile quick menu (only on mobile) -->
-  <div id="mob-home-menu" style="display:none;padding:12px 16px 0">
+  <div id="mob-home-menu" style="display:none;padding:12px 16px 16px">
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">
       <button onclick="nav(document.querySelector('[data-p=schedule]'))" style="background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:10px 4px;font-size:11px;color:var(--t2);cursor:pointer;font-family:var(--fb);display:flex;flex-direction:column;align-items:center;gap:4px">📅<span>Расписание</span></button>
       <button onclick="nav(document.querySelector('[data-p=students]'))" style="background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:10px 4px;font-size:11px;color:var(--t2);cursor:pointer;font-family:var(--fb);display:flex;flex-direction:column;align-items:center;gap:4px">🎓<span>Ученики</span></button>
@@ -3966,7 +3978,7 @@ function renderDashboard(){
   const mobMenuEl = document.getElementById('mob-home-menu');
   if(mobMenuEl && window.innerWidth <= 768){
     mobMenuEl.innerHTML = `
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px 16px 0;margin-bottom:0">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:4px 0 12px">
         <button onclick="nav(document.querySelector('[data-p=schedule]'))" style="display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:10px 4px;cursor:pointer;color:var(--t2);font-size:11px">📅<span>Расписание</span></button>
         <button onclick="nav(document.querySelector('[data-p=students]'))" style="display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:10px 4px;cursor:pointer;color:var(--t2);font-size:11px">🎓<span>Ученики</span></button>
         <button onclick="nav(document.querySelector('[data-p=crm]'))" style="display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:10px 4px;cursor:pointer;color:var(--t2);font-size:11px">💼<span>CRM</span></button>
@@ -3979,7 +3991,8 @@ function renderDashboard(){
         <button onclick="nav(document.querySelector('[data-p=analytics]'))" style="display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:10px 4px;cursor:pointer;color:var(--t2);font-size:11px">🧠<span>Аналитика</span></button>
         <button onclick="nav(document.querySelector('[data-p=freeSlots]'))" style="display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:10px 4px;cursor:pointer;color:var(--t2);font-size:11px">✦<span>Слоты</span></button>
         <button onclick="nav(document.querySelector('[data-p=appsettings]'))" style="display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:10px 4px;cursor:pointer;color:var(--t2);font-size:11px">⚙️<span>Настройки</span></button>
-      </div>`;
+      </div>
+      <div style="height:1px;background:var(--b1);margin-top:8px"></div>`;
   }
   if(currentRole==='admin'){
     // Подгружаем CRM-лиды для пульса если ещё нет
@@ -13795,6 +13808,9 @@ function closeMobChat(){
   const chatCol = document.getElementById('wachats-chat-col');
   if(listCol) listCol.classList.remove('mob-chat-hidden');
   if(chatCol) chatCol.classList.remove('mob-chat-visible');
+  // Показываем нижнюю навигацию обратно
+  const nav = document.getElementById('mob-nav');
+  if(nav) nav.style.display = '';
 }
 
 function openWAChat(leadId, _fromRender){
@@ -13807,6 +13823,9 @@ function openWAChat(leadId, _fromRender){
     const chatCol = document.getElementById('wachats-chat-col');
     if(listCol) listCol.classList.add('mob-chat-hidden');
     if(chatCol) chatCol.classList.add('mob-chat-visible');
+    // Скрываем нижнюю навигацию чтобы не перекрывала поле ввода
+    const nav = document.getElementById('mob-nav');
+    if(nav) nav.style.display = 'none';
   }
 
   // Подсвечиваем активный элемент без полного ре-рендера
