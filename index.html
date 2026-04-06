@@ -5,6 +5,7 @@
 <script src="./jssip.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <title>Robeng — ELC Roblox English</title>
+<link rel="icon" href="./icon-192.png" type="image/png"/>
 <meta name="theme-color" content="#1a1830"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -361,6 +362,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
 
 /* ── MOBILE / PWA ─────────────────────────────────────────────── */
 #mob-nav{display:none}
+#mob-home-menu{display:none}
 @media screen and (max-width:768px){
   /* Layout */
   html body .layout .sidebar{display:none!important}
@@ -371,6 +373,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
   .layout{flex-direction:column}
 
   /* Bottom nav */
+  #mob-home-menu{ display:block !important; }
   #mob-nav{
     display:flex;position:fixed;bottom:0;left:0;right:0;z-index:1000;
     background:var(--bg2);border-top:1px solid var(--b1);
@@ -407,6 +410,12 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
 
   /* CRM kanban → force list on mobile */
   #crm-kanban-wrap{flex-direction:column!important}
+  #wachats-split{flex-direction:column!important}
+  #wachats-list-col{width:100%!important;min-width:0!important;height:calc(100vh - 120px)!important;max-height:unset!important;overflow-y:auto}
+  #wachats-chat-col{width:100%!important;min-width:0!important;display:none!important}
+  #wachats-chat-col.mob-chat-visible{display:flex!important;height:calc(100vh - 60px)!important;position:fixed!important;inset:0!important;z-index:500!important;background:var(--bg1)!important;flex-direction:column!important}
+  .mob-chat-back{display:flex!important}
+  #wachats-list-col.mob-chat-hidden{display:none!important}
   .crm-col{min-width:unset!important;max-width:unset!important;width:100%!important}
 
   /* Topbar compact */
@@ -528,6 +537,19 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
   <div class="content">
     <!-- DASHBOARD -->
     <div class="panel active" id="panel-dashboard">
+  <!-- Mobile quick menu (only on mobile) -->
+  <div id="mob-home-menu" style="display:none;padding:12px 16px 0">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">
+      <button onclick="nav(document.querySelector('[data-p=schedule]'))" style="background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:10px 4px;font-size:11px;color:var(--t2);cursor:pointer;font-family:var(--fb);display:flex;flex-direction:column;align-items:center;gap:4px">📅<span>Расписание</span></button>
+      <button onclick="nav(document.querySelector('[data-p=students]'))" style="background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:10px 4px;font-size:11px;color:var(--t2);cursor:pointer;font-family:var(--fb);display:flex;flex-direction:column;align-items:center;gap:4px">🎓<span>Ученики</span></button>
+      <button onclick="nav(document.querySelector('[data-p=callslog]'))" style="background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:10px 4px;font-size:11px;color:var(--t2);cursor:pointer;font-family:var(--fb);display:flex;flex-direction:column;align-items:center;gap:4px">📞<span>Звонки</span></button>
+      <button onclick="nav(document.querySelector('[data-p=tasks]'))" style="background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:10px 4px;font-size:11px;color:var(--t2);cursor:pointer;font-family:var(--fb);display:flex;flex-direction:column;align-items:center;gap:4px">✅<span>Задачи</span></button>
+      <button onclick="nav(document.querySelector('[data-p=videoreviews]'))" style="background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:10px 4px;font-size:11px;color:var(--t2);cursor:pointer;font-family:var(--fb);display:flex;flex-direction:column;align-items:center;gap:4px">🎥<span>Видео</span></button>
+      <button onclick="nav(document.querySelector('[data-p=reports]'))" style="background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:10px 4px;font-size:11px;color:var(--t2);cursor:pointer;font-family:var(--fb);display:flex;flex-direction:column;align-items:center;gap:4px">📊<span>Отчёты</span></button>
+      <button onclick="nav(document.querySelector('[data-p=freeSlots]'))" style="background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:10px 4px;font-size:11px;color:var(--t2);cursor:pointer;font-family:var(--fb);display:flex;flex-direction:column;align-items:center;gap:4px">✦<span>Слоты</span></button>
+      <button onclick="nav(document.querySelector('[data-p=appsettings]'))" style="background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:10px 4px;font-size:11px;color:var(--t2);cursor:pointer;font-family:var(--fb);display:flex;flex-direction:column;align-items:center;gap:4px">⚙️<span>Настройки</span></button>
+    </div>
+  </div>
       <div id="teacher-survey-alerts"></div>
       <div id="teacher-rating-block"></div>
       <div id="reminder-fail-block" class="admin-only"></div>
@@ -1508,9 +1530,8 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
     <span class="mnicon">💬</span><span>Чаты</span>
     <span class="mnbadge" id="mob-chat-badge"></span>
   </button>
-  <button class="mob-nav-item admin-only" onclick="nav(document.querySelector('[data-p=callslog]'));mobNavActive(this)">
-    <span class="mnicon">📞</span><span>Звонки</span>
-    <span class="mnbadge" id="mob-calls-badge"></span>
+  <button class="mob-nav-item" onclick="nav(document.querySelector('[data-p=students]'));mobNavActive(this)">
+    <span class="mnicon">🎓</span><span>Ученики</span>
   </button>
   <button class="mob-nav-item" onclick="toggleMobMore(this)">
     <span class="mnicon">•••</span><span>Ещё</span>
@@ -2252,7 +2273,7 @@ let dashWeekOffset=0; // 0 = current Thu→Thu, -1 = prev week, etc.
 let dashMode='days'; // 'days' | 'thu'
 
 // ── CHART STATE ───────────────────────────────────────────────────
-let _chartMode='week'; // 'day' | 'week' | 'today'
+let _chartMode='day'; // 'day' | 'week' | 'today'
 let _chartMax={active:100,active_fact:100,starts:20,restarts:20,leads:20,trials:10,graduates:5};
 let _chartQuota={active:0,active_fact:0,starts:0,restarts:0,leads:0,trials:0,graduates:0}; // 0=не задана
 let _chartDayDate=(()=>{const _d=new Date();return`${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,'0')}-${String(_d.getDate()).padStart(2,'0')}`;})(); // для режима 'today' (локальная дата)
@@ -3141,9 +3162,13 @@ function getMetricForPeriod(metric,from,to){
       .filter(l=>l.createdAt&&l.createdAt.slice(0,10)>=from&&l.createdAt.slice(0,10)<=to).length;
   } else if(metric==='trials'){
     if(!window._crmLeadsCache) return 0;
-    // Считаем всех лидов у кого trialDate попадает в период — независимо от стадии
+    // Считаем лидов которые перешли в стадию "Пробный оплачен" (trial_paid) в период
+    // Используем trialPaidAt если есть, иначе trialDate + stage
     return Object.values(window._crmLeadsCache)
-      .filter(l=>l.trialDate&&l.trialDate>=from&&l.trialDate<=to).length;
+      .filter(l=>{
+        if(l.trialPaidAt) return l.trialPaidAt.slice(0,10)>=from && l.trialPaidAt.slice(0,10)<=to;
+        return l.stage==='trial_paid' && l.trialDate && l.trialDate>=from && l.trialDate<=to;
+      }).length;
   } else if(metric==='graduates'){
     // Выпускник = ученик набравший 100 часов (200 уроков по 30 мин)
     // Считаем тех, кто достиг 200-го урока (done/makeup) в периоде [from, to]
@@ -3928,6 +3953,25 @@ function renderDashboard(){
   if(currentRole==='admin') renderDashSurveys();
   if(currentRole==='admin') renderAdminLeaderboard();
   if(currentRole==='admin') renderTeacherPulse();
+  // Мобильное меню на главной
+  const mobMenuEl = document.getElementById('mob-home-menu');
+  if(mobMenuEl && window.innerWidth <= 768){
+    mobMenuEl.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px 16px 0;margin-bottom:0">
+        <button onclick="nav(document.querySelector('[data-p=schedule]'))" style="display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:10px 4px;cursor:pointer;color:var(--t2);font-size:11px">📅<span>Расписание</span></button>
+        <button onclick="nav(document.querySelector('[data-p=students]'))" style="display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:10px 4px;cursor:pointer;color:var(--t2);font-size:11px">🎓<span>Ученики</span></button>
+        <button onclick="nav(document.querySelector('[data-p=crm]'))" style="display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:10px 4px;cursor:pointer;color:var(--t2);font-size:11px">💼<span>CRM</span></button>
+        <button onclick="nav(document.querySelector('[data-p=wachats]'))" style="display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:10px 4px;cursor:pointer;color:var(--t2);font-size:11px">💬<span>Чаты</span></button>
+        <button onclick="nav(document.querySelector('[data-p=callslog]'))" style="display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:10px 4px;cursor:pointer;color:var(--t2);font-size:11px">📞<span>Звонки</span></button>
+        <button onclick="nav(document.querySelector('[data-p=tasks]'))" style="display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:10px 4px;cursor:pointer;color:var(--t2);font-size:11px">✅<span>Задачи</span></button>
+        <button onclick="nav(document.querySelector('[data-p=videoreviews]'))" style="display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:10px 4px;cursor:pointer;color:var(--t2);font-size:11px">🎥<span>Видео</span></button>
+        <button onclick="nav(document.querySelector('[data-p=reports]'))" style="display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:10px 4px;cursor:pointer;color:var(--t2);font-size:11px">📊<span>Отчёты</span></button>
+        <button onclick="nav(document.querySelector('[data-p=teamchat]'))" style="display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:10px 4px;cursor:pointer;color:var(--t2);font-size:11px">🗨<span>Командный</span></button>
+        <button onclick="nav(document.querySelector('[data-p=analytics]'))" style="display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:10px 4px;cursor:pointer;color:var(--t2);font-size:11px">🧠<span>Аналитика</span></button>
+        <button onclick="nav(document.querySelector('[data-p=freeSlots]'))" style="display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:10px 4px;cursor:pointer;color:var(--t2);font-size:11px">✦<span>Слоты</span></button>
+        <button onclick="nav(document.querySelector('[data-p=appsettings]'))" style="display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:10px 4px;cursor:pointer;color:var(--t2);font-size:11px">⚙️<span>Настройки</span></button>
+      </div>`;
+  }
   if(currentRole==='admin'){
     // Подгружаем CRM-лиды для пульса если ещё нет
     if(!window._crmLeadsCache){
@@ -4021,42 +4065,8 @@ function renderDashboard(){
         </div>`:''}
       </div>
     </div>
-    ${(()=>{const vs=calcVideoStats(activeEnrolls.map(e=>e.id),dates);return`
-    <div class="stat" style="border-color:var(--acb)">
-      <div class="stat-lbl">🎥 Видео уроков</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px">
-        <div><div style="font-size:10px;color:var(--t3)">Нужно</div><div style="font-family:var(--fd);font-size:18px;font-weight:700;color:var(--t2)">${vs.needed}</div></div>
-        <div><div style="font-size:10px;color:var(--t3)">Отправлено</div><div style="font-family:var(--fd);font-size:18px;font-weight:700;color:var(--tl)">${vs.sent}</div></div>
-        <div><div style="font-size:10px;color:var(--t3)">Одобрено</div><div style="font-family:var(--fd);font-size:18px;font-weight:700;color:var(--gn)">${vs.approved}</div></div>
-        <div><div style="font-size:10px;color:var(--t3)">Отклонено</div><div style="font-family:var(--fd);font-size:18px;font-weight:700;color:var(--rd)">${vs.rejected}</div></div>
-      </div>
-    </div>`})()}
-    ${(()=>{
-      const adminThuOff=window._adminThuOffset||0;
-      const thuD=getThuToThuDashDates(adminThuOff);
-      const thuFrom2=thuD.length?fmtDate(thuD[0]):'';
-      const thuTo2=thuD.length?fmtDate(thuD[thuD.length-1]):'';
-      let thuHours=0;
-      S.teachers.filter(t=>t.status==='active').forEach(t=>{thuHours+=calcTeacherHours(t.id,thuD);});
-      const vsThu2=calcVideoStats(activeEnrolls.map(e=>e.id),thuD);
-      const newS2=S.enrollments.filter(e=>thuD.includes(e.dateStart)&&!e.inactive).length;
-      return`<div class="stat" style="border-color:rgba(245,200,66,.4);grid-column:span 2">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px">
-          <div class="stat-lbl" style="margin-bottom:0">📅 Чт→Чт: <span style="color:var(--t2);font-weight:400;font-size:10px">${thuFrom2} — ${thuTo2}</span></div>
-          <div style="display:flex;gap:4px;align-items:center">
-            <button class="wbtn" onclick="window._adminThuOffset=(window._adminThuOffset||0)-1;renderDashboard()" style="padding:2px 7px;font-size:13px">‹</button>
-            <span style="font-size:10px;color:var(--t3);min-width:50px;text-align:center">${adminThuOff===0?'Текущая':adminThuOff===-1?'Прошлая':`${Math.abs(adminThuOff)} н. назад`}</span>
-            <button class="wbtn" onclick="window._adminThuOffset=(window._adminThuOffset||0)+1;renderDashboard()" style="padding:2px 7px;font-size:13px" ${adminThuOff>=0?'disabled style="opacity:.4"':''}>›</button>
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
-          <div><div style="font-size:10px;color:var(--t3)">⏱ Часов всего</div><div style="font-family:var(--fd);font-size:18px;font-weight:700;color:var(--am)">${thuHours.toFixed(1)}</div><div style="font-size:10px;color:var(--t3)">${thuHours*2|0} уроков</div></div>
-          <div><div style="font-size:10px;color:var(--t3)">🚀 Старты</div><div style="font-family:var(--fd);font-size:18px;font-weight:700;color:var(--ac2)">${newS2}</div></div>
-          <div><div style="font-size:10px;color:var(--t3)">🎥 Видео нужно</div><div style="font-family:var(--fd);font-size:18px;font-weight:700;color:var(--t2)">${vsThu2.needed}</div><div style="font-size:10px;color:var(--tl)">отправлено: ${vsThu2.sent}</div></div>
-          <div><div style="font-size:10px;color:var(--t3)">✅ / ❌</div><div style="font-size:14px;font-weight:700"><span style="color:var(--gn)">${vsThu2.approved}</span> / <span style="color:var(--rd)">${vsThu2.rejected}</span></div></div>
-        </div>
-      </div>`;
-    })()}`;
+
+    `;
 
   // ── Report stats (single period)
   // Плашка отчётов родителям убрана
@@ -11618,9 +11628,10 @@ const crmChatRef = fbDb.ref('crmChats');
 const CRM_STAGES = [
   {id:'new',      label:'Новый лид',       color:'var(--t3)',  hex:'#5e5c78'},
   {id:'contact',  label:'Связались',       color:'var(--ac2)', hex:'#a87fff'},
-  {id:'trial',    label:'Пробный урок',    color:'var(--tl)',  hex:'#3fc8d8'},
-  {id:'thinking', label:'Думает',          color:'var(--am)',  hex:'#f5c842'},
-  {id:'active',   label:'Стал учеником',   color:'var(--gn)',  hex:'#3fd88e'},
+  {id:'trial',      label:'Пробный урок',    color:'var(--tl)',  hex:'#3fc8d8'},
+  {id:'trial_paid', label:'Пробный оплачен', color:'var(--gn)',  hex:'#22c55e'},
+  {id:'thinking',   label:'Думает',          color:'var(--am)',  hex:'#f5c842'},
+  {id:'active',     label:'Стал учеником',   color:'var(--gn)',  hex:'#3fd88e'},
   {id:'lost',     label:'Отказ',           color:'var(--rd)',  hex:'#f05975'},
 ];
 
@@ -12240,7 +12251,13 @@ function crmDrop(event, newStage){
     if(l.stage === newStage){ toast('Уже в этой стадии'); return; }
 
     // Пишем в Firebase
-    crmRef.child(dragId).update({stage: newStage, lastContact: now, updatedAt: now});
+    const updateData = {stage: newStage, lastContact: now, updatedAt: now};
+    // При переходе в "Пробный оплачен" фиксируем дату
+    if(newStage === 'trial_paid' && l.stage !== 'trial_paid' && !l.trialPaidAt){
+      updateData.trialPaidAt = now;
+      showLocalNotification('🧪 Пробный оплачен', l.name||l.phone||'—', 'crm', 'trial-paid');
+    }
+    crmRef.child(dragId).update(updateData);
 
     // Лог в чат
     const msg = `📌 Стадия: «${crmStage(l.stage).label}» → «${crmStage(newStage).label}»`;
@@ -12524,6 +12541,12 @@ function saveCRMCard(silent=false){
       crmRef.child(_crmEditId).update(data).then(()=>{
         maybeSendTrialNotify(_crmEditId, prev.trialDate, data.trialDate, data.trialTeacherId);
         // Send stage auto-message if stage changed
+        if(prev.stage !== data.stage && data.stage === 'trial_paid' && !prev.trialPaidAt){
+          data.trialPaidAt = now;
+          crmRef.child(_crmEditId).update({trialPaidAt: now});
+          // Push уведомление
+          showLocalNotification('🧪 Пробный оплачен', data.name||data.phone||'—', 'crm', 'trial-paid');
+        }
         if(prev.stage !== data.stage && data.phone){
           const tpl = CRM_STAGE_MSGS[data.stage];
           if(tpl){
@@ -13583,8 +13606,8 @@ function renderWAChatsContent(leads){
       style="flex:1;padding:8px 4px;font-size:11px;font-weight:${active?'700':'500'};border:none;border-bottom:2px solid ${active?'var(--ac)':'transparent'};background:transparent;color:${active?'var(--t1)':'var(--t3)'};cursor:pointer;font-family:var(--fb)">${lbl}${count?` (${count})`:''}</button>`;
   };
 
-  let html = `<div style="display:flex;gap:0;height:calc(100vh - 120px);background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden">
-    <div style="width:300px;flex-shrink:0;border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden">
+  let html = `<div id="wachats-split" style="display:flex;gap:0;height:calc(100vh - 120px);background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden">
+    <div id="wachats-list-col" style="width:300px;flex-shrink:0;border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden">
       <div style="display:flex;border-bottom:1px solid var(--b1);background:var(--bg3);flex-shrink:0">
         ${tBtn('all','Все',enriched.length)}
         ${tBtn('new','Новые',newN)}
@@ -13696,10 +13719,12 @@ function renderWAChatsContent(leads){
   if(!searchFiltered.length) html += '<div style="padding:30px 20px;text-align:center;color:var(--t3);font-size:12px">Нет диалогов</div>';
 
   html += `</div></div>
-    <div id="wachat-area" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+    <div id="wachats-chat-col" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+      <div id="wachat-area" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
       <div style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:13px">
         👈 Выберите диалог
       </div>
+    </div>
     </div>
   </div>`;
 
@@ -13737,9 +13762,25 @@ function renderWAChatsContent(leads){
   }
 }
 
+function closeMobChat(){
+  _wachatOpenId = null;
+  const listCol = document.getElementById('wachats-list-col');
+  const chatCol = document.getElementById('wachats-chat-col');
+  if(listCol) listCol.classList.remove('mob-chat-hidden');
+  if(chatCol) chatCol.classList.remove('mob-chat-visible');
+}
+
 function openWAChat(leadId, _fromRender){
   _wachatOpenId = leadId;
   crmRef.child(leadId+'/unreadCount').set(0);
+
+  // На мобильном: скрываем список, показываем чат поверх
+  if(window.innerWidth <= 768){
+    const listCol = document.getElementById('wachats-list-col');
+    const chatCol = document.getElementById('wachats-chat-col');
+    if(listCol) listCol.classList.add('mob-chat-hidden');
+    if(chatCol) chatCol.classList.add('mob-chat-visible');
+  }
 
   // Подсвечиваем активный элемент без полного ре-рендера
   if(!_fromRender){
@@ -13771,6 +13812,7 @@ function openWAChat(leadId, _fromRender){
 
     area.innerHTML = `
       <div style="padding:10px 14px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:10px;flex-shrink:0;background:var(--bg3)">
+        <button class="mob-chat-back" onclick="closeMobChat()" style="display:none;background:none;border:none;color:var(--ac2);cursor:pointer;font-size:18px;padding:0 4px;line-height:1;flex-shrink:0">←</button>
         <div style="flex:1;min-width:0">
           <div style="font-size:13px;font-weight:700;color:var(--t1);display:flex;align-items:center;gap:8px">
             ${l.name||l.phone}
@@ -15300,8 +15342,10 @@ function applyMobileLayout(){
   const isMob = window.innerWidth <= 768;
   const sidebar = document.querySelector('.sidebar');
   const mobNav  = document.getElementById('mob-nav');
+  const mobHomeMenu = document.getElementById('mob-home-menu');
   if(sidebar) sidebar.style.display = isMob ? 'none' : '';
   if(mobNav)  mobNav.style.display  = isMob ? 'flex' : 'none';
+  if(mobHomeMenu) mobHomeMenu.style.display = isMob ? 'block' : 'none';
 }
 document.addEventListener('DOMContentLoaded', applyMobileLayout);
 window.addEventListener('resize', applyMobileLayout);
@@ -15488,6 +15532,21 @@ function initAdminPushListeners() {
       'crm', 'trial'
     );
   });
+
+  // 5. Перестарты сегодня — проверяем при загрузке
+  (function checkRenewalsToday(){
+    const today2 = new Date().toISOString().slice(0,10);
+    const expiring = (S.enrollments||[]).filter(e=>
+      !e.inactive && e.dateEnd === today2 && !e.renewalHandled
+    );
+    if(expiring.length > 0){
+      showLocalNotification(
+        `🔄 Перестарты сегодня (${expiring.length})`,
+        expiring.slice(0,3).map(e=>student(e.studentId)?.name||'—').join(', '),
+        'students', 'renewals-today'
+      );
+    }
+  })();
 
   console.log('[Push] Admin listeners OK');
 }
