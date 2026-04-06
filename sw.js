@@ -1,21 +1,18 @@
-// Robeng ELC — Service Worker v4 (Push only)
+// Robeng ELC — Service Worker v5
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
 
 self.addEventListener('push', e => {
-  let payload = { title: 'Robeng ELC', body: 'Новое уведомление', icon: '/testing-robeng/icon-192.png', tag: 'robeng', url: '/' };
+  let payload = { title: 'Robeng ELC', body: 'Новое уведомление', tag: 'robeng' };
   try { if (e.data) Object.assign(payload, e.data.json()); } catch {}
 
   e.waitUntil(
     self.registration.showNotification(payload.title, {
       body: payload.body,
-      icon: payload.icon,
-      badge: payload.icon,
       tag: payload.tag || 'robeng',
       data: { url: payload.url || '/' },
       vibrate: [200, 100, 200],
-      requireInteraction: false,
     })
   );
 });
