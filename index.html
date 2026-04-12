@@ -570,6 +570,8 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
       <div id="reminder-fail-block" class="admin-only"></div>
       <div id="dup-warn-dash"></div>
       <div class="stats-row" id="stats"></div>
+      <div id="dash-ltv-block" class="admin-only"></div>
+      <div id="dash-load-block" class="admin-only"></div>
       <div id="dash-pulse-block" class="admin-only"></div>
       <div id="dash-charts-block" class="admin-only"></div>
       <div id="dash-survey-block" class="admin-only"></div>
@@ -3172,7 +3174,7 @@ function getMetricForPeriod(metric,from,to){
   } else if(metric==='starts'){
     return S.enrollments.filter(e=>e.dateStart>=from&&e.dateStart<=to&&!e.inactive).length;
   } else if(metric==='restarts'){
-    return (S.journal||[]).filter(j=>j.type==='extend'&&j.isoDate&&j.isoDate>=from&&j.isoDate<=to).length;
+    return (S.journal||[]).filter(j=>(j.type==='extend'||j.type==='renewal')&&j.isoDate&&j.isoDate>=from&&j.isoDate<=to).length;
   } else if(metric==='leads'){
     if(!window._crmLeadsCache) return 0;
     return Object.values(window._crmLeadsCache)
@@ -3186,8 +3188,9 @@ function getMetricForPeriod(metric,from,to){
     // Используем trialPaidAt если есть, иначе trialDate + stage
     return Object.values(window._crmLeadsCache)
       .filter(l=>{
-        if(l.trialPaidAt) return l.trialPaidAt.slice(0,10)>=from && l.trialPaidAt.slice(0,10)<=to;
-        return l.stage==='trial_paid' && l.trialDate && l.trialDate>=from && l.trialDate<=to;
+        if(l.trialPaidAt) { const d=toKZDate(l.trialPaidAt); return d>=from && d<=to; }
+        if(l.stage==='trial_paid' && l.trialDate) return l.trialDate>=from && l.trialDate<=to;
+        return false;
       }).length;
   } else if(metric==='graduates'){
     // Выпускник = ученик набравший 100 часов (200 уроков по 30 мин)
@@ -3789,6 +3792,88 @@ function renderCompanyPulse(){
   </div>`;
 }
 
+// ── LTV и загруженность преподавателей ───────────────────────────
+function renderLTVBlock(){
+  const el = document.getElementById('dash-ltv-block');
+  if(!el) return;
+  const LESSON_PRICE = 3000;
+  const att = S.attendance || {};
+  const studentLessons = {};
+  S.enrollments.forEach(e => {
+    if(!e.studentId) return;
+    Object.entries(att).forEach(([k,v]) => {
+      if((v==='done'||v==='makeup') && k.startsWith(e.id+'_'))
+        studentLessons[e.studentId] = (studentLessons[e.studentId]||0) + 1;
+    });
+  });
+  const ltvValues = Object.values(studentLessons).map(n => n * LESSON_PRICE);
+  const totalStudents = ltvValues.length;
+  if(!totalStudents){ el.innerHTML=''; return; }
+  ltvValues.sort((a,b)=>a-b);
+  const avgLTV  = Math.round(ltvValues.reduce((s,v)=>s+v,0) / totalStudents);
+  const medLTV  = ltvValues[Math.floor(totalStudents/2)];
+  const maxLTV  = ltvValues[ltvValues.length-1];
+  const totalRevenue = ltvValues.reduce((s,v)=>s+v,0);
+  const newStu   = ltvValues.filter(v=>v < LESSON_PRICE*5).length;
+  const midStu   = ltvValues.filter(v=>v >= LESSON_PRICE*5 && v < LESSON_PRICE*50).length;
+  const loyalStu = ltvValues.filter(v=>v >= LESSON_PRICE*50).length;
+  const fmt = n => n >= 1000000 ? (n/1000000).toFixed(1)+'М ₸' : n >= 1000 ? Math.round(n/1000)+'К ₸' : n+'₸';
+  el.innerHTML = `<div class="card" style="margin-bottom:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:700;color:var(--t1)">💎 LTV клиентов</div>
+      <span style="font-size:10px;color:var(--t3);background:var(--bg3);border:1px solid var(--b1);padding:2px 8px;border-radius:6px">${totalStudents} учеников · ${LESSON_PRICE}₸/ур</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:12px">
+      <div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center"><div style="font-size:10px;color:var(--t3)">Средний LTV</div><div style="font-size:18px;font-weight:700;color:var(--ac2);font-family:var(--fd)">${fmt(avgLTV)}</div></div>
+      <div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center"><div style="font-size:10px;color:var(--t3)">Медианный</div><div style="font-size:18px;font-weight:700;color:var(--tl);font-family:var(--fd)">${fmt(medLTV)}</div></div>
+      <div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center"><div style="font-size:10px;color:var(--t3)">Максимум</div><div style="font-size:18px;font-weight:700;color:var(--gn);font-family:var(--fd)">${fmt(maxLTV)}</div></div>
+      <div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center"><div style="font-size:10px;color:var(--t3)">Совокупный</div><div style="font-size:18px;font-weight:700;color:var(--am);font-family:var(--fd)">${fmt(totalRevenue)}</div></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <span style="font-size:11px;background:rgba(240,89,117,.1);border:1px solid rgba(240,89,117,.3);color:var(--rd);padding:3px 10px;border-radius:6px">🆕 Новые (&lt;5 ур): ${newStu}</span>
+      <span style="font-size:11px;background:rgba(168,127,255,.1);border:1px solid rgba(168,127,255,.3);color:var(--ac2);padding:3px 10px;border-radius:6px">📈 Растущие: ${midStu}</span>
+      <span style="font-size:11px;background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.3);color:var(--gn);padding:3px 10px;border-radius:6px">💎 Лояльные (50+): ${loyalStu}</span>
+    </div>
+  </div>`;
+}
+
+function renderTeacherLoadBlock(){
+  const el = document.getElementById('dash-load-block');
+  if(!el) return;
+  const SLOTS_PER_DAY = 16;
+  const WORK_DAYS = 6;
+  const activeTeachers = (S.teachers||[]).filter(t=>t.status==='active');
+  if(!activeTeachers.length){ el.innerHTML=''; return; }
+  const teacherStats = activeTeachers.map(t => {
+    const enrolls = (S.enrollments||[]).filter(e=>String(e.teacherId)===String(t.id)&&!e.inactive);
+    let weeklySlots = 0;
+    enrolls.forEach(e=>{ weeklySlots += (e.slots||[]).length; });
+    const maxWeekly = SLOTS_PER_DAY * WORK_DAYS;
+    const loadPct = Math.min(100, Math.round(weeklySlots / maxWeekly * 100));
+    const studentCount = new Set(enrolls.map(e=>e.studentId)).size;
+    return {...t, weeklySlots, loadPct, studentCount};
+  }).sort((a,b)=>b.loadPct-a.loadPct);
+  const col = p => p>=90?'var(--rd)':p>=70?'var(--am)':'var(--gn)';
+  el.innerHTML = `<div class="card" style="margin-bottom:16px">
+    <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:12px">👩‍🏫 Загруженность преподавателей</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${teacherStats.map(t=>`<div style="display:flex;align-items:center;gap:10px">
+        <div style="width:90px;font-size:12px;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0">${t.name}</div>
+        <div style="flex:1;background:var(--bg3);border-radius:4px;height:14px;overflow:hidden">
+          <div style="width:${t.loadPct}%;background:${col(t.loadPct)};height:100%;border-radius:4px"></div>
+        </div>
+        <div style="width:34px;text-align:right;font-size:11px;font-weight:700;color:${col(t.loadPct)};flex-shrink:0">${t.loadPct}%</div>
+        <div style="font-size:10px;color:var(--t3);flex-shrink:0;min-width:70px">${t.weeklySlots}ур/нед · ${t.studentCount}уч</div>
+      </div>`).join('')}
+    </div>
+    <div style="margin-top:8px;display:flex;gap:12px;font-size:10px">
+      <span style="color:var(--gn)">● &lt;70% свободен</span>
+      <span style="color:var(--am)">● 70–90% занят</span>
+      <span style="color:var(--rd)">● 90%+ перегружен</span>
+    </div>
+  </div>`;
+}
+
 function renderDashboardCharts(){
   const el=document.getElementById('dash-charts-block');
   if(!el||currentRole!=='admin'){if(el)el.innerHTML='';return;}
@@ -4009,6 +4094,8 @@ function renderDashboard(){
     }
   }
   if(currentRole==='admin') renderDashboardCharts();
+  if(currentRole==='admin') renderLTVBlock();
+  if(currentRole==='admin') renderTeacherLoadBlock();
   const today=new Date().toISOString().slice(0,10);
   const todayDay=(new Date().getDay()+6)%7;
   const dates=dashCustomDates||dateRange(dashPeriod);
