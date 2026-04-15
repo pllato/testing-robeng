@@ -3797,42 +3797,143 @@ function renderLTVBlock(){
   const el = document.getElementById('dash-ltv-block');
   if(!el) return;
   const LESSON_PRICE = 3000;
+  const today = todayKZ();
   const att = S.attendance || {};
-  const studentLessons = {};
+
+  // Для каждого ученика: кол-во уроков + дата начала + дата последнего урока
+  const studentData = {}; // id → {lessons, dateStart, dateEnd}
+
   S.enrollments.forEach(e => {
-    if(!e.studentId) return;
+    if(!e.studentId || e.inactive) return;
+    const ds = e.dateStart || '';
+    if(!studentData[e.studentId]){
+      studentData[e.studentId] = { lessons:0, dateStart:ds, dateEnd:ds };
+    }
+    // Берём самую раннюю дату начала
+    if(ds && ds < studentData[e.studentId].dateStart) studentData[e.studentId].dateStart = ds;
+
     Object.entries(att).forEach(([k,v]) => {
-      if((v==='done'||v==='makeup') && k.startsWith(e.id+'_'))
-        studentLessons[e.studentId] = (studentLessons[e.studentId]||0) + 1;
+      if((v==='done'||v==='makeup') && k.startsWith(e.id+'_')){
+        const dt = k.slice(String(e.id).length+1);
+        studentData[e.studentId].lessons++;
+        if(dt > studentData[e.studentId].dateEnd) studentData[e.studentId].dateEnd = dt;
+      }
     });
   });
-  const ltvValues = Object.values(studentLessons).map(n => n * LESSON_PRICE);
-  const totalStudents = ltvValues.length;
+
+  const students = Object.values(studentData).filter(s=>s.lessons>0);
+  const totalStudents = students.length;
   if(!totalStudents){ el.innerHTML=''; return; }
-  ltvValues.sort((a,b)=>a-b);
-  const avgLTV  = Math.round(ltvValues.reduce((s,v)=>s+v,0) / totalStudents);
-  const medLTV  = ltvValues[Math.floor(totalStudents/2)];
-  const maxLTV  = ltvValues[ltvValues.length-1];
-  const totalRevenue = ltvValues.reduce((s,v)=>s+v,0);
-  const newStu   = ltvValues.filter(v=>v < LESSON_PRICE*5).length;
-  const midStu   = ltvValues.filter(v=>v >= LESSON_PRICE*5 && v < LESSON_PRICE*50).length;
-  const loyalStu = ltvValues.filter(v=>v >= LESSON_PRICE*50).length;
-  const fmt = n => n >= 1000000 ? (n/1000000).toFixed(1)+'М ₸' : n >= 1000 ? Math.round(n/1000)+'К ₸' : n+'₸';
+
+  // Длительность обучения в месяцах
+  const durationMonths = s => {
+    if(!s.dateStart) return 0;
+    const from = new Date(s.dateStart);
+    const to   = new Date(s.dateEnd || today);
+    return Math.max(1, Math.round((to - from) / (30*24*3600*1000)));
+  };
+
+  // LTV и длительность
+  const data = students.map(s => ({
+    ltv: s.lessons * LESSON_PRICE,
+    months: durationMonths(s),
+    lessons: s.lessons,
+  }));
+
+  data.sort((a,b)=>a.ltv-b.ltv);
+  const ltvValues  = data.map(d=>d.ltv);
+  const avgLTV     = Math.round(ltvValues.reduce((s,v)=>s+v,0) / totalStudents);
+  const medLTV     = ltvValues[Math.floor(totalStudents/2)];
+  const maxLTV     = ltvValues[ltvValues.length-1];
+  const totalRev   = ltvValues.reduce((s,v)=>s+v,0);
+
+  // Средняя длительность
+  const durValues  = data.map(d=>d.months);
+  const avgMonths  = Math.round(durValues.reduce((s,v)=>s+v,0) / totalStudents);
+  const maxMonths  = Math.max(...durValues);
+
+  // LTV по когортам длительности
+  const cohorts = [
+    { label:'1 мес',  min:0,  max:2  },
+    { label:'2–3 мес',min:2,  max:4  },
+    { label:'3–6 мес',min:4,  max:7  },
+    { label:'6–12 мес',min:7, max:13 },
+    { label:'1+ год', min:13, max:999},
+  ];
+  const cohortStats = cohorts.map(c => {
+    const group = data.filter(d=>d.months>=c.min && d.months<c.max);
+    if(!group.length) return null;
+    const avgL = Math.round(group.reduce((s,d)=>s+d.ltv,0)/group.length);
+    return {...c, count:group.length, avgLTV:avgL};
+  }).filter(Boolean);
+
+  const fmt = n => n>=1000000?(n/1000000).toFixed(1)+'М ₸':n>=1000?Math.round(n/1000)+'К ₸':n+'₸';
+  const newStu    = data.filter(d=>d.months<2).length;
+  const midStu    = data.filter(d=>d.months>=2&&d.months<7).length;
+  const loyalStu  = data.filter(d=>d.months>=7).length;
+
+  // Ширина баров когорт
+  const maxCohortLTV = Math.max(...cohortStats.map(c=>c.avgLTV), 1);
+
   el.innerHTML = `<div class="card" style="margin-bottom:16px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
       <div style="font-size:13px;font-weight:700;color:var(--t1)">💎 LTV клиентов</div>
       <span style="font-size:10px;color:var(--t3);background:var(--bg3);border:1px solid var(--b1);padding:2px 8px;border-radius:6px">${totalStudents} учеников · ${LESSON_PRICE}₸/ур</span>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:12px">
-      <div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center"><div style="font-size:10px;color:var(--t3)">Средний LTV</div><div style="font-size:18px;font-weight:700;color:var(--ac2);font-family:var(--fd)">${fmt(avgLTV)}</div></div>
-      <div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center"><div style="font-size:10px;color:var(--t3)">Медианный</div><div style="font-size:18px;font-weight:700;color:var(--tl);font-family:var(--fd)">${fmt(medLTV)}</div></div>
-      <div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center"><div style="font-size:10px;color:var(--t3)">Максимум</div><div style="font-size:18px;font-weight:700;color:var(--gn);font-family:var(--fd)">${fmt(maxLTV)}</div></div>
-      <div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center"><div style="font-size:10px;color:var(--t3)">Совокупный</div><div style="font-size:18px;font-weight:700;color:var(--am);font-family:var(--fd)">${fmt(totalRevenue)}</div></div>
+
+    <!-- Деньги -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:14px">
+      <div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:10px;color:var(--t3)">Средний LTV</div>
+        <div style="font-size:17px;font-weight:700;color:var(--ac2);font-family:var(--fd)">${fmt(avgLTV)}</div>
+      </div>
+      <div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:10px;color:var(--t3)">Медианный</div>
+        <div style="font-size:17px;font-weight:700;color:var(--tl);font-family:var(--fd)">${fmt(medLTV)}</div>
+      </div>
+      <div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:10px;color:var(--t3)">Максимум</div>
+        <div style="font-size:17px;font-weight:700;color:var(--gn);font-family:var(--fd)">${fmt(maxLTV)}</div>
+      </div>
+      <div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:10px;color:var(--t3)">Совокупный</div>
+        <div style="font-size:17px;font-weight:700;color:var(--am);font-family:var(--fd)">${fmt(totalRev)}</div>
+      </div>
     </div>
+
+    <!-- Время -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+      <div style="background:var(--acbg);border:1px solid var(--acb);border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:10px;color:var(--t3)">⏱ Средняя длительность</div>
+        <div style="font-size:22px;font-weight:700;color:var(--ac2);font-family:var(--fd)">${avgMonths} <span style="font-size:12px">мес</span></div>
+        <div style="font-size:10px;color:var(--t3)">= ~${Math.round(avgMonths*4.3)} нед. обучения</div>
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--b1);border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:10px;color:var(--t3)">🏆 Максимум</div>
+        <div style="font-size:22px;font-weight:700;color:var(--gn);font-family:var(--fd)">${maxMonths} <span style="font-size:12px">мес</span></div>
+        <div style="font-size:10px;color:var(--t3)">${maxMonths>=12?Math.round(maxMonths/12)+' лет':'менее года'}</div>
+      </div>
+    </div>
+
+    <!-- LTV по длительности -->
+    <div style="font-size:11px;font-weight:600;color:var(--t2);margin-bottom:8px">📊 Средний LTV по сроку обучения</div>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
+      ${cohortStats.map(c=>`
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:70px;font-size:11px;color:var(--t3);flex-shrink:0">${c.label}</div>
+          <div style="flex:1;background:var(--bg3);border-radius:4px;height:16px;overflow:hidden">
+            <div style="width:${Math.round(c.avgLTV/maxCohortLTV*100)}%;background:var(--ac2);height:100%;border-radius:4px"></div>
+          </div>
+          <div style="font-size:11px;font-weight:600;color:var(--ac2);width:60px;text-align:right;flex-shrink:0">${fmt(c.avgLTV)}</div>
+          <div style="font-size:10px;color:var(--t3);width:40px;flex-shrink:0">${c.count} уч.</div>
+        </div>`).join('')}
+    </div>
+
+    <!-- Сегменты -->
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <span style="font-size:11px;background:rgba(240,89,117,.1);border:1px solid rgba(240,89,117,.3);color:var(--rd);padding:3px 10px;border-radius:6px">🆕 Новые (&lt;5 ур): ${newStu}</span>
-      <span style="font-size:11px;background:rgba(168,127,255,.1);border:1px solid rgba(168,127,255,.3);color:var(--ac2);padding:3px 10px;border-radius:6px">📈 Растущие: ${midStu}</span>
-      <span style="font-size:11px;background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.3);color:var(--gn);padding:3px 10px;border-radius:6px">💎 Лояльные (50+): ${loyalStu}</span>
+      <span style="font-size:11px;background:rgba(240,89,117,.1);border:1px solid rgba(240,89,117,.3);color:var(--rd);padding:3px 10px;border-radius:6px">🆕 &lt;2 мес: ${newStu}</span>
+      <span style="font-size:11px;background:rgba(168,127,255,.1);border:1px solid rgba(168,127,255,.3);color:var(--ac2);padding:3px 10px;border-radius:6px">📈 2–6 мес: ${midStu}</span>
+      <span style="font-size:11px;background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.3);color:var(--gn);padding:3px 10px;border-radius:6px">💎 6+ мес: ${loyalStu}</span>
     </div>
   </div>`;
 }
@@ -12543,6 +12644,9 @@ function openCRMCard(id){
           (S.teachers||[]).filter(t=>t.status==='active').map(t=>`<option value="${t.id}" ${String(l.trialTeacherId)===String(t.id)?'selected':''}>${t.name}</option>`).join('');
       }
       document.getElementById('crm-card-ttl').textContent = 'Карточка клиента';
+      // Показываем кнопку ссылки
+      const shareBtn = document.getElementById('crm-share-btn');
+      if(shareBtn) shareBtn.style.display = 'inline-flex';
       // Load chat preview
       loadCRMChatPreview(id);
       renderCRMStudents(id);
@@ -12616,6 +12720,8 @@ function openCRMCard(id){
     document.getElementById('crm-f-billphone').value='';
     const sh=document.getElementById('crm-f-slothint'); if(sh)sh.value='';
     document.getElementById('crm-card-ttl').textContent = 'Новый лид';
+    const shareBtn2 = document.getElementById('crm-share-btn');
+    if(shareBtn2) shareBtn2.style.display = 'none';
     document.getElementById('crm-chat-preview').innerHTML='';
     modal.classList.add('open');
     modal.style.zIndex = '210';
@@ -12702,6 +12808,30 @@ function saveCRMCard(silent=false){
     data.id = ref.key;           // пишем id в данные
     ref.set(data).then(()=>{ close1('m-crm-card'); renderCRM(); toast('Лид создан'); });
   }
+}
+
+function copyCRMCardLink(){
+  if(!_crmEditId) return;
+  const url = `${location.origin}${location.pathname}#crm=${_crmEditId}`;
+  navigator.clipboard.writeText(url).then(()=>{
+    toast('🔗 Ссылка скопирована');
+    const btn = document.getElementById('crm-share-btn');
+    if(btn){ const orig=btn.textContent; btn.textContent='✅ Скопировано'; setTimeout(()=>{ btn.textContent=orig; },2000); }
+  }).catch(()=>{
+    const ta = document.createElement('textarea');
+    ta.value = url; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    toast('🔗 Ссылка скопирована');
+  });
+}
+
+function handleCRMHash(){
+  const hash = location.hash;
+  if(!hash.startsWith('#crm=')) return;
+  const id = hash.slice(5);
+  if(!id) return;
+  nav(document.querySelector('[data-p=crm]'));
+  setTimeout(()=>openCRMCard(id), 800);
+  history.replaceState(null,'',location.pathname);
 }
 
 function deleteCRMCard(){
@@ -14964,7 +15094,10 @@ function addCRMLinkToStudent(studentEl, phone){
     <!-- Header -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px">
       <div class="mt" id="crm-card-ttl" style="margin-bottom:0">Новый лид</div>
-      <button class="btn btn-xs btn-r" onclick="deleteCRMCard()" id="crm-del-btn">🗑 Удалить</button>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button id="crm-share-btn" onclick="copyCRMCardLink()" style="display:none;background:var(--bg3);border:1px solid var(--b2);border-radius:6px;color:var(--t3);cursor:pointer;padding:4px 9px;font-size:11px;font-family:var(--fb)" title="Скопировать ссылку на карточку">🔗 Ссылка</button>
+        <button class="btn btn-xs btn-r" onclick="deleteCRMCard()" id="crm-del-btn">🗑 Удалить</button>
+      </div>
     </div>
 
     <!-- Assignment banner for registrars opening someone else's deal -->
@@ -15565,6 +15698,9 @@ async function checkPendingNotifications(){
 // Проверяем сразу и каждые 5 минут
 setTimeout(checkPendingNotifications, 3000);
 setInterval(checkPendingNotifications, 5*60*1000);
+
+// Открываем карточку CRM если в URL есть #crm=ID
+window.addEventListener('load', ()=>{ setTimeout(handleCRMHash, 1500); });
 
 
 
