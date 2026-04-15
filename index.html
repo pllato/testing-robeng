@@ -1320,7 +1320,10 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
 <!-- Modal: Student -->
 <div class="mo" id="m-student" onclick="if(event.target===this)close1('m-student')">
   <div class="modal modal-lg">
-    <div class="mt" id="m-stu-ttl">Добавить ученика</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:0">
+      <div class="mt" id="m-stu-ttl" style="margin-bottom:0">Добавить ученика</div>
+      <button id="stu-crm-link-btn" style="display:none;background:var(--bg3);border:1px solid var(--b2);border-radius:6px;color:var(--ac2);cursor:pointer;padding:4px 10px;font-size:11px;font-family:var(--fb)" onclick="openCRMFromStudent()">💼 Открыть в CRM</button>
+    </div>
     <div class="fr-row">
       <div class="fr"><label>ФИО ученика</label><input id="s-name" placeholder="Петров Алексей Иванович"/></div>
       <div class="fr"><label>Предмет</label><select id="s-subj" onchange="onStuSubjChange()"></select></div>
@@ -5656,6 +5659,9 @@ function openStudentModal(id,preTeacherId,preDays,preTimeIdx){
   document.getElementById('s-ns-lbl').textContent='⚡ Нестандартный слот ▼';
   const today=new Date().toISOString().slice(0,10);
   document.getElementById('m-stu-ttl').textContent=id?'Редактировать запись':'Добавить ученика';
+  // CRM кнопка — показываем только при редактировании
+  const crmBtn = document.getElementById('stu-crm-link-btn');
+  if(crmBtn) crmBtn.style.display = id ? 'inline-flex' : 'none';
   document.getElementById('s-time-warn').style.display='none';
   document.getElementById('s-conflict-warn').style.display='none';
   // Init hidden s-time
@@ -6508,6 +6514,7 @@ function renderRenewals(){
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px">
             <span style="font-size:15px;font-weight:700;color:var(--t1);cursor:pointer;text-decoration:underline dotted" onclick="openStudentModal(${e.id})">${stu?.name||'-'}</span>
+            <button onclick="copyStudentLink(${e.id})" title="Скопировать ссылку" style="background:none;border:1px solid var(--b2);border-radius:5px;color:var(--t3);cursor:pointer;font-size:10px;padding:1px 7px;font-family:var(--fb)">🔗</button>
             ${statusBadges}
           </div>
           <div style="font-size:12px;color:var(--t3)">${t?.name||'-'} · Оканчивается ${fmtDateRu(e.dateEnd)} · ${daysLabel}</div>
@@ -12824,14 +12831,59 @@ function copyCRMCardLink(){
   });
 }
 
+function copyStudentLink(enrollId){
+  const url = `${location.origin}${location.pathname}#student=${enrollId}`;
+  navigator.clipboard.writeText(url).then(()=>{ toast('🔗 Ссылка скопирована'); })
+  .catch(()=>{
+    const ta = document.createElement('textarea');
+    ta.value = url; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    toast('🔗 Ссылка скопирована');
+  });
+}
+
+async function openCRMFromStudent(){
+  // Ищем лид в CRM по телефону ученика или родителя
+  const e = editSId ? S.enrollments.find(x=>x.id===editSId) : null;
+  const st = e ? student(e.studentId) : null;
+  if(!st){ toast('Нет данных об ученике',true); return; }
+
+  const phones = [st.phone, st.parentPhone, st.kaspiPhone].filter(Boolean).map(p=>p.replace(/\D/g,''));
+  if(!phones.length){ toast('Нет телефона для поиска в CRM',true); return; }
+
+  const snap = await crmRef.once('value');
+  const raw = snap.val()||{};
+  let foundId = null;
+  for(const [id, l] of Object.entries(raw)){
+    const lp = (l.phone||'').replace(/\D/g,'');
+    if(phones.includes(lp)){ foundId = id; break; }
+  }
+
+  if(foundId){
+    close1('m-student');
+    nav(document.querySelector('[data-p=crm]'));
+    setTimeout(()=>openCRMCard(foundId), 300);
+  } else {
+    toast('Карточка CRM не найдена по телефону ученика', true);
+  }
+}
+
 function handleCRMHash(){
   const hash = location.hash;
-  if(!hash.startsWith('#crm=')) return;
-  const id = hash.slice(5);
-  if(!id) return;
-  nav(document.querySelector('[data-p=crm]'));
-  setTimeout(()=>openCRMCard(id), 800);
-  history.replaceState(null,'',location.pathname);
+  if(hash.startsWith('#crm=')){
+    const id = hash.slice(5); if(!id) return;
+    nav(document.querySelector('[data-p=crm]'));
+    setTimeout(()=>openCRMCard(id), 800);
+    history.replaceState(null,'',location.pathname);
+  } else if(hash.startsWith('#student=')){
+    const id = parseInt(hash.slice(9)); if(!id) return;
+    // Переходим в Ученики → Перестарты и открываем карточку
+    nav(document.querySelector('[data-p=students]'));
+    setTimeout(()=>{
+      setStuTab('renewals');
+      setTimeout(()=>openStudentModal(id), 400);
+    }, 500);
+    history.replaceState(null,'',location.pathname);
+  }
 }
 
 function deleteCRMCard(){
