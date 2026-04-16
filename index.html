@@ -3388,7 +3388,15 @@ function buildDualLineChartSVG(dataA, dataB, max, colorA, colorB, labelA, labelB
   return svg;
 }
 
-function buildLineChartSVG(data,max,colorHex,quota=0){
+function buildLineChartSVG(data,max,colorHex,quota=0,isMonths=false){
+  const fmtDays = d => {
+    if(!isMonths) return d;
+    const m = Math.floor(d/30);
+    const days = d % 30;
+    if(m===0) return days+'д';
+    if(days===0) return m+'м';
+    return m+'м'+days+'д';
+  };
   const W=420,H=420;
   const padL=36,padR=12,padT=26,padB=52;
   const cW=W-padL-padR,cH=H-padT-padB;
@@ -3424,7 +3432,7 @@ function buildLineChartSVG(data,max,colorHex,quota=0){
     const yp=padT+cH*(1-frac);
     const val=Math.round(safeMax*frac);
     svg+=`<line x1="${padL}" y1="${yp}" x2="${W-padR}" y2="${yp}" stroke="rgba(255,255,255,${g===4?'0.13':'0.06'})" stroke-width="1" stroke-dasharray="${g===4?'none':'3,3'}"/>`;
-    svg+=`<text x="${padL-4}" y="${yp+3.5}" text-anchor="end" font-size="8.5" fill="#5e5c78" font-family="Manrope,sans-serif">${val}</text>`;
+    svg+=`<text x="${padL-4}" y="${yp+3.5}" text-anchor="end" font-size="8.5" fill="#5e5c78" font-family="Manrope,sans-serif">${fmtDays(val)}</text>`;
   }
 
   // ── Filled area under line (polygon)
@@ -3461,7 +3469,7 @@ function buildLineChartSVG(data,max,colorHex,quota=0){
 
     // Value above dot
     const lblY=Math.max(padT+10,p.y-8);
-    svg+=`<text x="${p.x}" y="${lblY}" text-anchor="middle" font-size="10" font-weight="700" fill="${col}" font-family="Manrope,sans-serif">${d.value}</text>`;
+    svg+=`<text x="${p.x}" y="${lblY}" text-anchor="middle" font-size="10" font-weight="700" fill="${col}" font-family="Manrope,sans-serif">${fmtDays(d.value)}</text>`;
 
     // X label main (date start)
     svg+=`<text x="${p.x}" y="${H-padB+14}" text-anchor="middle" font-size="9" fill="${isLast?'#f0eefc':'#9896b0'}" font-weight="${isLast?'700':'400'}" font-family="Manrope,sans-serif">${d.label}</text>`;
@@ -3478,7 +3486,7 @@ function buildLineChartSVG(data,max,colorHex,quota=0){
   if(quota>0&&quota<=safeMax){
     const qy=padT+cH*(1-quota/safeMax);
     svg+=`<line x1="${padL}" y1="${qy}" x2="${W-padR}" y2="${qy}" stroke="#f05975" stroke-width="1.5" stroke-dasharray="5,3" opacity="0.7"/>`;
-    svg+=`<text x="${W-padR+2}" y="${qy+4}" font-size="8" fill="#f05975" font-family="Manrope,sans-serif" opacity="0.85">${quota}</text>`;
+    svg+=`<text x="${W-padR+2}" y="${qy+4}" font-size="8" fill="#f05975" font-family="Manrope,sans-serif" opacity="0.85">${fmtDays(quota)}</text>`;
   }
 
   svg+='</svg>';
@@ -4201,7 +4209,7 @@ function renderDashboardCharts(){
           </div>
         </div>
       </div>
-      ${buildLineChartSVG(data,max,hex,quotaScaled)}
+      ${buildLineChartSVG(data,max,hex,quotaScaled,key==='ltv')}
     </div>`;
   });
 
