@@ -3218,20 +3218,19 @@ function getMetricForPeriod(metric,from,to){
       }).length;
   } else if(metric==='trials'){
     if(!window._crmLeadsCache) return 0;
-    // Пробный = у лида есть trialDate в периоде
-    // Учитываем любую стадию начиная с trial_paid (значит пробный состоялся)
-    const TRIAL_DONE_STAGES = ['trial_paid','thinking','active','lost'];
+    const todayStr = todayKZ();
     return Object.values(window._crmLeadsCache)
       .filter(l=>{
-        // Приоритет: trialPaidAt (точная дата оплаты/проведения)
-        if(l.trialPaidAt){ const d=toKZDate(l.trialPaidAt); return d>=from && d<=to; }
-        // Если есть дата пробного и стадия говорит что пробный был
-        if(l.trialDate && TRIAL_DONE_STAGES.includes(l.stage)){
-          const d = toKZDate(l.trialDate);
-          return d>=from && d<=to;
+        // Если есть точная дата когда оплачен/проведён — используем её
+        if(l.trialPaidAt){
+          const d = toKZDate(l.trialPaidAt);
+          return d >= from && d <= to;
         }
-        // Также считаем trial_paid по trialDate даже без trialPaidAt
-        if(l.trialDate && l.stage==='trial_paid') return l.trialDate>=from && l.trialDate<=to;
+        // Если есть дата пробного и она уже прошла — пробный состоялся
+        // Считаем независимо от текущей стадии (карточка могла уйти в Active/Lost)
+        if(l.trialDate && l.trialDate <= todayStr){
+          return l.trialDate >= from && l.trialDate <= to;
+        }
         return false;
       }).length;
   } else if(metric==='graduates'){
