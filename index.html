@@ -12604,6 +12604,9 @@ function crmDrop(event, newStage){
     // Авто WhatsApp — берём шаблон из настроек (кастомные стадии) или из дефолтных
     const allStageMsgs = Object.assign({}, CRM_STAGE_MSGS, S.settings?.crmStageMsgs || {});
     const tpl = allStageMsgs[newStage];
+    console.log('[CRM DROP] stage='+newStage+' phone='+l.phone+' tpl='+(tpl?tpl.slice(0,30):'ПУСТО'));
+    console.log('[CRM DROP] allStageMsgs keys:', Object.keys(allStageMsgs));
+    console.log('[CRM DROP] settings.crmStageMsgs:', JSON.stringify(S.settings?.crmStageMsgs||{}));
     if(tpl && l.phone){
       const phone = (l.phone||'').replace(/\D/g,'');
       const waMsg = resolveStageMsg(tpl, l);
