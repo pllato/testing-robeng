@@ -2325,7 +2325,7 @@ let dashMode='days'; // 'days' | 'thu'
 
 // ── CHART STATE ───────────────────────────────────────────────────
 let _chartMode='day'; // 'day' | 'week' | 'today'
-let _chartMax={active:100,active_fact:100,starts:20,restarts:20,leads:20,trials:10,graduates:5,ltv:150000};
+let _chartMax={active:100,active_fact:100,starts:20,restarts:20,leads:20,trials:10,graduates:5,ltv:365};
 let _chartQuota={active:0,active_fact:0,starts:0,restarts:0,leads:0,trials:0,graduates:0}; // 0=не задана
 let _chartDayDate=(()=>{const _d=new Date();return`${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,'0')}-${String(_d.getDate()).padStart(2,'0')}`;})(); // для режима 'today' (локальная дата)
 
@@ -3264,24 +3264,22 @@ function getMetricForPeriod(metric,from,to){
     });
     return count;
   } else if(metric==='ltv'){
-    // Средний LTV за период = средние накопленные уроки × цена урока
-    // Берём учеников у которых были уроки в этом периоде
-    const LESSON_PRICE = 3000;
-    const att = S.attendance || {};
-    const studentLessons = {}; // studentId → total lessons ever
-    S.enrollments.forEach(e => {
-      if(!e.studentId) return;
-      Object.entries(att).forEach(([k,v]) => {
-        if((v==='done'||v==='makeup') && k.startsWith(e.id+'_'))
-          studentLessons[e.studentId] = (studentLessons[e.studentId]||0) + 1;
-      });
+    // Средний LTV = средняя длительность обучения в днях (для активных в периоде)
+    const activeEnrolls = S.enrollments.filter(e =>
+      !e.inactive && e.dateStart && e.dateStart<=to && (e.dateEnd||'9999')>=from
+    );
+    if(!activeEnrolls.length) return 0;
+    // Группируем по ученику — берём самую раннюю дату начала
+    const studentStart = {};
+    activeEnrolls.forEach(e => {
+      if(!studentStart[e.studentId] || e.dateStart < studentStart[e.studentId])
+        studentStart[e.studentId] = e.dateStart;
     });
-    // Активные в этом периоде
-    const activeIds = new Set();
-    S.enrollments.forEach(e => {
-      if(!e.inactive && e.dateStart<=to && (e.dateEnd||'9999')>=from) activeIds.add(e.studentId);
+    const today = todayKZ();
+    const vals = Object.values(studentStart).map(ds => {
+      const days = Math.round((new Date(today) - new Date(ds)) / (1000*60*60*24));
+      return Math.max(0, days);
     });
-    const vals = [...activeIds].map(id => (studentLessons[id]||0)*LESSON_PRICE).filter(v=>v>0);
     if(!vals.length) return 0;
     return Math.round(vals.reduce((s,v)=>s+v,0)/vals.length);
   }
@@ -4051,7 +4049,7 @@ function renderDashboardCharts(){
     {key:'active',      label:'Активных учеников',color:'var(--gn)',  hex:'#3fd88e', icon:'🎓'},
     {key:'restarts',    label:'Перестарты',       color:'var(--am)',  hex:'#f5c842', icon:'🔄'},
     {key:'graduates',   label:'Выпускники',       color:'#e8a838',   hex:'#e8a838', icon:'🏆'},
-    {key:'ltv',         label:'LTV (сред.)',       color:'#c084fc',   hex:'#c084fc', icon:'💎'},
+    {key:'ltv',         label:'LTV (длительность)', color:'#c084fc',   hex:'#c084fc', icon:'💎'},
   ];
   // Load CRM leads for 'leads' metric (async, then re-render if needed)
   if(!window._crmLeadsCache){
@@ -4181,8 +4179,8 @@ function renderDashboardCharts(){
         <div>
           <div style="font-size:11px;font-weight:600;color:${color}">${icon} ${label}</div>
           <div style="display:flex;align-items:baseline;gap:5px;margin-top:3px">
-            <span style="font-family:var(--fd);font-size:24px;font-weight:700;color:${color}">${key==='ltv'?(lastVal>=1000?Math.round(lastVal/1000)+'К':lastVal):lastVal}</span>
-            <span style="font-size:11px;color:var(--t3)">${key==='ltv'?'₸ / '+(max>=1000?Math.round(max/1000)+'К ₸':max+'₸'):('/ '+max)}</span>
+            <span style="font-family:var(--fd);font-size:24px;font-weight:700;color:${color}">${key==='ltv'?(()=>{const m=Math.floor(lastVal/30);const d=lastVal%30;return m>0?m+'м '+(d>0?d+'д':''):d+'д';})():lastVal}</span>
+            <span style="font-size:11px;color:var(--t3)">${key==='ltv'?'сред. / макс '+(Math.floor(max/30))+'м':('/ '+max)}</span>
             ${trendHtml}
           </div>
           ${quotaHtml?`<div style="margin-top:2px">${quotaHtml}</div>`:''}
