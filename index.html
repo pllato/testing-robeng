@@ -12585,18 +12585,21 @@ function crmDrop(event, newStage){
     crmRef.child(dragId).update(updateData);
 
     // Лог в чат
-    const msg = `📌 Стадия: «${crmStage(l.stage).label}» → «${crmStage(newStage).label}»`;
-    crmChatRef.child(dragId).push({type:'system', text:msg, ts:now, uid:fbAuth.currentUser?.uid||'', name:'Система'});
+    const chatMsg = `📌 Стадия: «${crmStage(l.stage).label}» → «${crmStage(newStage).label}»`;
+    crmChatRef.child(dragId).push({type:'system', text:chatMsg, ts:now, uid:fbAuth.currentUser?.uid||'', name:'Система'});
 
     // Авто WhatsApp
     const tpl = CRM_STAGE_MSGS[newStage];
     if(tpl && l.phone){
       const phone = (l.phone||'').replace(/\D/g,'');
-      const msg = resolveStageMsg(tpl, l);
-      if(phone) sendSystemWA('+'+phone, msg).then(r=>{ if(!r?.deferred){
-        crmChatRef.child(dragId).push({type:'out', text:msg+'\n\n_Системное сообщение Robeng ELC_', ts:new Date().toISOString(), uid:fbAuth.currentUser?.uid||'', name:'Авто'});
-        crmRef.child(dragId+'/msgCount').transaction(v=>(v||0)+1);
-      }});
+      const waMsg = resolveStageMsg(tpl, l);
+      console.log('[CRM] Stage msg:', newStage, phone, waMsg?.slice(0,50));
+      if(phone && waMsg) sendSystemWA('+'+phone, waMsg).then(r=>{
+        if(!r?.deferred){
+          crmChatRef.child(dragId).push({type:'out', text:waMsg+'\n\n_Системное сообщение Robeng ELC_', ts:new Date().toISOString(), uid:fbAuth.currentUser?.uid||'', name:'Авто'});
+          crmRef.child(dragId+'/msgCount').transaction(v=>(v||0)+1);
+        }
+      });
     }
 
     // Уведомляем преподавателя если для этой стадии включено
@@ -12880,13 +12883,14 @@ function saveCRMCard(silent=false){
         if(prev.stage !== data.stage && data.phone){
           const tpl = CRM_STAGE_MSGS[data.stage];
           if(tpl){
-            const msg = resolveStageMsg(tpl, data);
-            const phone = data.phone.replace(/\D/g,'');
-            const now = new Date().toISOString();
-            if(phone) sendSystemWA('+'+phone, msg).then(r=>{ if(!r?.deferred){
-              crmChatRef.child(_crmEditId).push({type:'out', text:msg+'\n\n_Системное сообщение Robeng ELC_', ts:now, uid:fbAuth.currentUser?.uid||'', name:'Авто'});
+            const waMsg2 = resolveStageMsg(tpl, data);
+            const phone2 = data.phone.replace(/\D/g,'');
+            const nowTs2 = new Date().toISOString();
+            console.log('[CRM saveCRMCard] Stage msg:', data.stage, phone2, waMsg2?.slice(0,50));
+            if(phone2 && waMsg2) sendSystemWA('+'+phone2, waMsg2).then(r=>{ if(!r?.deferred){
+              crmChatRef.child(_crmEditId).push({type:'out', text:waMsg2+'\n\n_Системное сообщение Robeng ELC_', ts:nowTs2, uid:fbAuth.currentUser?.uid||'', name:'Авто'});
               crmRef.child(_crmEditId+'/msgCount').transaction(v=>(v||0)+1);
-              crmRef.child(_crmEditId+'/lastContact').set(now);
+              crmRef.child(_crmEditId+'/lastContact').set(nowTs2);
             }});
           }
           // Уведомляем преподавателя если включено для этой стадии
