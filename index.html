@@ -1035,7 +1035,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
 </div>
 
 <!-- Modal: Add User -->
-<div class="mo" id="m-add-user" onclick="if(event.target===this)close1('m-add-user')">
+<div class="mo" id="m-add-user" onmousedown="window._moDown=event.target" onclick="if(event.target===this&&window._moDown===this)close1('m-add-user')">
   <div class="modal modal-xl">
     <div class="mt" id="m-add-user-ttl">Добавить пользователя</div>
     <div class="auth-err" id="m-user-err" style="display:none;margin-bottom:12px"></div>
@@ -1087,7 +1087,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
 </div>
 
 <!-- Modal: Video link -->
-<div class="mo" id="m-video" onclick="if(event.target===this)close1('m-video')">
+<div class="mo" id="m-video" onmousedown="window._moDown=event.target" onclick="if(event.target===this&&window._moDown===this)close1('m-video')">
   <div class="modal">
     <div class="mt">🎥 Загрузить запись урока</div>
     <div id="m-video-info" style="font-size:12px;color:var(--t2);background:var(--bg3);padding:8px 12px;border-radius:var(--r);margin-bottom:14px"></div>
@@ -1166,7 +1166,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
 </div>
 
 <!-- Modal: Video review (admin) -->
-<div class="mo" id="m-video-review" onclick="if(event.target===this)close1('m-video-review')">
+<div class="mo" id="m-video-review" onmousedown="window._moDown=event.target" onclick="if(event.target===this&&window._moDown===this)close1('m-video-review')">
   <div class="modal modal-lg">
     <div class="mt">🎥 Проверка записи урока</div>
     <div id="m-vr-info" style="margin-bottom:14px"></div>
@@ -1212,7 +1212,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
 </div>
 
 <!-- Modal: Task -->
-<div class="mo" id="m-task" onclick="if(event.target===this)close1('m-task')">
+<div class="mo" id="m-task" onmousedown="window._moDown=event.target" onclick="if(event.target===this&&window._moDown===this)close1('m-task')">
   <div class="modal modal-lg">
     <div class="mt" id="m-task-ttl">Новая задача</div>
     <div class="fr"><label>Название</label><input type="text" id="task-title" placeholder="Что нужно сделать?"/></div>
@@ -1244,7 +1244,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
 </div>
 
 <!-- Modal: Task Detail -->
-<div class="mo" id="m-task-detail" onclick="if(event.target===this)close1('m-task-detail')">
+<div class="mo" id="m-task-detail" onmousedown="window._moDown=event.target" onclick="if(event.target===this&&window._moDown===this)close1('m-task-detail')">
   <div class="modal modal-lg" style="max-height:90vh">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;gap:10px">
       <div class="mt" id="m-td-title" style="margin-bottom:0;flex:1"></div>
@@ -1271,7 +1271,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
 </div>
 
 <!-- Modal: Makeup lesson time -->
-<div class="mo" id="m-makeup" onclick="if(event.target===this)close1('m-makeup')">
+<div class="mo" id="m-makeup" onmousedown="window._moDown=event.target" onclick="if(event.target===this&&window._moDown===this)close1('m-makeup')">
   <div class="modal">
     <div class="mt">Отработка пропуска</div>
     <div id="m-makeup-info" style="margin-bottom:14px;font-size:12px;color:var(--t2)"></div>
@@ -1291,7 +1291,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
 </div>
 
 <!-- Modal: Teacher (with built-in avail grid for new) -->
-<div class="mo" id="m-teacher" onclick="if(event.target===this)close1('m-teacher')">
+<div class="mo" id="m-teacher" onmousedown="window._moDown=event.target" onclick="if(event.target===this&&window._moDown===this)close1('m-teacher')">
   <div class="modal modal-xl">
     <div class="mt" id="m-teacher-ttl">Добавить преподавателя</div>
     <div class="fr-row">
@@ -1318,7 +1318,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
 </div>
 
 <!-- Modal: Student -->
-<div class="mo" id="m-student" onclick="if(event.target===this)close1('m-student')">
+<div class="mo" id="m-student" onmousedown="window._moDown=event.target" onclick="if(event.target===this&&window._moDown===this)close1('m-student')">
   <div class="modal modal-lg">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:0">
       <div class="mt" id="m-stu-ttl" style="margin-bottom:0">Добавить ученика</div>
@@ -1463,7 +1463,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
 </div>
 
 <!-- Modal: Detail -->
-<div class="mo" id="m-detail" onclick="if(event.target===this)close1('m-detail')">
+<div class="mo" id="m-detail" onmousedown="window._moDown=event.target" onclick="if(event.target===this&&window._moDown===this)close1('m-detail')">
   <div class="modal">
     <div class="mt">Информация об уроке</div>
     <div id="detail-body"></div>
@@ -1475,7 +1475,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
 </div>
 
 <!-- Modal: Edit subject -->
-<div class="mo" id="m-subj" onclick="if(event.target===this)close1('m-subj')">
+<div class="mo" id="m-subj" onmousedown="window._moDown=event.target" onclick="if(event.target===this&&window._moDown===this)close1('m-subj')">
   <div class="modal">
     <div class="mt">Редактировать предмет</div>
     <div class="fr"><label>Название</label><input id="subj-edit-name"/></div>
@@ -1497,7 +1497,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
 </div>
 
 <!-- Modal: Extend enrollment -->
-<div class="mo" id="m-extend" onclick="if(event.target===this)close1('m-extend')">
+<div class="mo" id="m-extend" onmousedown="window._moDown=event.target" onclick="if(event.target===this&&window._moDown===this)close1('m-extend')">
   <div class="modal modal-lg">
     <div class="mt" id="m-ext-ttl">Продлить запись</div>
     <div id="m-ext-info" style="margin-bottom:14px"></div>
@@ -6452,8 +6452,9 @@ function renderRenewals(){
     if(db<0&&da>=0)return 1;
     const vacA=(a.vacations||[]).find(v=>v.to>=today2&&v.from<=today2);
     const vacB=(b.vacations||[]).find(v=>v.to>=today2&&v.from<=today2);
-    const sortA=vacA?vacA.from:(a.dateEnd||'');
-    const sortB=vacB?vacB.from:(b.dateEnd||'');
+    // Всё сортируем по единой дате: для отпуска — дата КОНЦА отпуска, иначе — дата конца абонемента
+    const sortA=vacA?vacA.to:(a.dateEnd||'');
+    const sortB=vacB?vacB.to:(b.dateEnd||'');
     return sortA.localeCompare(sortB);
   });
 
@@ -6518,7 +6519,16 @@ function renderRenewals(){
             ${statusBadges}
           </div>
           <div style="font-size:12px;color:var(--t3)">${t?.name||'-'} · Оканчивается ${fmtDateRu(e.dateEnd)} · ${daysLabel}</div>
-          <div style="font-size:11px;color:var(--t3)">Обучается: ${dur} · Старт: ${fmtDateRu(e.dateStart)}</div>
+          <div style="font-size:11px;color:var(--t3);display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:2px">
+            <span>📅 ${dur}</span>
+            ${(()=>{
+              const months=Math.round((new Date()-(new Date(e.dateStart||'')))/(1000*60*60*24*30));
+              const col=months<=1?'var(--tl)':months<=3?'var(--am)':'var(--gn)';
+              const lbl=months<=1?'Новенький':months<=3?`${months} мес.`:`${months} мес.`;
+              return `<span style="font-size:10px;font-weight:600;color:${col};background:${col}22;border:1px solid ${col}44;padding:1px 7px;border-radius:8px">${lbl}</span>`;
+            })()}
+            ${stu?.parent?`<span>👤 ${stu.parent}</span>`:''}
+          </div>
           ${contactsHtml}
           ${logsHtml}
           <div style="margin-top:6px;display:flex;gap:5px;align-items:center;flex-wrap:wrap">
@@ -15131,7 +15141,7 @@ function addCRMLinkToStudent(studentEl, phone){
 </div>
 
 <!-- Modal: CRM Dedup -->
-<div class="mo" id="m-crm-dedup" onclick="if(event.target===this)close1('m-crm-dedup')">
+<div class="mo" id="m-crm-dedup" onmousedown="window._moDown=event.target" onclick="if(event.target===this&&window._moDown===this)close1('m-crm-dedup')">
   <div class="modal" style="max-width:700px;width:95vw;max-height:90vh;overflow-y:auto">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <div class="mt">🔀 Объединение дублей</div>
@@ -15141,7 +15151,7 @@ function addCRMLinkToStudent(studentEl, phone){
   </div>
 </div>
 <!-- ── CRM: CARD MODAL ──────────────────────────────────────── -->
-<div class="mo" id="m-crm-card" onclick="if(event.target===this)close1('m-crm-card')">
+<div class="mo" id="m-crm-card" onmousedown="window._moDown=event.target" onclick="if(event.target===this&&window._moDown===this)close1('m-crm-card')">
   <div class="modal modal-xl" style="max-height:94vh;overflow-y:auto;max-width:960px;width:96vw">
     <!-- Header -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px">
@@ -15387,7 +15397,7 @@ function addCRMLinkToStudent(studentEl, phone){
 </div>
 
 <!-- ── CRM: STANDALONE CHAT MODAL ──────────────────────────────── -->
-<div class="mo" id="m-crm-chat" onclick="if(event.target===this)close1('m-crm-chat')">
+<div class="mo" id="m-crm-chat" onmousedown="window._moDown=event.target" onclick="if(event.target===this&&window._moDown===this)close1('m-crm-chat')">
   <div class="modal modal-lg" style="max-height:88vh;display:flex;flex-direction:column">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;gap:10px">
       <div style="flex:1;min-width:0">
