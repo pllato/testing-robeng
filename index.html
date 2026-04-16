@@ -1750,10 +1750,11 @@ async function notifyWhatsApp(phone, message){
       body:JSON.stringify({parentPhone:phone,message,studentName:'',date:'',playerUrl:message})
     });
     const data=await resp.json().catch(()=>({}));
+    console.log('[WA] phone='+phone+' ok='+resp.ok+' response='+JSON.stringify(data));
     if(!resp.ok||data.error){return{ok:false,error:data.error||'http_'+resp.status};}
     return{ok:true};
   }catch(e){
-    console.warn('WhatsApp notify failed:',e);
+    console.warn('[WA] FAILED phone='+phone+' error='+e.message);
     return{ok:false,error:e.message||'network'};
   }
 }
@@ -12604,13 +12605,9 @@ function crmDrop(event, newStage){
     // Авто WhatsApp — берём шаблон из настроек (кастомные стадии) или из дефолтных
     const allStageMsgs = Object.assign({}, CRM_STAGE_MSGS, S.settings?.crmStageMsgs || {});
     const tpl = allStageMsgs[newStage];
-    console.log('[CRM DROP] stage='+newStage+' phone='+l.phone+' tpl='+(tpl?tpl.slice(0,30):'ПУСТО'));
-    console.log('[CRM DROP] allStageMsgs keys:', Object.keys(allStageMsgs));
-    console.log('[CRM DROP] settings.crmStageMsgs:', JSON.stringify(S.settings?.crmStageMsgs||{}));
     if(tpl && l.phone){
       const phone = (l.phone||'').replace(/\D/g,'');
       const waMsg = resolveStageMsg(tpl, l);
-      console.log('[CRM] Stage msg:', newStage, phone, waMsg?.slice(0,50));
       if(phone && waMsg) sendSystemWA('+'+phone, waMsg).then(r=>{
         if(!r?.deferred){
           crmChatRef.child(dragId).push({type:'out', text:waMsg+'\n\n_Системное сообщение Robeng ELC_', ts:new Date().toISOString(), uid:fbAuth.currentUser?.uid||'', name:'Авто'});
@@ -12904,7 +12901,6 @@ function saveCRMCard(silent=false){
             const waMsg2 = resolveStageMsg(tpl, data);
             const phone2 = data.phone.replace(/\D/g,'');
             const nowTs2 = new Date().toISOString();
-            console.log('[CRM saveCRMCard] Stage msg:', data.stage, phone2, waMsg2?.slice(0,50));
             if(phone2 && waMsg2) sendSystemWA('+'+phone2, waMsg2).then(r=>{ if(!r?.deferred){
               crmChatRef.child(_crmEditId).push({type:'out', text:waMsg2+'\n\n_Системное сообщение Robeng ELC_', ts:nowTs2, uid:fbAuth.currentUser?.uid||'', name:'Авто'});
               crmRef.child(_crmEditId+'/msgCount').transaction(v=>(v||0)+1);
