@@ -1758,6 +1758,37 @@ async function notifyWhatsApp(phone, message){
   }
 }
 
+// ── Тихие часы: 21:00 – 09:00 КЗ (UTC+5) ────────────────────────
+function isQuietHours(){
+  const hourKZ = nowKZ().getHours();
+  return hourKZ >= 21 || hourKZ < 9;
+}
+
+// Системное сообщение с тихими часами — откладывает если ночь
+async function sendSystemWA(phone, message, meta={}){
+  if(!phone||!message) return;
+  const signed = message.includes('_Системное сообщение Robeng ELC_')
+    ? message
+    : message + '\n\n_Системное сообщение Robeng ELC_';
+
+  if(isQuietHours()){
+    const nowT = nowKZ();
+    const sendAt = new Date(nowT);
+    if(nowT.getHours() >= 21) sendAt.setDate(sendAt.getDate()+1);
+    sendAt.setHours(9,0,0,0);
+    const key = 'pending_sys_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+    fbDb.ref('pendingNotifications/'+key).set({
+      phones:[phone.replace(/\D/g,'')], msg:signed,
+      sendAt: sendAt.toISOString(), createdAt: new Date().toISOString(),
+      meta
+    }).catch(()=>{});
+    const t = sendAt.toLocaleString('ru',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    toast(`🌙 Тихие часы. Сообщение будет отправлено в ${t}`);
+    return {ok:true, deferred:true};
+  }
+  return notifyWhatsApp(phone, signed);
+}
+
 // Отправляет WA И сохраняет в историю чата crmChats
 async function notifyWhatsAppWithHistory(phone, message, leadId, senderName){
   const res = await notifyWhatsApp(phone, message);
@@ -6182,10 +6213,11 @@ function getRenewalMsg(enrollId){
   const stu=S.students?.find(s=>s.id===e.studentId)||{};
   const tch=S.teachers?.find(t=>String(t.id)===String(e.teacherId))||{};
   const tmpl=S.settings?.renewalWaTemplate||'Здравствуйте! 👋\n\nНапоминаем, что абонемент ученика *{name}* заканчивается {dateEnd}.\n\nПреподаватель: {teacher}\n\nДля продления свяжитесь с нами! 🎓';
-  return tmpl
+  const msg = tmpl
     .replace(/{name}/g, stu.name||'-')
     .replace(/{dateEnd}/g, fmtDateRu(e.dateEnd||''))
     .replace(/{teacher}/g, tch.name||'-');
+  return msg + '\n\n_Системное сообщение Robeng ELC_';
 }
 
 async function sendRenewalWA(enrollId){
@@ -6260,7 +6292,7 @@ async function autoSendRenewalWA(){
     if(!phone) continue;
     try{
       const msg=getRenewalMsg(e.id);
-      await notifyWhatsApp('+'+phone, msg);
+      await sendSystemWA('+'+phone, msg);
       // Mark sent
       const idx=S.enrollments.findIndex(x=>x.id===e.id);
       if(idx>=0){
@@ -6763,6 +6795,13 @@ function saveRenewUI(enrollId){
   addRenewalLog(enrollId,'Продлено','🔄','var(--gn)',note);
   const stuName=S.students?.find(s=>s.id===e.studentId)?.name||'-';
   logAction('renewal','Продлено: '+stuName,'до '+newEndStr);
+  // Отправляем "Спасибо, оплату видим"
+  const _stuR=S.students?.find(s=>s.id===e.studentId)||{};
+  const _phoneR=(_stuR.parentPhone||_stuR.phone||'').replace(/\D/g,'');
+  if(_phoneR){
+    const _msgR=`Здравствуйте! Спасибо, оплату видим 🙏\n\nАбонемент *${stuName}* продлён до ${fmtDateRu(newEndStr)}.`;
+    sendSystemWA('+'+_phoneR, _msgR, {type:'renewal_confirm', enrollId});
+  }
   save();
   document.getElementById('renew-modal-'+enrollId)?.remove();
   renderRenewals();toast('Абонемент продлён до '+fmtDateRu(newEndStr));
@@ -7397,6 +7436,9 @@ function extendSame(){
   e.dateEnd=dateEnd;
   e.inactive=false;
   logAction('extend',`Продлено (без изменений): ${st?.name||'—'}`,`${t?.name||'—'} · до ${fmtDate(dateEnd)}`);
+  // Спасибо за оплату
+  const _phoneES=(st?.parentPhone||st?.phone||'').replace(/\D/g,'');
+  if(_phoneES){ sendSystemWA('+'+_phoneES,`Здравствуйте! Спасибо, оплату видим 🙏\n\nАбонемент *${st?.name||''}* продлён до ${fmtDate(dateEnd)}.`,{type:'renewal_confirm'}); }
   save();close1('m-extend');renderStudents();renderSchedule();toast('Продлено до '+fmtDate(dateEnd));
 }
 
@@ -7417,6 +7459,9 @@ function extendNew(){
   e.teacherId=tid;e.slots=slots;e.dateEnd=dateEnd;e.inactive=false;
   const dayStr=days.map(d=>DS[d]).join(' ');
   logAction('extend',`Продлено с изменениями: ${st?.name||'—'}`,`${t?.name||'—'} · ${dayStr} ${TIMES[ti]} · до ${fmtDate(dateEnd)}`);
+  // Спасибо за оплату
+  const _phoneEN=(st?.parentPhone||st?.phone||'').replace(/\D/g,'');
+  if(_phoneEN){ sendSystemWA('+'+_phoneEN,`Здравствуйте! Спасибо, оплату видим 🙏\n\nАбонемент *${st?.name||''}* продлён до ${fmtDate(dateEnd)}.`,{type:'renewal_confirm'}); }
   save();close1('m-extend');renderStudents();renderSchedule();toast('Продлено с изменениями до '+fmtDate(dateEnd));
 }
 
@@ -7684,7 +7729,7 @@ function saveNewUser(){
 При входе нажмите 🎓 Обучение для знакомства с порталом.
 
 По вопросам — обращайтесь к администратору.`;
-          notifyWhatsApp('+'+cleanPhone, welcomeMsg).catch(()=>{});
+          sendSystemWA('+'+cleanPhone, welcomeMsg, {type:'welcome'}).catch(()=>{});
         }
         // If teacher — also add to S.teachers list
         if(role==='teacher'){
@@ -8024,7 +8069,7 @@ function sendVideoToParent(record){
       // Ставим таймер в браузере (если вкладка открыта)
       setTimeout(()=>{
         phones.forEach(p=>{
-          notifyWhatsApp('+'+p, msg).then(r=>{
+          sendSystemWA('+'+p, msg, {type:'video_report'}).then(r=>{
             if(r?.ok){
               logNotify('report',
                 `${record.studentName||'—'} (${p===parentPhone?'родитель':'ученик'}) [отложено]`,
@@ -8049,7 +8094,7 @@ function sendVideoToParent(record){
   })();
   buildMsg().then(msg=>{
     phones.forEach(p=>{
-      notifyWhatsAppWithHistory('+'+p, msg, _videoLeadId, 'Отчёт').then(r=>{
+      sendSystemWA('+'+p, msg, {type:'video_report'}).then(r=>{
         if(r?.ok) logNotify('report',
           `${record.studentName||'—'} (${p===parentPhone?'родитель':'ученик'})`,
           '+'+p,
@@ -9198,7 +9243,7 @@ function checkLessonReminders(){
       const _sentPhones = new Set();
       if(remindStudent){
         if(studentPhone){
-          notifyWhatsApp('+'+studentPhone, msg).then(res=>{
+          sendSystemWA('+'+studentPhone, msg, {type:'lesson_reminder'}).then(res=>{
             if(!res||!res.ok) logReminderFailure(e.id, st.name, studentPhone, 'student', res?.error||'unknown');
             else logNotify('reminder', st.name, '+'+studentPhone, msg, {teacherName:t?.name||''});
           });
@@ -9211,7 +9256,7 @@ function checkLessonReminders(){
       // Отправляем родителю — только если номер ещё не был использован
       if(remindParent){
         if(parentPhone && !_sentPhones.has(parentPhone)){
-          notifyWhatsApp('+'+parentPhone, msg).then(res=>{
+          sendSystemWA('+'+parentPhone, msg, {type:'lesson_reminder'}).then(res=>{
             if(!res||!res.ok) logReminderFailure(e.id, st.name, parentPhone, 'parent', res?.error||'unknown');
             else logNotify('reminder', `${st.name} (родитель)`, '+'+parentPhone, msg, {teacherName:t?.name||''});
           });
@@ -9227,7 +9272,7 @@ function checkLessonReminders(){
         const tEntry=Object.entries(udata).find(([uid,u])=>u.name===t?.name||uid===String(t?.id)||uid===String(t?.uid));
         if(tEntry&&tEntry[1].phone){
           const tMsg=`⏰ Через 5 минут урок!\n\n👤 Ученик: ${st.name}\n🕐 ${lessonTime} · ${dateRu}\n📖 ${e.topic||'Английский'}`;
-          notifyWhatsApp(tEntry[1].phone, tMsg).then(r=>{
+          sendSystemWA(tEntry[1].phone, tMsg, {type:'teacher_5min'}).then(r=>{
             if(r?.ok) logNotify('reminder', `Преподаватель: ${t?.name||'—'}`, tEntry[1].phone, tMsg, {studentName:st.name});
           });
         }
@@ -9729,7 +9774,7 @@ function checkTeacherBeforeLesson(now, today, nowMinutes){
 
       const lines = lessons.map(l=>`  👤 ${l.st?.name||'—'} · ${l.time} · ${l.e.topic||'Английский'}`).join('\n');
       const msg = `🔔 Через 15 минут ${lessons.length === 1 ? 'урок' : 'уроки'}!\n\n${lines}\n\n✅ Пожалуйста, подготовьтесь к занятию.`;
-      notifyWhatsApp(tPhone, msg).then(r=>{
+      sendSystemWA(tPhone, msg, {type:'teacher_15min'}).then(r=>{
         if(r?.ok) logNotify('teacher_before', `Преподаватель: ${t?.name||'—'}`, tPhone, msg, {lessonsCount:lessons.length});
       });
     });
@@ -9817,7 +9862,7 @@ function checkEndOfDayReminders(now, today){
         msg += `👉 Загрузи видео в раздел «Отчёты» — родители ждут!`;
       }
 
-      notifyWhatsApp(tPhone, msg).then(r=>{
+      sendSystemWA(tPhone, msg, {type:'teacher_eod'}).then(r=>{
         if(r?.ok) logNotify('eod', `Преподаватель: ${t?.name||'—'}`, tPhone, msg);
       });
     });
@@ -9901,7 +9946,7 @@ async function sendSurveyFeedback(){
     const tEntry=Object.values(udata).find(u=>String(u.teacherId)===String(_sfbTeacherId)||String(u.uid)===String(_sfbTeacherId));
     if(tEntry&&tEntry.phone){
       const msg=`📋 Сообщение от администратора по опросу\n\n👤 Ученик: ${td.studentName||'—'}\n\n${comment}\n\nОткройте портал → Опросы → подтвердите получение`;
-      notifyWhatsApp(tEntry.phone.startsWith('+')?tEntry.phone:'+'+tEntry.phone.replace(/\D/g,''), msg).catch(()=>{});
+      sendSystemWA(tEntry.phone.startsWith('+')?tEntry.phone:'+'+tEntry.phone.replace(/\D/g,''), msg, {type:'survey_comment'}).catch(()=>{});
     }
   });
 
@@ -10003,7 +10048,7 @@ ${link}
 
   const phones = [parentPhone, studentPhone].filter((p,i,a)=>p&&a.indexOf(p)===i);
   for(const p of phones){
-    const r = await notifyWhatsApp('+'+p, msg).catch(()=>({ok:false}));
+    const r = await sendSystemWA('+'+p, msg, {type:'survey_result'}).catch(()=>({ok:false}));
     if(r?.ok) logNotify('survey', st.name, '+'+p, msg, {teacherName:t?.name||''});
   }
 
@@ -12513,10 +12558,10 @@ function crmDrop(event, newStage){
     if(tpl && l.phone){
       const phone = (l.phone||'').replace(/\D/g,'');
       const msg = resolveStageMsg(tpl, l);
-      if(phone) notifyWhatsApp('+'+phone, msg).then(()=>{
-        crmChatRef.child(dragId).push({type:'out', text:msg, ts:new Date().toISOString(), uid:fbAuth.currentUser?.uid||'', name:'Авто'});
+      if(phone) sendSystemWA('+'+phone, msg).then(r=>{ if(!r?.deferred){
+        crmChatRef.child(dragId).push({type:'out', text:msg+'\n\n_Системное сообщение Robeng ELC_', ts:new Date().toISOString(), uid:fbAuth.currentUser?.uid||'', name:'Авто'});
         crmRef.child(dragId+'/msgCount').transaction(v=>(v||0)+1);
-      });
+      }});
     }
 
     // Уведомляем преподавателя если для этой стадии включено
@@ -12803,11 +12848,11 @@ function saveCRMCard(silent=false){
             const msg = resolveStageMsg(tpl, data);
             const phone = data.phone.replace(/\D/g,'');
             const now = new Date().toISOString();
-            if(phone) notifyWhatsApp('+'+phone, msg).then(()=>{
-              crmChatRef.child(_crmEditId).push({type:'out', text:msg, ts:now, uid:fbAuth.currentUser?.uid||'', name:'Авто'});
+            if(phone) sendSystemWA('+'+phone, msg).then(r=>{ if(!r?.deferred){
+              crmChatRef.child(_crmEditId).push({type:'out', text:msg+'\n\n_Системное сообщение Robeng ELC_', ts:now, uid:fbAuth.currentUser?.uid||'', name:'Авто'});
               crmRef.child(_crmEditId+'/msgCount').transaction(v=>(v||0)+1);
               crmRef.child(_crmEditId+'/lastContact').set(now);
-            });
+            }});
           }
           // Уведомляем преподавателя если включено для этой стадии
           const notifyStages = S.settings?.crmTeacherNotifyStages || [];
