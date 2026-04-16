@@ -3143,8 +3143,9 @@ function chChartWeek(dir){
 function getChartPeriods(mode,n=7){
   const periods=[];
   // Используем KZ время (UTC+5) для определения "сегодня"
-  const now = nowKZ();
-  const today = new Date(now); today.setHours(0,0,0,0);
+  // todayKZ() правильно возвращает дату в KZ через toISOString
+  const todayStr = todayKZ(); // YYYY-MM-DD в KZ
+  const today = new Date(todayStr + 'T00:00:00Z'); // полночь UTC этой даты
   if(mode==='today'){
     // Один период — выбранный день
     const ds=_chartDayDate;
@@ -6854,7 +6855,7 @@ function saveRenewUI(enrollId){
   const _phoneR=(_stuR.parentPhone||_stuR.phone||'').replace(/\D/g,'');
   if(_phoneR){
     const _msgR=`Здравствуйте! Спасибо, оплату видим 🙏\n\nАбонемент *${stuName}* продлён до ${fmtDateRu(newEndStr)}.`;
-    sendSystemWA('+'+_phoneR, _msgR, {type:'renewal_confirm', enrollId});
+    notifyWhatsApp('+'+_phoneR, _msgR);
   }
   save();
   document.getElementById('renew-modal-'+enrollId)?.remove();
@@ -7492,7 +7493,7 @@ function extendSame(){
   logAction('extend',`Продлено (без изменений): ${st?.name||'—'}`,`${t?.name||'—'} · до ${fmtDate(dateEnd)}`);
   // Спасибо за оплату
   const _phoneES=(st?.parentPhone||st?.phone||'').replace(/\D/g,'');
-  if(_phoneES){ sendSystemWA('+'+_phoneES,`Здравствуйте! Спасибо, оплату видим 🙏\n\nАбонемент *${st?.name||''}* продлён до ${fmtDate(dateEnd)}.`,{type:'renewal_confirm'}); }
+  if(_phoneES){ notifyWhatsApp('+'+_phoneES,`Здравствуйте! Спасибо, оплату видим 🙏\n\nАбонемент *${st?.name||''}* продлён до ${fmtDate(dateEnd)}.`); }
   save();close1('m-extend');renderStudents();renderSchedule();toast('Продлено до '+fmtDate(dateEnd));
 }
 
@@ -7515,7 +7516,7 @@ function extendNew(){
   logAction('extend',`Продлено с изменениями: ${st?.name||'—'}`,`${t?.name||'—'} · ${dayStr} ${TIMES[ti]} · до ${fmtDate(dateEnd)}`);
   // Спасибо за оплату
   const _phoneEN=(st?.parentPhone||st?.phone||'').replace(/\D/g,'');
-  if(_phoneEN){ sendSystemWA('+'+_phoneEN,`Здравствуйте! Спасибо, оплату видим 🙏\n\nАбонемент *${st?.name||''}* продлён до ${fmtDate(dateEnd)}.`,{type:'renewal_confirm'}); }
+  if(_phoneEN){ notifyWhatsApp('+'+_phoneEN,`Здравствуйте! Спасибо, оплату видим 🙏\n\nАбонемент *${st?.name||''}* продлён до ${fmtDate(dateEnd)}.`); }
   save();close1('m-extend');renderStudents();renderSchedule();toast('Продлено с изменениями до '+fmtDate(dateEnd));
 }
 
@@ -7783,7 +7784,7 @@ function saveNewUser(){
 При входе нажмите 🎓 Обучение для знакомства с порталом.
 
 По вопросам — обращайтесь к администратору.`;
-          sendSystemWA('+'+cleanPhone, welcomeMsg, {type:'welcome'}).catch(()=>{});
+          notifyWhatsApp('+'+cleanPhone, welcomeMsg).catch(()=>{});
         }
         // If teacher — also add to S.teachers list
         if(role==='teacher'){
@@ -12613,9 +12614,9 @@ function crmDrop(event, newStage){
     if(tpl && l.phone){
       const phone = (l.phone||'').replace(/\D/g,'');
       const waMsg = resolveStageMsg(tpl, l);
-      if(phone && waMsg) sendSystemWA('+'+phone, waMsg).then(r=>{
-        if(!r?.deferred){
-          crmChatRef.child(dragId).push({type:'out', text:waMsg+'\n\n_Системное сообщение Robeng ELC_', ts:new Date().toISOString(), uid:fbAuth.currentUser?.uid||'', name:'Авто'});
+      if(phone && waMsg) notifyWhatsApp('+'+phone, waMsg).then(r=>{
+        if(r?.ok){
+          crmChatRef.child(dragId).push({type:'out', text:waMsg, ts:new Date().toISOString(), uid:fbAuth.currentUser?.uid||'', name:'Авто'});
           crmRef.child(dragId+'/msgCount').transaction(v=>(v||0)+1);
         }
       });
@@ -12906,8 +12907,8 @@ function saveCRMCard(silent=false){
             const waMsg2 = resolveStageMsg(tpl, data);
             const phone2 = data.phone.replace(/\D/g,'');
             const nowTs2 = new Date().toISOString();
-            if(phone2 && waMsg2) sendSystemWA('+'+phone2, waMsg2).then(r=>{ if(!r?.deferred){
-              crmChatRef.child(_crmEditId).push({type:'out', text:waMsg2+'\n\n_Системное сообщение Robeng ELC_', ts:nowTs2, uid:fbAuth.currentUser?.uid||'', name:'Авто'});
+            if(phone2 && waMsg2) notifyWhatsApp('+'+phone2, waMsg2).then(r=>{ if(r?.ok){
+              crmChatRef.child(_crmEditId).push({type:'out', text:waMsg2, ts:nowTs2, uid:fbAuth.currentUser?.uid||'', name:'Авто'});
               crmRef.child(_crmEditId+'/msgCount').transaction(v=>(v||0)+1);
               crmRef.child(_crmEditId+'/lastContact').set(nowTs2);
             }});
