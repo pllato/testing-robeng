@@ -2325,7 +2325,7 @@ let dashMode='days'; // 'days' | 'thu'
 
 // ── CHART STATE ───────────────────────────────────────────────────
 let _chartMode='day'; // 'day' | 'week' | 'today'
-let _chartMax={active:100,active_fact:100,starts:20,restarts:20,leads:20,trials:10,graduates:5};
+let _chartMax={active:100,active_fact:100,starts:20,restarts:20,leads:20,trials:10,graduates:5,ltv:150000};
 let _chartQuota={active:0,active_fact:0,starts:0,restarts:0,leads:0,trials:0,graduates:0}; // 0=не задана
 let _chartDayDate=(()=>{const _d=new Date();return`${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,'0')}-${String(_d.getDate()).padStart(2,'0')}`;})(); // для режима 'today' (локальная дата)
 
@@ -3218,12 +3218,20 @@ function getMetricForPeriod(metric,from,to){
       }).length;
   } else if(metric==='trials'){
     if(!window._crmLeadsCache) return 0;
-    // Считаем лидов которые перешли в стадию "Пробный оплачен" (trial_paid) в период
-    // Используем trialPaidAt если есть, иначе trialDate + stage
+    // Пробный = у лида есть trialDate в периоде
+    // Учитываем любую стадию начиная с trial_paid (значит пробный состоялся)
+    const TRIAL_DONE_STAGES = ['trial_paid','thinking','active','lost'];
     return Object.values(window._crmLeadsCache)
       .filter(l=>{
-        if(l.trialPaidAt) { const d=toKZDate(l.trialPaidAt); return d>=from && d<=to; }
-        if(l.stage==='trial_paid' && l.trialDate) return l.trialDate>=from && l.trialDate<=to;
+        // Приоритет: trialPaidAt (точная дата оплаты/проведения)
+        if(l.trialPaidAt){ const d=toKZDate(l.trialPaidAt); return d>=from && d<=to; }
+        // Если есть дата пробного и стадия говорит что пробный был
+        if(l.trialDate && TRIAL_DONE_STAGES.includes(l.stage)){
+          const d = toKZDate(l.trialDate);
+          return d>=from && d<=to;
+        }
+        // Также считаем trial_paid по trialDate даже без trialPaidAt
+        if(l.trialDate && l.stage==='trial_paid') return l.trialDate>=from && l.trialDate<=to;
         return false;
       }).length;
   } else if(metric==='graduates'){
@@ -3255,6 +3263,27 @@ function getMetricForPeriod(metric,from,to){
       }
     });
     return count;
+  } else if(metric==='ltv'){
+    // Средний LTV за период = средние накопленные уроки × цена урока
+    // Берём учеников у которых были уроки в этом периоде
+    const LESSON_PRICE = 3000;
+    const att = S.attendance || {};
+    const studentLessons = {}; // studentId → total lessons ever
+    S.enrollments.forEach(e => {
+      if(!e.studentId) return;
+      Object.entries(att).forEach(([k,v]) => {
+        if((v==='done'||v==='makeup') && k.startsWith(e.id+'_'))
+          studentLessons[e.studentId] = (studentLessons[e.studentId]||0) + 1;
+      });
+    });
+    // Активные в этом периоде
+    const activeIds = new Set();
+    S.enrollments.forEach(e => {
+      if(!e.inactive && e.dateStart<=to && (e.dateEnd||'9999')>=from) activeIds.add(e.studentId);
+    });
+    const vals = [...activeIds].map(id => (studentLessons[id]||0)*LESSON_PRICE).filter(v=>v>0);
+    if(!vals.length) return 0;
+    return Math.round(vals.reduce((s,v)=>s+v,0)/vals.length);
   }
   return 0;
 }
@@ -4022,6 +4051,7 @@ function renderDashboardCharts(){
     {key:'active',      label:'Активных учеников',color:'var(--gn)',  hex:'#3fd88e', icon:'🎓'},
     {key:'restarts',    label:'Перестарты',       color:'var(--am)',  hex:'#f5c842', icon:'🔄'},
     {key:'graduates',   label:'Выпускники',       color:'#e8a838',   hex:'#e8a838', icon:'🏆'},
+    {key:'ltv',         label:'LTV (сред.)',       color:'#c084fc',   hex:'#c084fc', icon:'💎'},
   ];
   // Load CRM leads for 'leads' metric (async, then re-render if needed)
   if(!window._crmLeadsCache){
@@ -4151,8 +4181,8 @@ function renderDashboardCharts(){
         <div>
           <div style="font-size:11px;font-weight:600;color:${color}">${icon} ${label}</div>
           <div style="display:flex;align-items:baseline;gap:5px;margin-top:3px">
-            <span style="font-family:var(--fd);font-size:24px;font-weight:700;color:${color}">${lastVal}</span>
-            <span style="font-size:11px;color:var(--t3)">/ ${max}</span>
+            <span style="font-family:var(--fd);font-size:24px;font-weight:700;color:${color}">${key==='ltv'?(lastVal>=1000?Math.round(lastVal/1000)+'К':lastVal):lastVal}</span>
+            <span style="font-size:11px;color:var(--t3)">${key==='ltv'?'₸ / '+(max>=1000?Math.round(max/1000)+'К ₸':max+'₸'):('/ '+max)}</span>
             ${trendHtml}
           </div>
           ${quotaHtml?`<div style="margin-top:2px">${quotaHtml}</div>`:''}
