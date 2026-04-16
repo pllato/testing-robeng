@@ -1761,8 +1761,10 @@ async function notifyWhatsApp(phone, message){
 
 // ── Тихие часы: 21:00 – 09:00 КЗ (UTC+5) ────────────────────────
 function isQuietHours(){
-  const hourKZ = nowKZ().getHours();
-  return hourKZ >= 21 || hourKZ < 9;
+  // Правильный способ: берём UTC часы и прибавляем +5 (KZ)
+  const utcHour = new Date().getUTCHours();
+  const kzHour = (utcHour + 5) % 24;
+  return kzHour >= 21 || kzHour < 9;
 }
 
 // Системное сообщение с тихими часами — откладывает если ночь
@@ -1773,10 +1775,13 @@ async function sendSystemWA(phone, message, meta={}){
     : message + '\n\n_Системное сообщение Robeng ELC_';
 
   if(isQuietHours()){
-    const nowT = nowKZ();
-    const sendAt = new Date(nowT);
-    if(nowT.getHours() >= 21) sendAt.setDate(sendAt.getDate()+1);
-    sendAt.setHours(9,0,0,0);
+    // Считаем время отправки: завтра 09:00 KZ = 04:00 UTC
+    const nowUtc = new Date();
+    const sendAt = new Date(nowUtc);
+    // Если UTC час >= 16 (= 21:00 KZ) — откладываем на завтра
+    const kzHourNow = (nowUtc.getUTCHours() + 5) % 24;
+    if(kzHourNow >= 21) sendAt.setUTCDate(sendAt.getUTCDate()+1);
+    sendAt.setUTCHours(4, 0, 0, 0); // 04:00 UTC = 09:00 KZ
     const key = 'pending_sys_' + Date.now() + '_' + Math.random().toString(36).slice(2);
     fbDb.ref('pendingNotifications/'+key).set({
       phones:[phone.replace(/\D/g,'')], msg:signed,
@@ -15825,8 +15830,9 @@ setInterval(syncMobBadges, 3000);
 
 // ── Проверка отложенных уведомлений (отчёты в тихие часы) ─────
 async function checkPendingNotifications(){
-  const hour = new Date().getHours();
-  if(hour < 9 || hour >= 21) return; // не проверяем в тихие часы
+  const utcHour = new Date().getUTCHours();
+  const kzHour = (utcHour + 5) % 24;
+  if(kzHour < 9 || kzHour >= 21) return; // не проверяем в тихие часы
   const snap = await fbDb.ref('pendingNotifications').once('value').catch(()=>null);
   if(!snap) return;
   const items = snap.val();
