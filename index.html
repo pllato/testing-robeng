@@ -5086,8 +5086,9 @@ function saveMakeup(){
 
 // ── DUPLICATE DETECTION ───────────────────────────────────────────
 function findDuplicateStudents(){
-  // Find students whose names are very similar (same first word + similar length)
-  const groups=[];
+  // Дубликаты разрешены — одинаковые имена это разные ученики
+  return [];
+  /*
   const checked=new Set();
   S.students.forEach((a,i)=>{
     if(checked.has(a.id))return;
@@ -5111,6 +5112,7 @@ function findDuplicateStudents(){
     }
   });
   return groups;
+  */
 }
 function levenshtein(a,b){
   const m=a.length,n=b.length;
@@ -5953,9 +5955,20 @@ function saveStudent(){
     videoFrequency: notifyFreqEl?notifyFreqEl.value:'each'
   };
 
-  let stu=S.students.find(s=>s.name.trim().toLowerCase()===name.toLowerCase()&&s.subjId===subjId);
-  if(!stu){stu={id:Date.now(),name,subjId,phone,parent,parentPhone,kaspiPhone,age,level,notify};S.students.push(stu);}
-  else{stu.phone=phone;stu.parent=parent;stu.parentPhone=parentPhone;stu.kaspiPhone=kaspiPhone;stu.age=age;stu.level=level;stu.notify=notify;}
+  // При редактировании — обновляем существующего студента
+  // При создании нового — всегда создаём нового (даже если имя совпадает)
+  let stu;
+  if(editSId){
+    // Редактирование: найти студента по текущей записи
+    const existEnroll = S.enrollments.find(e=>e.id===editSId);
+    stu = existEnroll ? S.students.find(s=>s.id===existEnroll.studentId) : null;
+    if(stu){ stu.name=name; stu.phone=phone; stu.parent=parent; stu.parentPhone=parentPhone; stu.kaspiPhone=kaspiPhone; stu.age=age; stu.level=level; stu.notify=notify; }
+    else { stu={id:Date.now(),name,subjId,phone,parent,parentPhone,kaspiPhone,age,level,notify}; S.students.push(stu); }
+  } else {
+    // Новый ученик — всегда создаём нового
+    stu={id:Date.now(),name,subjId,phone,parent,parentPhone,kaspiPhone,age,level,notify};
+    S.students.push(stu);
+  }
   const slots=days.map(d=>({day:d,ti}));
 
   if(editSId){
@@ -12588,8 +12601,9 @@ function crmDrop(event, newStage){
     const chatMsg = `📌 Стадия: «${crmStage(l.stage).label}» → «${crmStage(newStage).label}»`;
     crmChatRef.child(dragId).push({type:'system', text:chatMsg, ts:now, uid:fbAuth.currentUser?.uid||'', name:'Система'});
 
-    // Авто WhatsApp
-    const tpl = CRM_STAGE_MSGS[newStage];
+    // Авто WhatsApp — берём шаблон из настроек (кастомные стадии) или из дефолтных
+    const allStageMsgs = Object.assign({}, CRM_STAGE_MSGS, S.settings?.crmStageMsgs || {});
+    const tpl = allStageMsgs[newStage];
     if(tpl && l.phone){
       const phone = (l.phone||'').replace(/\D/g,'');
       const waMsg = resolveStageMsg(tpl, l);
@@ -12881,7 +12895,8 @@ function saveCRMCard(silent=false){
           showLocalNotification('🧪 Пробный оплачен', data.name||data.phone||'—', 'crm', 'trial-paid');
         }
         if(prev.stage !== data.stage && data.phone){
-          const tpl = CRM_STAGE_MSGS[data.stage];
+          const allStageMsgs2 = Object.assign({}, CRM_STAGE_MSGS, S.settings?.crmStageMsgs || {});
+          const tpl = allStageMsgs2[data.stage];
           if(tpl){
             const waMsg2 = resolveStageMsg(tpl, data);
             const phone2 = data.phone.replace(/\D/g,'');
