@@ -6402,6 +6402,16 @@ function renderLost(){
           <div style="font-size:12px;color:var(--t3);margin-top:2px">${t?.name||'—'} · Обучался: ${dur}</div>
           <div style="font-size:12px;color:var(--t3);margin-top:2px">Старт: ${fmtDateRu(e.dateStart)} · Деактивирован: ${fmtDateRu(e.deactivationDate||'')}</div>
           <div style="font-size:12px;color:var(--rd);margin-top:3px">Причина: ${e.deactivationReason||'—'}</div>
+          ${attDots.length?`<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:5px;align-items:center">
+            ${attDots.map(d=>`<span title="${d.d}" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;font-size:9px;font-weight:700;color:#fff;background:${d.col}">${d.lbl}</span>`).join('')}
+          </div>`:''}
+          ${isMissAlert?`<div style="margin-top:8px;padding:8px 10px;background:rgba(245,200,66,.1);border:1px solid rgba(245,200,66,.3);border-radius:8px">
+            <div style="font-size:11px;font-weight:700;color:var(--am);margin-bottom:6px">⚠️ ${missCnt} пропуска подряд — нужно связаться и узнать причину</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+              <button onclick="markMissResolved(${e.id},'returning')" style="font-size:11px;padding:3px 10px;border-radius:6px;border:none;background:var(--gn);color:#fff;cursor:pointer;font-family:var(--fb);font-weight:600">✅ Ученик возвращается</button>
+              <button onclick="markMissResolved(${e.id},'resolved')" style="font-size:11px;padding:3px 10px;border-radius:6px;border:1px solid var(--b2);background:var(--bg3);color:var(--t2);cursor:pointer;font-family:var(--fb)">Решено</button>
+            </div>
+          </div>`:''}
           ${contactsHtml}
           ${logsHtml}
         </div>
@@ -6520,6 +6530,64 @@ function renderStarts(){
   }).join('');
 }
 
+
+// Визуализация посещаемости — последние 14 дней
+function getAttendanceDots(enrollId, dateStart){
+  const att = S.attendance || {};
+  const today = todayKZ();
+  const dots = [];
+  // Собираем последние 14 дней начиная с dateStart
+  for(let i=13;i>=0;i--){
+    const d = new Date(new Date(today+'T00:00:00Z').getTime() - i*86400000);
+    const ds = d.toISOString().slice(0,10);
+    if(ds < dateStart) continue;
+    const key = `${enrollId}_${ds}`;
+    const val = att[key];
+    if(val==='done')       dots.push({d:ds,type:'done',col:'#22c55e',lbl:'✓'});
+    else if(val==='miss')  dots.push({d:ds,type:'miss',col:'#f05975',lbl:'✗'});
+    else if(val==='makeup')dots.push({d:ds,type:'makeup',col:'#a87fff',lbl:'↩'});
+    else if(val==='skip')  dots.push({d:ds,type:'skip',col:'#f5c842',lbl:'—'});
+    // дни без записи не показываем
+  }
+  return dots;
+}
+
+// Считаем подряд идущие пропуски (miss) в конце
+function countConsecutiveMisses(enrollId){
+  const att = S.attendance || {};
+  const today = todayKZ();
+  let count = 0;
+  // Ищем последние 30 дней
+  const dates = [];
+  for(let i=0;i<30;i++){
+    const d = new Date(new Date(today+'T00:00:00Z').getTime() - i*86400000);
+    dates.push(d.toISOString().slice(0,10));
+  }
+  // Сортируем от новых к старым
+  for(const ds of dates){
+    const key = `${enrollId}_${ds}`;
+    const val = att[key];
+    if(val==='miss') count++;
+    else if(val==='done'||val==='makeup') break; // был урок — стоп
+    // пустые дни пропускаем (не ломают серию)
+  }
+  return count;
+}
+
+function markMissResolved(enrollId, action){
+  const idx = S.enrollments.findIndex(e=>e.id===enrollId);
+  if(idx<0) return;
+  const e = S.enrollments[idx];
+  const stu = student(e.studentId);
+  const note = action==='returning' ? 'Ученик возвращается' : 'Ситуация решена';
+  S.enrollments[idx].missAlertResolved = true;
+  addRenewalLog(enrollId, note, action==='returning'?'✅':'✔️', 'var(--gn)', '');
+  logAction('attendance', `Пропуски: ${stu?.name||'—'}`, note);
+  save();
+  renderRenewals();
+  toast(`✓ ${note}`);
+}
+
 function renderRenewals(){
   const el=document.getElementById('stu-renewals-list');
   if(!el)return;
@@ -6534,12 +6602,22 @@ function renderRenewals(){
     if(activeVac) return true;
     return !e.renewalHandled || e.paymentDelayed;
   }).sort((a,b)=>{
+    // Сначала — у кого 2+ пропуска подряд (нужно связаться)
+    const missA = countConsecutiveMisses(a.id);
+    const missB = countConsecutiveMisses(b.id);
+    const alertA = missA>=2 && !a.missAlertResolved;
+    const alertB = missB>=2 && !b.missAlertResolved;
+    if(alertA&&!alertB) return -1;
+    if(alertB&&!alertA) return 1;
+
+    // Потом просроченные
     const da=daysUntil(a.dateEnd), db=daysUntil(b.dateEnd);
     if(da<0&&db>=0)return -1;
     if(db<0&&da>=0)return 1;
+
+    // Для всех остальных — единая хронология (для отпуска по дате конца отпуска)
     const vacA=(a.vacations||[]).find(v=>v.to>=today2&&v.from<=today2);
     const vacB=(b.vacations||[]).find(v=>v.to>=today2&&v.from<=today2);
-    // Всё сортируем по единой дате: для отпуска — дата КОНЦА отпуска, иначе — дата конца абонемента
     const sortA=vacA?vacA.to:(a.dateEnd||'');
     const sortB=vacB?vacB.to:(b.dateEnd||'');
     return sortA.localeCompare(sortB);
@@ -6561,6 +6639,9 @@ function renderRenewals(){
     const isToday=days===0, isPast=days<0;
     const activeVac=(e.vacations||[]).find(v=>v.to>=today2&&v.from<=today2);
     const isVac=!!activeVac;
+    const missCnt = countConsecutiveMisses(e.id);
+    const isMissAlert = missCnt >= 2 && !e.missAlertResolved;
+    const attDots = getAttendanceDots(e.id, e.dateStart||'');
 
     const daysLabel=days===0?'<span style="color:var(--gn);font-weight:700">Сегодня</span>':
       days<0?`<span style="color:var(--rd);font-weight:700">Просрочено ${Math.abs(days)} дн.</span>`:
@@ -6569,7 +6650,8 @@ function renderRenewals(){
 
     // Border color: overdue=red, vacation=teal, delayed=yellow, today=green, else default
     let cardStyle='margin-bottom:10px;padding:14px 16px;';
-    if(isPast) cardStyle+='border:2px solid var(--rd);background:rgba(240,89,117,.04)';
+    if(isMissAlert) cardStyle+='border:2px solid var(--am);background:rgba(245,200,66,.06)';
+    else if(isPast) cardStyle+='border:2px solid var(--rd);background:rgba(240,89,117,.04)';
     else if(isVac) cardStyle+='border:2px solid var(--tl);background:rgba(56,189,248,.04)';
     else if(e.paymentDelayed) cardStyle+='border:2px solid var(--am);background:rgba(245,200,66,.04)';
     else if(isToday) cardStyle+='border:2px solid var(--gn);background:rgba(63,216,142,.04)';
@@ -6593,6 +6675,7 @@ function renderRenewals(){
 
     // Status badges
     const statusBadges=`
+      ${isMissAlert?`<span style="font-size:10px;font-weight:700;color:var(--am);background:rgba(245,200,66,.2);padding:2px 8px;border-radius:8px">⚠️ ${missCnt} пропуска подряд</span>`:''}
       ${isVac?`<span style="font-size:10px;font-weight:700;color:var(--tl);background:rgba(56,189,248,.15);padding:2px 8px;border-radius:8px">🏖 ОТПУСК до ${fmtDateRu(activeVac.to)}</span>`:''}
       ${e.paymentDelayed?`<span style="font-size:10px;font-weight:700;color:var(--am);background:rgba(245,200,66,.15);padding:2px 8px;border-radius:8px">⏳ Оплата до ${e.paymentDueDate?fmtDateRu(e.paymentDueDate):'?'}</span>`:''}
       ${isPast?`<span style="font-size:10px;font-weight:700;color:var(--rd);background:rgba(240,89,117,.15);padding:2px 8px;border-radius:8px">🔴 ПРОСРОЧЕНО</span>`:''}`;
@@ -6616,6 +6699,16 @@ function renderRenewals(){
             })()}
             ${stu?.parent?`<span>👤 ${stu.parent}</span>`:''}
           </div>
+          ${attDots.length?`<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:5px;align-items:center">
+            ${attDots.map(d=>`<span title="${d.d}" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;font-size:9px;font-weight:700;color:#fff;background:${d.col}">${d.lbl}</span>`).join('')}
+          </div>`:''}
+          ${isMissAlert?`<div style="margin-top:8px;padding:8px 10px;background:rgba(245,200,66,.1);border:1px solid rgba(245,200,66,.3);border-radius:8px">
+            <div style="font-size:11px;font-weight:700;color:var(--am);margin-bottom:6px">⚠️ ${missCnt} пропуска подряд — нужно связаться и узнать причину</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+              <button onclick="markMissResolved(${e.id},'returning')" style="font-size:11px;padding:3px 10px;border-radius:6px;border:none;background:var(--gn);color:#fff;cursor:pointer;font-family:var(--fb);font-weight:600">✅ Ученик возвращается</button>
+              <button onclick="markMissResolved(${e.id},'resolved')" style="font-size:11px;padding:3px 10px;border-radius:6px;border:1px solid var(--b2);background:var(--bg3);color:var(--t2);cursor:pointer;font-family:var(--fb)">Решено</button>
+            </div>
+          </div>`:''}
           ${contactsHtml}
           ${logsHtml}
           <div style="margin-top:6px;display:flex;gap:5px;align-items:center;flex-wrap:wrap">
