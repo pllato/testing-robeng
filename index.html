@@ -723,7 +723,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
       </div>
       <!-- Tabs -->
       <div style="display:flex;gap:4px;padding:0 0 12px;flex-wrap:wrap;align-items:center">
-        <button class="btn btn-sm" id="stab-all" onclick="setStuTab('all')" style="font-size:12px">📋 Ученики</button>
+        <button class="btn btn-sm" id="stab-all" onclick="setStuTab('all')" style="font-size:12px;display:none">📋 Ученики</button>
         <button class="btn btn-sm" id="stab-starts" onclick="setStuTab('starts')" style="font-size:12px">🚀 Старты</button>
         <button class="btn btn-sm" id="stab-renewals" onclick="setStuTab('renewals')" style="font-size:12px">🔄 Перестарты <span id="renewals-badge" style="background:var(--rd);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;margin-left:2px;display:none"></span></button>
         <button class="btn btn-sm" id="stab-lost" onclick="setStuTab('lost')" style="font-size:12px">💔 Потерянные</button>
@@ -2232,7 +2232,7 @@ function renderPanel(p){
     renderSchedule();
   }
   else if(p==='freeSlots'){fillFsFilters();renderFreeSlots();}
-  else if(p==='students'){fillSubjSel();fillStuTeacherFilter();fillGlobalSubjSel();renderStudents();}
+  else if(p==='students'){fillSubjSel();fillStuTeacherFilter();fillGlobalSubjSel();renderStudents();setStuTab('renewals');}
   else if(p==='reports'){renderReports();}
   else if(p==='journal'){renderJournal();}
   else if(p==='notifylog'){renderNotifyLog();}
@@ -6672,13 +6672,15 @@ function markMissResolved(enrollId, action){
 function renderRenewals(){
   const el=document.getElementById('stu-renewals-list');
   if(!el)return;
-  const today2=new Date().toISOString().slice(0,10);
+  const today2=todayKZ();
+  const showAll = window._renewalsShowAll || false;
 
-  // Vacation-ended items: vacation was set, dateEnd is now past vacation end
+  // All active enrollments or just renewal-due ones
   const items=(S.enrollments||[]).filter(e=>{
     if(e.inactive)return false;
     if(!e.dateEnd)return false;
     if(!stuMatchesFilter(e)) return false;
+    if(showAll) return enrollActive(e, today2); // все активные
     const activeVac = (e.vacations||[]).find(v=>v.to>=today2&&v.from<=today2);
     if(activeVac) return true;
     return !e.renewalHandled || e.paymentDelayed;
@@ -6711,9 +6713,17 @@ function renderRenewals(){
     cnt.textContent='Найдено: '+items.length;
   } else if(cnt){ cnt.textContent=''; }
 
-  if(!items.length){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--t3);font-size:13px">✅ Нет предстоящих продлений</div>';return;}
+  const toggleBtn = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+    <div style="font-size:12px;color:var(--t3)">${showAll?'Все активные ученики':'Ученики с предстоящим продлением'} · ${items.length}</div>
+    <button onclick="window._renewalsShowAll=!window._renewalsShowAll;renderRenewals()"
+      style="font-size:11px;padding:4px 12px;border-radius:7px;border:1px solid var(--b2);background:${showAll?'var(--ac)':'var(--bg3)'};color:${showAll?'#fff':'var(--t2)'};cursor:pointer;font-family:var(--fb)">
+      ${showAll?'◉ Все активные':'○ Все активные'}
+    </button>
+  </div>`;
 
-  el.innerHTML=items.map(e=>{
+  if(!items.length){el.innerHTML=toggleBtn+'<div style="text-align:center;padding:32px;color:var(--t3);font-size:13px">✅ Нет записей</div>';return;}
+
+  el.innerHTML=toggleBtn+items.map(e=>{
     const stu=S.students?.find(s=>s.id===e.studentId);
     const t=S.teachers?.find(t=>String(t.id)===String(e.teacherId));
     const days=daysUntil(e.dateEnd);
@@ -6804,7 +6814,9 @@ function renderRenewals(){
           <button class="btn btn-sm btn-a" onclick="renewEnrollUI(${e.id})" style="font-size:11px">🔄 Продлить</button>
           <button class="btn btn-sm" onclick="markDelayedUI(${e.id})" style="font-size:11px;background:rgba(245,200,66,.15);color:var(--am)">⏳ Оплата задерж.</button>
           <button class="btn btn-sm" onclick="sendRenewalWA(${e.id})" style="font-size:11px;background:rgba(37,211,102,.12);color:#25d366">💬 WhatsApp</button>
-          <button class="btn btn-sm" onclick="deactivateEnrollUI(${e.id})" style="font-size:11px;background:rgba(240,89,117,.1);color:var(--rd)">✕ Деактивировать</button>
+          ${stu?`<button class="btn btn-sm" onclick="editStudentInfo(${stu.id})" style="font-size:11px">✎ Данные</button>`:''}
+          ${stu?`<button class="btn btn-sm" onclick="sendSurvey(${stu.id})" style="font-size:11px">📋 Опрос</button>`:''}
+          <button class="btn btn-sm" onclick="deactivateEnrollUI(${e.id})" style="font-size:11px;background:rgba(240,89,117,.1);color:var(--rd)">✕ Деактив.</button>
         </div>
       </div>
     </div>`;
