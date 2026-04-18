@@ -6575,6 +6575,57 @@ function saveAttestResult(enrollId, attId){
   toast('✓ Аттестация сохранена');
 }
 
+
+// Публикация данных для публичной страницы прогресса
+function publishProgressData(){
+  const today = todayKZ();
+  const activeEnrolls = (S.enrollments||[]).filter(e=>!e.inactive&&e.dateEnd>=today);
+
+  // Формируем минимальный набор данных (без личных данных — только имена и прогресс)
+  const enrollsPublic = {};
+  activeEnrolls.forEach(e=>{
+    enrollsPublic[e.id] = {
+      id: e.id,
+      studentId: e.studentId,
+      teacherId: e.teacherId,
+      dateStart: e.dateStart,
+      dateEnd: e.dateEnd,
+      attestations: e.attestations||{},
+      startConfirmed: e.startConfirmed||false,
+    };
+  });
+
+  const studentsPublic = {};
+  (S.students||[]).forEach(st=>{
+    if(activeEnrolls.some(e=>e.studentId===st.id)){
+      studentsPublic[st.id] = {
+        id: st.id,
+        name: st.name||'Ученик',
+        photo: st.photo||'',
+      };
+    }
+  });
+
+  const teachersPublic = {};
+  (S.teachers||[]).filter(t=>t.status==='active').forEach(t=>{
+    teachersPublic[t.id] = {
+      id: t.id,
+      name: t.name||'Преподаватель',
+      photo: t.photo||'',
+    };
+  });
+
+  fbDb.ref('progressPublic').set({
+    enrollments: enrollsPublic,
+    students: studentsPublic,
+    teachers: teachersPublic,
+    updatedAt: new Date().toISOString(),
+  }).then(()=>{
+    toast('✅ Данные опубликованы на сайте elc-kids.kz/progress');
+  }).catch(e=>{
+    toast('Ошибка публикации: '+e.message, true);
+  });
+}
 function renderAttestations(){
   const el = document.getElementById('stu-attest-list');
   if(!el) return;
@@ -6587,6 +6638,9 @@ function renderAttestations(){
   activeEnrolls.sort((a,b)=>getCurrentAttestationLevel(b.id)-getCurrentAttestationLevel(a.id));
 
   el.innerHTML = `
+  <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+    <button onclick="publishProgressData()" style="font-size:12px;padding:6px 14px;border-radius:8px;border:none;background:var(--gn);color:#fff;cursor:pointer;font-family:var(--fb);font-weight:700">🌐 Опубликовать на сайте</button>
+  </div>
   <!-- Программа аттестаций -->
   <div class="card" style="margin-bottom:16px">
     <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:10px">📋 Программа аттестаций ELC Kids (70 уроков → 12 аттестаций)</div>
@@ -16431,6 +16485,26 @@ setTimeout(checkPendingNotifications, 3000);
 setInterval(checkPendingNotifications, 5*60*1000);
 setTimeout(checkStartCallReminders, 5000);
 setInterval(checkStartCallReminders, 60*60*1000); // раз в час
+
+// Автопубликация прогресса на сайт — раз в день в 06:00 KZ
+(function scheduleProgressPublish(){
+  function msUntil6am(){
+    const now = new Date();
+    const kzNow = new Date(now.getTime() + 5*3600000);
+    const next6 = new Date(kzNow);
+    next6.setUTCHours(1, 0, 0, 0); // 06:00 KZ = 01:00 UTC
+    if(kzNow.getUTCHours() >= 1) next6.setUTCDate(next6.getUTCDate()+1);
+    return next6.getTime() - now.getTime();
+  }
+  function autoPublish(){
+    if(currentRole==='admin' && typeof publishProgressData === 'function'){
+      publishProgressData();
+      console.log('[Progress] Автопубликация в', new Date().toLocaleString('ru'));
+    }
+    setTimeout(autoPublish, 24*60*60*1000); // следующий раз через 24ч
+  }
+  setTimeout(autoPublish, msUntil6am());
+})();
 
 // Открываем карточку CRM если в URL есть #crm=ID
 window.addEventListener('load', ()=>{ setTimeout(handleCRMHash, 1500); });
