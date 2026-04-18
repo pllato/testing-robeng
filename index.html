@@ -9424,8 +9424,10 @@ function checkLessonReminders(){
   const today=nowKZDate.toISOString().slice(0,10);
   const nowMinutes=nowKZDate.getUTCHours()*60+nowKZDate.getUTCMinutes();
 
-  // Напоминание преподавателю за 15 мин (отдельная настройка)
+  // Напоминание преподавателям за 15 мин (отдельная настройка)
   checkTeacherBeforeLesson(now, today, nowMinutes);
+  // Напоминание если не отмечено посещение через 1 час после урока
+  checkUnmarkedAttendanceReminders(now, today, nowMinutes);
   // Итог дня (в eodRemindHour:00)
   checkEndOfDayReminders(now, today);
 
@@ -10025,6 +10027,64 @@ function checkTeacherBeforeLesson(now, today, nowMinutes){
 }
 
 // Вызывается из checkLessonReminders — проверяет время итога дня
+let _attReminderKeys = new Set(); // дедупликация напоминаний о незаполненной посещаемости
+
+// Напоминание через 2 часа после урока если нет отметки
+function checkUnmarkedAttendanceReminders(now, today, nowMinutes){
+  if((S.settings||{}).attRemindEnabled === false) return;
+  const att = S.attendance || {};
+  const nowKZDate = new Date(now.getTime() + 5*3600000);
+  const dow = (nowKZDate.getUTCDay()+6)%7;
+  const kzNowMin = nowKZDate.getUTCHours()*60 + nowKZDate.getUTCMinutes();
+
+  const byTeacher = {}; // teacherId → [lessons]
+  S.enrollments.forEach(e=>{
+    if(e.inactive) return;
+    if(!enrollActive(e, today)) return;
+    const sl = e.slots.find(s=>s.day===dow);
+    if(!sl) return;
+
+    const [lh,lm] = TIMES[sl.ti].split(':').map(Number);
+    const lessonMin = lh*60+lm;
+    const afterLesson = kzNowMin - lessonMin;
+
+    // Урок прошёл 60-75 минут назад (окно напоминания)
+    if(afterLesson < 60 || afterLesson > 75) return;
+
+    const attKey = `${e.id}_${today}`;
+    if(att[attKey]) return; // уже отмечено
+
+    const key = `att_remind_${e.id}_${today}`;
+    if(_attReminderKeys.has(key)) return;
+
+    const st = student(e.studentId);
+    if(!st) return;
+
+    if(!byTeacher[e.teacherId]) byTeacher[e.teacherId] = [];
+    byTeacher[e.teacherId].push({e, st, time:TIMES[sl.ti], key});
+  });
+
+  Object.entries(byTeacher).forEach(([tid, lessons])=>{
+    const t = teacher(parseInt(tid));
+    const tPhone = getTeacherPhone(t);
+    if(!tPhone) return;
+
+    // Атомарная блокировка
+    const fbKey = `remindersSent/att_${today}_${tid}_${lessons[0].time.replace(':','-')}`;
+    fbDb.ref(fbKey).transaction(cur=>{ if(cur!==null) return; return Date.now(); })
+    .then(res=>{
+      if(!res.committed) return;
+      lessons.forEach(l=>_attReminderKeys.add(l.key));
+
+      const names = lessons.map(l=>`• ${l.st.name} · ${l.time}`).join('\n');
+      const msg = `⚠️ Не забудь отметить посещение!\n\n${names}\n\n👉 Зайди в расписание и отметь: ✅ был / ❌ пропуск`;
+      sendSystemWA(tPhone, msg, {type:'att_remind'}).then(r=>{
+        if(r?.ok) logNotify('reminder', `Преподаватель: ${t?.name||'—'}`, tPhone, msg);
+      });
+    });
+  });
+}
+
 function checkEndOfDayReminders(now, today){
   if((S.settings||{}).eodRemindEnabled === false) return;
   const eodHour = (S.settings||{}).eodRemindHour || 21;
