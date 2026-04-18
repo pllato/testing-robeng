@@ -6403,7 +6403,7 @@ function renderLost(){
           <div style="font-size:12px;color:var(--t3);margin-top:2px">Старт: ${fmtDateRu(e.dateStart)} · Деактивирован: ${fmtDateRu(e.deactivationDate||'')}</div>
           <div style="font-size:12px;color:var(--rd);margin-top:3px">Причина: ${e.deactivationReason||'—'}</div>
           ${attDots.length?`<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:5px;align-items:center">
-            ${attDots.map(d=>`<span title="${d.d}" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;font-size:9px;font-weight:700;color:#fff;background:${d.col}">${d.lbl}</span>`).join('')}
+            ${attDots.map(d=>`<span title="${d.tooltip||d.d}" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;font-size:9px;font-weight:700;color:${d.type==='none'?'#9896b0':'#fff'};background:${d.col};cursor:default">${d.lbl}</span>`).join('')}
           </div>`:''}
           ${isMissAlert?`<div style="margin-top:8px;padding:8px 10px;background:rgba(245,200,66,.1);border:1px solid rgba(245,200,66,.3);border-radius:8px">
             <div style="font-size:11px;font-weight:700;color:var(--am);margin-bottom:6px">⚠️ ${missCnt} пропуска подряд — нужно связаться и узнать причину</div>
@@ -6551,7 +6551,7 @@ function renderStarts(){
             ${stu?.parent?`<span>👤 ${stu.parent}</span>`:''}
           </div>
           ${attDots.length?`<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:5px;align-items:center">
-            ${attDots.map(d=>`<span title="${d.d}" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;font-size:9px;font-weight:700;color:#fff;background:${d.col}">${d.lbl}</span>`).join('')}
+            ${attDots.map(d=>`<span title="${d.tooltip||d.d}" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;font-size:9px;font-weight:700;color:${d.type==='none'?'#9896b0':'#fff'};background:${d.col};cursor:default">${d.lbl}</span>`).join('')}
           </div>`:''}
           ${isMissAlert?`<div style="margin-top:8px;padding:8px 10px;background:rgba(245,200,66,.1);border:1px solid rgba(245,200,66,.3);border-radius:8px">
             <div style="font-size:11px;font-weight:700;color:var(--am);margin-bottom:6px">⚠️ ${missCnt} пропуска подряд — нужно связаться и узнать причину</div>
@@ -6573,17 +6573,25 @@ function renderStarts(){
 }
 
 
-// Визуализация посещаемости — последние 14 дней
+// Визуализация посещаемости — последние 10 плановых уроков
 function getAttendanceDots(enrollId, dateStart){
   const att = S.attendance || {};
   const today = todayKZ();
   const e = (S.enrollments||[]).find(x=>x.id===enrollId);
   if(!e) return [];
 
-  // Собираем дни по расписанию ученика за последние 60 дней
   const slots = e.slots || [];
-  const slotDays = slots.map(s=>s.day); // [0,2,4] = Пн,Ср,Пт
+  const slotDays = slots.map(s=>s.day);
   if(!slotDays.length) return [];
+
+  // Время урока для подсказки
+  const slotTime = slots.length ? TIMES[slots[0].ti] || '' : '';
+
+  // Отпуска ученика
+  const vacations = e.vacations || [];
+
+  const DAYS_RU = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+  const MONTHS_RU = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
 
   const scheduledDates = [];
   for(let i=59;i>=0;i--){
@@ -6591,21 +6599,37 @@ function getAttendanceDots(enrollId, dateStart){
     const ds = d.toISOString().slice(0,10);
     if(ds < (dateStart||'')) continue;
     if(ds > today) continue;
-    const dow = (d.getUTCDay()+6)%7; // 0=Пн
+    const dow = (d.getUTCDay()+6)%7;
     if(slotDays.includes(dow)) scheduledDates.push(ds);
   }
 
-  // Берём последние 10 плановых уроков
   const last10 = scheduledDates.slice(-10);
 
   return last10.map(ds=>{
     const key = `${enrollId}_${ds}`;
     const val = att[key];
-    if(val==='done')        return {d:ds,type:'done',  col:'#22c55e',lbl:'✓'};
-    else if(val==='miss')   return {d:ds,type:'miss',  col:'#f05975',lbl:'✗'};
-    else if(val==='makeup') return {d:ds,type:'makeup',col:'#a87fff',lbl:'↩'};
-    else if(val==='skip')   return {d:ds,type:'skip',  col:'#f5c842',lbl:'—'};
-    else                    return {d:ds,type:'none',  col:'#5e5c78',lbl:'·'}; // нет отметки
+    const d = new Date(ds+'T00:00:00Z');
+    const dayName = DAYS_RU[d.getUTCDay()];
+    const dateLabel = `${d.getUTCDate()} ${MONTHS_RU[d.getUTCMonth()]}`;
+
+    // Проверяем отпуск
+    const isVac = vacations.some(v=>v.from<=ds&&v.to>=ds);
+
+    const typeLabels = {done:'✓ Провёл',miss:'✗ Пропуск',makeup:'↩ Отработка',skip:'— Пропуск (уважит.)',none:'· Нет отметки'};
+
+    let type, col, lbl;
+    if(isVac && (!val||val==='skip')){
+      type='vac'; col='#38bdf8'; lbl='🏖';
+    } else if(val==='done')        { type='done';   col='#22c55e'; lbl='✓'; }
+    else if(val==='miss')          { type='miss';   col='#f05975'; lbl='✗'; }
+    else if(val==='makeup')        { type='makeup'; col='#a87fff'; lbl='↩'; }
+    else if(val==='skip')          { type='skip';   col='#f5c842'; lbl='—'; }
+    else                           { type='none';   col='#5e5c78'; lbl='·'; }
+
+    const typeLabel = type==='vac'?'🏖 Отпуск':(typeLabels[type]||'');
+    const tooltip = `${dayName}, ${dateLabel}${slotTime?' · '+slotTime:''} — ${typeLabel}`;
+
+    return {d:ds, type, col, lbl, tooltip};
   });
 }
 
@@ -6757,7 +6781,7 @@ function renderRenewals(){
             ${stu?.parent?`<span>👤 ${stu.parent}</span>`:''}
           </div>
           ${attDots.length?`<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:5px;align-items:center">
-            ${attDots.map(d=>`<span title="${d.d}" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;font-size:9px;font-weight:700;color:#fff;background:${d.col}">${d.lbl}</span>`).join('')}
+            ${attDots.map(d=>`<span title="${d.tooltip||d.d}" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;font-size:9px;font-weight:700;color:${d.type==='none'?'#9896b0':'#fff'};background:${d.col};cursor:default">${d.lbl}</span>`).join('')}
           </div>`:''}
           ${isMissAlert?`<div style="margin-top:8px;padding:8px 10px;background:rgba(245,200,66,.1);border:1px solid rgba(245,200,66,.3);border-radius:8px">
             <div style="font-size:11px;font-weight:700;color:var(--am);margin-bottom:6px">⚠️ ${missCnt} пропуска подряд — нужно связаться и узнать причину</div>
