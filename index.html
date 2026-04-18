@@ -6491,15 +6491,14 @@ function renderActive(){
 function renderStarts(){
   const el=document.getElementById('stu-starts-list');
   if(!el)return;
-  const today=new Date().toISOString().slice(0,10);
-  const in3=new Date(); in3.setDate(in3.getDate()+3); const in3s=in3.toISOString().slice(0,10);
+  const today=todayKZ();
+  const in3=new Date(new Date(today+'T00:00:00Z').getTime()+3*86400000);
+  const in3s=in3.toISOString().slice(0,10);
 
   const items=(S.enrollments||[]).filter(e=>{
     if(e.inactive)return false;
     if(!e.dateStart)return false;
     if(!stuMatchesFilter(e))return false;
-    const days=daysUntil(e.dateStart);
-    // Show all upcoming starts not yet confirmed
     return !e.startConfirmed;
   }).sort((a,b)=>a.dateStart.localeCompare(b.dateStart));
 
@@ -6514,15 +6513,58 @@ function renderStarts(){
       days<0?`<span style="color:var(--rd)">${Math.abs(days)} дн. назад</span>`:
       `<span style="color:var(--t2)">через ${days} дн.</span>`;
     const dur=stuDuration(e.dateStart);
-    return `<div class="card" style="margin-bottom:10px;padding:14px 16px">
+
+    const attDots = getAttendanceDots(e.id, e.dateStart||'');
+    const missCnt = countConsecutiveMisses(e.id);
+    const isMissAlert = missCnt>=2 && !e.missAlertResolved;
+
+    // Months badge
+    const months=Math.round((new Date()-(new Date(e.dateStart||'')))/(1000*60*60*24*30));
+    const col=months<=1?'var(--tl)':months<=3?'var(--am)':'var(--gn)';
+    const mLbl=months<=1?'Новенький':`${months} мес.`;
+
+    const parentPhone=stu?.parentPhone||stu?.phone||'';
+    const stuPhone=stu?.phone||'';
+    const kaspiPhone=stu?.kaspiPhone||'';
+    const contactsHtml=(parentPhone||stuPhone||kaspiPhone)?`<div style="font-size:11px;color:var(--t3);margin-top:3px;display:flex;gap:12px;flex-wrap:wrap">
+      ${parentPhone?`<span>📱 <a href="tel:${parentPhone}" style="color:var(--tl);text-decoration:none">${parentPhone}</a></span>`:''}
+      ${stuPhone&&stuPhone!==parentPhone?`<span>👦 <a href="tel:${stuPhone}" style="color:var(--t2);text-decoration:none">${stuPhone}</a></span>`:''}
+      ${kaspiPhone?`<span>💳 <a href="tel:${kaspiPhone}" style="color:var(--am);text-decoration:none;font-weight:600">${kaspiPhone}</a></span>`:''}
+    </div>`:'';
+
+    let cardStyle='margin-bottom:10px;padding:14px 16px;';
+    if(isMissAlert) cardStyle+='border:2px solid var(--am);background:rgba(245,200,66,.06)';
+    else if(days<0) cardStyle+='border:2px solid var(--ac2);background:rgba(168,127,255,.04)';
+
+    return `<div class="card" style="${cardStyle}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
-        <div>
-          <div style="font-size:15px;font-weight:700;color:var(--t1);cursor:pointer;text-decoration:underline dotted" onclick="openStudentModal(${e.id})">${stu?.name||'-'}</div>
-          <div style="font-size:12px;color:var(--t3);margin-top:2px">${t?.name||'-'} · Старт ${fmtDateRu(e.dateStart)} · ${daysLabel}</div>
-          <div style="font-size:11px;color:var(--t3);margin-top:2px">Длительность: ${dur}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px">
+            <span style="font-size:15px;font-weight:700;color:var(--t1);cursor:pointer;text-decoration:underline dotted" onclick="openStudentModal(${e.id})">${stu?.name||'-'}</span>
+            <button onclick="copyStudentLink(${e.id})" title="Скопировать ссылку" style="background:none;border:1px solid var(--b2);border-radius:5px;color:var(--t3);cursor:pointer;font-size:10px;padding:1px 7px;font-family:var(--fb)">🔗</button>
+            ${isMissAlert?`<span style="font-size:10px;font-weight:700;color:var(--am);background:rgba(245,200,66,.2);padding:2px 8px;border-radius:8px">⚠️ ${missCnt} пропуска подряд</span>`:''}
+          </div>
+          <div style="font-size:12px;color:var(--t3)">${t?.name||'-'} · Старт ${fmtDateRu(e.dateStart)} · ${daysLabel}</div>
+          <div style="font-size:11px;color:var(--t3);display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:2px">
+            <span>📅 ${dur}</span>
+            <span style="font-size:10px;font-weight:600;color:${col};background:${col}22;border:1px solid ${col}44;padding:1px 7px;border-radius:8px">${mLbl}</span>
+            ${stu?.parent?`<span>👤 ${stu.parent}</span>`:''}
+          </div>
+          ${attDots.length?`<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:5px;align-items:center">
+            ${attDots.map(d=>`<span title="${d.d}" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;font-size:9px;font-weight:700;color:#fff;background:${d.col}">${d.lbl}</span>`).join('')}
+          </div>`:''}
+          ${isMissAlert?`<div style="margin-top:8px;padding:8px 10px;background:rgba(245,200,66,.1);border:1px solid rgba(245,200,66,.3);border-radius:8px">
+            <div style="font-size:11px;font-weight:700;color:var(--am);margin-bottom:6px">⚠️ ${missCnt} пропуска подряд — нужно связаться и узнать причину</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+              <button onclick="markMissResolved(${e.id},'returning')" style="font-size:11px;padding:3px 10px;border-radius:6px;border:none;background:var(--gn);color:#fff;cursor:pointer;font-family:var(--fb);font-weight:600">✅ Ученик возвращается</button>
+              <button onclick="markMissResolved(${e.id},'resolved')" style="font-size:11px;padding:3px 10px;border-radius:6px;border:1px solid var(--b2);background:var(--bg3);color:var(--t2);cursor:pointer;font-family:var(--fb)">Решено</button>
+            </div>
+          </div>`:''}
+          ${contactsHtml}
         </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button class="btn btn-sm" onclick="setVacation(${e.id})" style="font-size:11px;background:rgba(56,189,248,.1);color:var(--tl)">🏖 Отпуск</button>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start;flex-shrink:0">
+          <button class="btn btn-sm" onclick="setVacationUI(${e.id})" style="font-size:11px;background:rgba(56,189,248,.1);color:var(--tl)">🏖 Отпуск</button>
+          <button class="btn btn-sm" onclick="sendRenewalWA(${e.id})" style="font-size:11px;background:rgba(37,211,102,.12);color:#25d366">💬 WhatsApp</button>
           <button class="btn btn-sm btn-a" onclick="confirmStart(${e.id})" style="font-size:12px">✅ Старт прошёл</button>
         </div>
       </div>
@@ -6535,21 +6577,36 @@ function renderStarts(){
 function getAttendanceDots(enrollId, dateStart){
   const att = S.attendance || {};
   const today = todayKZ();
-  const dots = [];
-  // Собираем последние 14 дней начиная с dateStart
-  for(let i=13;i>=0;i--){
+  const e = (S.enrollments||[]).find(x=>x.id===enrollId);
+  if(!e) return [];
+
+  // Собираем дни по расписанию ученика за последние 60 дней
+  const slots = e.slots || [];
+  const slotDays = slots.map(s=>s.day); // [0,2,4] = Пн,Ср,Пт
+  if(!slotDays.length) return [];
+
+  const scheduledDates = [];
+  for(let i=59;i>=0;i--){
     const d = new Date(new Date(today+'T00:00:00Z').getTime() - i*86400000);
     const ds = d.toISOString().slice(0,10);
-    if(ds < dateStart) continue;
+    if(ds < (dateStart||'')) continue;
+    if(ds > today) continue;
+    const dow = (d.getUTCDay()+6)%7; // 0=Пн
+    if(slotDays.includes(dow)) scheduledDates.push(ds);
+  }
+
+  // Берём последние 10 плановых уроков
+  const last10 = scheduledDates.slice(-10);
+
+  return last10.map(ds=>{
     const key = `${enrollId}_${ds}`;
     const val = att[key];
-    if(val==='done')       dots.push({d:ds,type:'done',col:'#22c55e',lbl:'✓'});
-    else if(val==='miss')  dots.push({d:ds,type:'miss',col:'#f05975',lbl:'✗'});
-    else if(val==='makeup')dots.push({d:ds,type:'makeup',col:'#a87fff',lbl:'↩'});
-    else if(val==='skip')  dots.push({d:ds,type:'skip',col:'#f5c842',lbl:'—'});
-    // дни без записи не показываем
-  }
-  return dots;
+    if(val==='done')        return {d:ds,type:'done',  col:'#22c55e',lbl:'✓'};
+    else if(val==='miss')   return {d:ds,type:'miss',  col:'#f05975',lbl:'✗'};
+    else if(val==='makeup') return {d:ds,type:'makeup',col:'#a87fff',lbl:'↩'};
+    else if(val==='skip')   return {d:ds,type:'skip',  col:'#f5c842',lbl:'—'};
+    else                    return {d:ds,type:'none',  col:'#5e5c78',lbl:'·'}; // нет отметки
+  });
 }
 
 // Считаем подряд идущие пропуски (miss) в конце
