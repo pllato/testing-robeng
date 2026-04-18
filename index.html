@@ -726,6 +726,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
         <button class="btn btn-sm" id="stab-all" onclick="setStuTab('all')" style="font-size:12px;display:none">📋 Ученики</button>
         <button class="btn btn-sm" id="stab-starts" onclick="setStuTab('starts')" style="font-size:12px">🚀 Старты</button>
         <button class="btn btn-sm" id="stab-renewals" onclick="setStuTab('renewals')" style="font-size:12px">🔄 Перестарты <span id="renewals-badge" style="background:var(--rd);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;margin-left:2px;display:none"></span></button>
+        <button class="btn btn-sm" id="stab-attest" onclick="setStuTab('attest')" style="font-size:12px">🏅 Аттестации</button>
         <button class="btn btn-sm" id="stab-lost" onclick="setStuTab('lost')" style="font-size:12px">💔 Потерянные</button>
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-left:8px;font-size:12px;color:var(--t2)">
           <input type="checkbox" id="stu-only-active" onchange="onStuSearch()" style="accent-color:var(--ac);width:14px;height:14px">
@@ -751,6 +752,10 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
       <!-- Renewals tab -->
       <div id="stab-content-renewals" style="display:none">
         <div id="stu-renewals-list"></div>
+      </div>
+      <!-- Attestations tab -->
+      <div id="stab-content-attest" style="display:none">
+        <div id="stu-attest-list"></div>
       </div>
       <!-- Lost tab -->
       <div id="stab-content-lost" style="display:none">
@@ -6361,7 +6366,7 @@ async function autoSendRenewalWA(){
 
 function setStuTab(tab){
   curStuTab = tab;
-  ['all','starts','renewals','lost'].forEach(t=>{
+  ['all','starts','renewals','attest','lost'].forEach(t=>{
     const btn=document.getElementById('stab-'+t);
     const content=document.getElementById('stab-content-'+t);
     if(btn) btn.className = 'btn btn-sm' + (t===tab?' btn-a':'');
@@ -6370,7 +6375,272 @@ function setStuTab(tab){
   if(tab==='all') renderStudents();
   if(tab==='starts') renderStarts();
   if(tab==='renewals') renderRenewals();
+  if(tab==='attest') renderAttestations();
   if(tab==='lost') renderLost();
+}
+
+// ═══════════════════════════════════════════════════════
+//  АТТЕСТАЦИИ — 12 аттестаций на год
+// ═══════════════════════════════════════════════════════
+
+const ATTESTATIONS = [
+  { id:1, title:'Аттестация 1 — A1 Старт',         lessons:'1–5',   topics:'Приветствия, глагол to be, притяж. местоимения',                         level:'A1', badge:'🌱 Начинающий',    color:'#5e5c78', afterLesson:5  },
+  { id:2, title:'Аттестация 2 — A1 Основы',         lessons:'6–10',  topics:'Артикли, числа, there is/are, предлоги места',                            level:'A1', badge:'🌿 Базовый',       color:'#3fc8d8', afterLesson:10 },
+  { id:3, title:'Аттестация 3 — A1 Present Simple', lessons:'11–15', topics:'Present Simple, отрицания, вопросы, распорядок дня',                      level:'A1', badge:'📗 A1 Уровень',    color:'#22c55e', afterLesson:15 },
+  { id:4, title:'Аттестация 4 — A1 Финал ✦',       lessons:'16–20', topics:'Семья, дом, еда, животные. Полный A1',                                    level:'A1', badge:'⭐ A1 Завершён',   color:'#f5c842', afterLesson:20 },
+  { id:5, title:'Аттестация 5 — A2 Прошедшее',      lessons:'21–25', topics:'Past Simple (was/were, правильные и неправильные гл.), can/can\'t',       level:'A2', badge:'🔵 A2 Старт',     color:'#a87fff', afterLesson:25 },
+  { id:6, title:'Аттестация 6 — A2 Будущее',        lessons:'26–30', topics:'Must/mustn\'t, going to, countable/uncountable, comparatives',            level:'A2', badge:'🔷 A2 Развитие',   color:'#3b82f6', afterLesson:30 },
+  { id:7, title:'Аттестация 7 — A2 Непрерывное',    lessons:'31–35', topics:'Superlatives, Present Continuous, vs Simple, предлоги времени, маршруты', level:'A2', badge:'💠 A2 Прогресс',  color:'#06b6d4', afterLesson:35 },
+  { id:8, title:'Аттестация 8 — A2 Финал ✦',       lessons:'36–40', topics:'Наречия, герундий, приглашения. Полный базовый A2',                       level:'A2', badge:'🌟 A2 Завершён',   color:'#f59e0b', afterLesson:40 },
+  { id:9, title:'Аттестация 9 — Pre-Int Опыт',      lessons:'41–45', topics:'Past Continuous, Present Perfect, for/since',                             level:'A2+',badge:'🏅 Pre-Int',      color:'#8b5cf6', afterLesson:45 },
+  { id:10,title:'Аттестация 10 — Pre-Int Условия',  lessons:'46–50', topics:'Future (will/going to), Zero&First Conditional, should',                  level:'A2+',badge:'🎖 Pre-Int+',     color:'#ec4899', afterLesson:50 },
+  { id:11,title:'Аттестация 11 — Pre-Int Сложное',  lessons:'51–60', topics:'Passive Voice, Gerund vs Infinitive, Relative clauses, Reported Speech',  level:'B1', badge:'🥇 B1 Старт',     color:'#f97316', afterLesson:60 },
+  { id:12,title:'Аттестация 12 — B1 Финал ✦✦',     lessons:'61–70', topics:'Second Conditional, Phrasal verbs, Opinion, Formal English. Итог года',   level:'B1', badge:'🏆 B1 Уровень',   color:'#ef4444', afterLesson:70 },
+];
+
+// Статусы аттестации для ученика
+// studentAttestation = { enrollId: { att1: {status:'passed'|'failed'|'invited'|null, date, score, note}, ... } }
+
+function getStudentAttestation(enrollId){
+  const e = (S.enrollments||[]).find(x=>x.id===enrollId);
+  return (e?.attestations)||{};
+}
+
+function setStudentAttestation(enrollId, attId, data){
+  const idx = S.enrollments.findIndex(e=>e.id===enrollId);
+  if(idx<0) return;
+  if(!S.enrollments[idx].attestations) S.enrollments[idx].attestations={};
+  S.enrollments[idx].attestations['att'+attId] = {...(S.enrollments[idx].attestations['att'+attId]||{}), ...data};
+  save();
+}
+
+function getCurrentAttestationLevel(enrollId){
+  const atts = getStudentAttestation(enrollId);
+  let passed = 0;
+  for(let i=1;i<=12;i++){
+    if(atts['att'+i]?.status==='passed') passed=i;
+    else break;
+  }
+  return passed; // 0 = ни одной не прошёл
+}
+
+function sendAttestationInvite(enrollId, attId){
+  const e = (S.enrollments||[]).find(x=>x.id===enrollId);
+  const st = student(e?.studentId);
+  if(!st||!e) return;
+  const phone = (st.parentPhone||st.phone||'').replace(/\D/g,'');
+  if(!phone){ toast('Нет телефона',true); return; }
+  const att = ATTESTATIONS.find(a=>a.id===attId);
+  if(!att) return;
+  const msg = `🎓 Приглашение на аттестацию ELC Kids Roblox English!\n\n`+
+    `Уважаемые родители ${st.name},\n\n`+
+    `Ваш ребёнок прошёл ${att.lessons} урок${att.id===1?'':'а'} и готов к ${att.id}-й аттестации!\n\n`+
+    `📋 ${att.title}\n`+
+    `📚 Темы: ${att.topics}\n`+
+    `🏅 Награда при прохождении: ${att.badge}\n\n`+
+    `Аттестация бесплатная и проходит внутри школы в Roblox.\n`+
+    `Свяжитесь с нами чтобы назначить удобное время.\n\n`+
+    `Прогресс вашего ребёнка: ${att.id-1}/12 аттестаций пройдено ✅`;
+  notifyWhatsApp('+'+phone, msg).then(r=>{
+    if(r?.ok){
+      setStudentAttestation(enrollId, attId, {status:'invited', inviteDate: todayKZ()});
+      renderAttestations();
+      toast('✓ Приглашение отправлено');
+    }
+  });
+}
+
+function sendAttestationProgress(enrollId){
+  const e = (S.enrollments||[]).find(x=>x.id===enrollId);
+  const st = student(e?.studentId);
+  if(!st||!e) return;
+  const phone = (st.parentPhone||st.phone||'').replace(/\D/g,'');
+  if(!phone){ toast('Нет телефона',true); return; }
+  const atts = getStudentAttestation(enrollId);
+  const passed = ATTESTATIONS.filter(a=>atts['att'+a.id]?.status==='passed');
+  const next = ATTESTATIONS.find(a=>!atts['att'+a.id]||atts['att'+a.id].status!=='passed');
+  const pct = Math.round(passed.length/12*100);
+  const badges = passed.map(a=>a.badge).join(' ');
+  const msg = `📊 Прогресс ${st.name} в ELC Kids Roblox English\n\n`+
+    `✅ Аттестаций пройдено: ${passed.length} из 12 (${pct}%)\n`+
+    (badges?`🏅 Награды: ${badges}\n`:'')+
+    (next?`\n⏭ Следующая: ${next.title}\n   Темы: ${next.topics}\n`:'\n🏆 Все аттестации пройдены! Поздравляем!\n')+
+    `\n📈 Программа рассчитана на 70 уроков (A1→B1). `+
+    `Ваш ребёнок на пути к свободному английскому языку в игровом формате!`;
+  notifyWhatsApp('+'+phone, msg).then(r=>{
+    if(r?.ok) toast('✓ Прогресс отправлен');
+  });
+}
+
+function openAttestModal(enrollId, attId){
+  const e = (S.enrollments||[]).find(x=>x.id===enrollId);
+  const st = student(e?.studentId);
+  const att = ATTESTATIONS.find(a=>a.id===attId);
+  const current = getStudentAttestation(enrollId)['att'+attId]||{};
+
+  const existing = document.getElementById('m-attest-result');
+  if(existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'm-attest-result';
+  modal.className = 'mo';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1001;display:flex;align-items:center;justify-content:center';
+  modal.innerHTML=`<div style="background:var(--bg2);border:1px solid var(--b1);border-radius:14px;padding:24px;max-width:420px;width:94%;max-height:90vh;overflow-y:auto">
+    <div style="font-size:14px;font-weight:700;color:var(--t1);margin-bottom:4px">${att.title}</div>
+    <div style="font-size:11px;color:var(--t3);margin-bottom:16px">Ученик: ${st?.name||'—'}</div>
+    <div style="font-size:12px;color:var(--t2);margin-bottom:8px">📚 Темы: ${att.topics}</div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:12px;color:var(--t2);display:block;margin-bottom:4px">Результат:</label>
+      <div style="display:flex;gap:8px">
+        <button id="att-btn-passed" onclick="document.getElementById('att-status').value='passed'" 
+          style="flex:1;padding:8px;border-radius:8px;border:2px solid ${current.status==='passed'?'var(--gn)':'var(--b2)'};background:${current.status==='passed'?'rgba(34,197,94,.15)':'var(--bg3)'};cursor:pointer;font-family:var(--fb);font-size:12px;color:var(--gn);font-weight:600">✅ Прошёл</button>
+        <button id="att-btn-failed" onclick="document.getElementById('att-status').value='failed'"
+          style="flex:1;padding:8px;border-radius:8px;border:2px solid ${current.status==='failed'?'var(--rd)':'var(--b2)'};background:${current.status==='failed'?'rgba(240,89,117,.15)':'var(--bg3)'};cursor:pointer;font-family:var(--fb);font-size:12px;color:var(--rd);font-weight:600">❌ Не прошёл</button>
+      </div>
+      <input type="hidden" id="att-status" value="${current.status||''}"/>
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:12px;color:var(--t2);display:block;margin-bottom:4px">Дата аттестации:</label>
+      <input type="date" id="att-date" value="${current.date||todayKZ()}" style="width:100%;background:var(--bg3);border:1px solid var(--b2);border-radius:8px;color:var(--t1);padding:7px 10px;font-family:var(--fb);font-size:12px"/>
+    </div>
+    <div style="margin-bottom:16px">
+      <label style="font-size:12px;color:var(--t2);display:block;margin-bottom:4px">Комментарий преподавателя:</label>
+      <textarea id="att-note" rows="3" placeholder="Что отработано, что повторить..." style="width:100%;background:var(--bg3);border:1px solid var(--b2);border-radius:8px;color:var(--t1);padding:7px 10px;font-family:var(--fb);font-size:12px;resize:vertical;box-sizing:border-box">${current.note||''}</textarea>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button onclick="document.getElementById('m-attest-result').remove()" style="padding:8px 16px;border-radius:8px;border:1px solid var(--b2);background:var(--bg3);color:var(--t2);cursor:pointer;font-family:var(--fb)">Отмена</button>
+      <button onclick="saveAttestResult(${enrollId},${attId})" style="padding:8px 18px;border-radius:8px;border:none;background:var(--ac);color:#fff;cursor:pointer;font-family:var(--fb);font-weight:600">💾 Сохранить</button>
+    </div>
+  </div>`;
+
+  // Click buttons to update style
+  modal.querySelectorAll && setTimeout(()=>{
+    const passBtn = modal.querySelector('#att-btn-passed');
+    const failBtn = modal.querySelector('#att-btn-failed');
+    const inp = modal.querySelector('#att-status');
+    if(passBtn&&failBtn&&inp){
+      passBtn.addEventListener('click',()=>{
+        passBtn.style.borderColor='var(--gn)';passBtn.style.background='rgba(34,197,94,.15)';
+        failBtn.style.borderColor='var(--b2)';failBtn.style.background='var(--bg3)';
+        inp.value='passed';
+      });
+      failBtn.addEventListener('click',()=>{
+        failBtn.style.borderColor='var(--rd)';failBtn.style.background='rgba(240,89,117,.15)';
+        passBtn.style.borderColor='var(--b2)';passBtn.style.background='var(--bg3)';
+        inp.value='failed';
+      });
+    }
+  },10);
+
+  modal.addEventListener('click',ev=>{if(ev.target===modal)modal.remove();});
+  document.body.appendChild(modal);
+}
+
+function saveAttestResult(enrollId, attId){
+  const status = document.getElementById('att-status')?.value;
+  const date   = document.getElementById('att-date')?.value;
+  const note   = document.getElementById('att-note')?.value;
+  if(!status){ toast('Выберите результат',true); return; }
+  setStudentAttestation(enrollId, attId, {status, date, note});
+  document.getElementById('m-attest-result')?.remove();
+
+  const e = (S.enrollments||[]).find(x=>x.id===enrollId);
+  const st = student(e?.studentId);
+  const att = ATTESTATIONS.find(a=>a.id===attId);
+  const phone = (st?.parentPhone||st?.phone||'').replace(/\D/g,'');
+
+  if(status==='passed' && phone){
+    const msg = `🎉 Поздравляем, ${st.name} прошёл аттестацию!\n\n`+
+      `🏅 ${att.badge}\n`+
+      `📋 ${att.title}\n`+
+      `📅 Дата: ${date}\n`+
+      (note?`💬 Преподаватель: ${note}\n`:'')+
+      `\n⏭ Следующая цель: ${attId<12?(ATTESTATIONS[attId]?.title||''):'Завершение программы! 🏆'}\n`+
+      `Прогресс: ${attId}/12 аттестаций ✅`;
+    notifyWhatsApp('+'+phone, msg).then(r=>{
+      if(r?.ok) toast('✓ Поздравление отправлено родителям');
+    });
+  } else if(status==='failed' && phone){
+    const msg = `📚 ${st.name} пока не прошёл аттестацию — это нормально!\n\n`+
+      `📋 ${att.title}\n`+
+      (note?`💬 Преподаватель: ${note}\n`:'')+
+      `\nМы продолжим работу над этими темами и пригласим на повторную аттестацию.`;
+    notifyWhatsApp('+'+phone, msg);
+  }
+  renderAttestations();
+  toast('✓ Аттестация сохранена');
+}
+
+function renderAttestations(){
+  const el = document.getElementById('stu-attest-list');
+  if(!el) return;
+
+  const today = todayKZ();
+  const activeEnrolls = (S.enrollments||[]).filter(e=>!e.inactive && enrollActive(e,today));
+  if(!activeEnrolls.length){ el.innerHTML='<div style="text-align:center;padding:32px;color:var(--t3)">Нет активных учеников</div>'; return; }
+
+  // Sort by attestation progress (furthest first)
+  activeEnrolls.sort((a,b)=>getCurrentAttestationLevel(b.id)-getCurrentAttestationLevel(a.id));
+
+  el.innerHTML = `
+  <!-- Программа аттестаций -->
+  <div class="card" style="margin-bottom:16px">
+    <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:10px">📋 Программа аттестаций ELC Kids (70 уроков → 12 аттестаций)</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px">
+      ${ATTESTATIONS.map(a=>`<div style="background:var(--bg3);border-radius:8px;padding:8px 10px;border-left:3px solid ${a.color}">
+        <div style="font-size:10px;font-weight:700;color:${a.color}">${a.badge} · ${a.level}</div>
+        <div style="font-size:11px;color:var(--t2);margin-top:2px">${a.title}</div>
+        <div style="font-size:10px;color:var(--t3);margin-top:1px">Уроки ${a.lessons}</div>
+      </div>`).join('')}
+    </div>
+  </div>
+
+  <!-- Ученики -->
+  <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:8px">👥 Прогресс учеников (${activeEnrolls.length})</div>
+  ${activeEnrolls.map(e=>{
+    const st = student(e.studentId);
+    const t  = (S.teachers||[]).find(x=>String(x.id)===String(e.teacherId));
+    const atts = getStudentAttestation(e.id);
+    const passedCount = ATTESTATIONS.filter(a=>atts['att'+a.id]?.status==='passed').length;
+    const nextAtt = ATTESTATIONS.find(a=>!atts['att'+a.id]||atts['att'+a.id].status!=='passed');
+    const pct = Math.round(passedCount/12*100);
+
+    return `<div class="card" style="margin-bottom:10px;padding:14px 16px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--t1);cursor:pointer;text-decoration:underline dotted" onclick="openStudentModal(${e.id})">${st?.name||'—'}</div>
+          <div style="font-size:11px;color:var(--t3);margin-top:2px">${t?.name||'—'} · ${passedCount}/12 аттестаций</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${nextAtt?`<button onclick="sendAttestationInvite(${e.id},${nextAtt.id})" style="font-size:11px;padding:4px 10px;border-radius:6px;border:none;background:var(--ac);color:#fff;cursor:pointer;font-family:var(--fb);font-weight:600">📩 Пригласить на ${nextAtt.id}-ю</button>`:''}
+          <button onclick="sendAttestationProgress(${e.id})" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--b2);background:var(--bg3);color:var(--t2);cursor:pointer;font-family:var(--fb)">📊 Прогресс WA</button>
+        </div>
+      </div>
+
+      <!-- Прогресс-бар -->
+      <div style="height:6px;background:var(--bg3);border-radius:3px;margin-bottom:8px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:var(--ac);border-radius:3px;transition:width .3s"></div>
+      </div>
+
+      <!-- 12 аттестаций -->
+      <div style="display:flex;flex-wrap:wrap;gap:4px">
+        ${ATTESTATIONS.map(a=>{
+          const r = atts['att'+a.id];
+          const status = r?.status||'none';
+          let bg, icon, title;
+          if(status==='passed')       { bg=a.color;         icon='✅'; title=`${a.title}\nПройдена: ${r.date||'—'}\n${r.note||''}`; }
+          else if(status==='failed')  { bg='#f05975';       icon='❌'; title=`${a.title}\nНе пройдена: ${r.date||'—'}\n${r.note||''}`; }
+          else if(status==='invited') { bg='#f5c842';       icon='📩'; title=`${a.title}\nПриглашён: ${r.inviteDate||'—'}`; }
+          else                        { bg='var(--bg4)';    icon=String(a.id); title=a.title+'\n'+a.topics; }
+          return `<button onclick="openAttestModal(${e.id},${a.id})" title="${title}"
+            style="min-width:28px;height:28px;border-radius:6px;border:1px solid ${status==='none'?'var(--b2)':bg};background:${status==='passed'?bg:status==='failed'?'rgba(240,89,117,.15)':status==='invited'?'rgba(245,200,66,.15)':'var(--bg3)'};
+            cursor:pointer;font-size:${status==='none'?'10px':'11px'};color:${status==='passed'?'#fff':status==='failed'?'var(--rd)':status==='invited'?'var(--am)':'var(--t3)'};
+            font-weight:700;padding:0 4px;font-family:var(--fb)">${icon}</button>`;
+        }).join('')}
+      </div>
+      ${nextAtt?`<div style="font-size:10px;color:var(--t3);margin-top:6px">⏭ Следующая: <span style="color:${nextAtt.color}">${nextAtt.badge}</span> — ${nextAtt.title}</div>`:'<div style="font-size:10px;color:var(--gn);margin-top:6px;font-weight:600">🏆 Все аттестации пройдены!</div>'}
+    </div>`;
+  }).join('')}`;
 }
 
 function renderLost(){
@@ -6854,21 +7124,46 @@ function renderDelayed(){
 }
 
 function confirmStart(enrollId){
-  const link=prompt('Ссылка на видео первого урока (обязательно):','');
-  if(!link||!link.trim()){toast('Необходимо прикрепить ссылку на видео!',true);return;}
+  const link=prompt('Ссылка на видео первого урока (необязательно):','');
   const idx=S.enrollments.findIndex(e=>e.id===enrollId);
   if(idx<0)return;
+  const e = S.enrollments[idx];
+  const st = student(e.studentId);
   S.enrollments[idx].startConfirmed=true;
-  S.enrollments[idx].startConfirmedDate=new Date().toISOString().slice(0,10);
-  if(link) S.enrollments[idx].startVideoUrl=link;
-  // Send video for review if link provided
-  if(link){
-    if(!S.videoReports)S.videoReports={};
-    const key=enrollId+'_start_'+new Date().toISOString().slice(0,10);
-    S.videoReports[key]={enrollId,url:link,status:'pending',ts:Date.now(),type:'start'};
+  S.enrollments[idx].startConfirmedDate=todayKZ();
+  if(link&&link.trim()) S.enrollments[idx].startVideoUrl=link.trim();
+
+  logAction('start_confirmed','Старт подтверждён: '+(st?.name||'-'),'');
+
+  // Отправляем опрос первого дня родителю
+  const phone = (st?.parentPhone||st?.phone||'').replace(/\D/g,'');
+  if(phone){
+    const msg = `👋 Здравствуйте!\n\n`+
+      `Сегодня ${st?.name} провёл свой первый урок в ELC Kids Roblox English 🎮\n\n`+
+      `Пожалуйста, поделитесь впечатлением:\n`+
+      `1️⃣ Ребёнку понравился урок? (Да/Нет)\n`+
+      `2️⃣ Всё было понятно по подключению?\n`+
+      `3️⃣ Есть ли вопросы или комментарии?\n\n`+
+      `Ваша обратная связь очень важна для нас! 🙏`;
+    notifyWhatsApp('+'+phone, msg).then(r=>{
+      if(r?.ok) toast('✓ Опрос первого дня отправлен');
+    });
   }
-  logAction('start_confirmed','Старт подтверждён: '+(S.students?.find(s=>s.id===S.enrollments[idx].studentId)?.name||'-'),'');
+
   save();renderStarts();toast('Старт отмечен!');
+}
+
+// Проверка: нужно ли позвонить родителю (через 14 дней после старта)
+function checkStartCallReminders(){
+  const today = todayKZ();
+  (S.enrollments||[]).forEach(e=>{
+    if(!e.startConfirmed || e.startCallDone) return;
+    if(!e.startConfirmedDate) return;
+    const daysSinceStart = Math.round((new Date(today+'T00:00:00Z')-new Date(e.startConfirmedDate+'T00:00:00Z'))/86400000);
+    if(daysSinceStart !== 14) return;
+    const st = student(e.studentId);
+    showLocalNotification('📞 Звонок родителю', `14 дней с начала обучения ${st?.name||''}. Нужно позвонить и опросить!`, 'students', 'start-call');
+  });
 }
 
 
@@ -16118,6 +16413,8 @@ async function checkPendingNotifications(){
 // Проверяем сразу и каждые 5 минут
 setTimeout(checkPendingNotifications, 3000);
 setInterval(checkPendingNotifications, 5*60*1000);
+setTimeout(checkStartCallReminders, 5000);
+setInterval(checkStartCallReminders, 60*60*1000); // раз в час
 
 // Открываем карточку CRM если в URL есть #crm=ID
 window.addEventListener('load', ()=>{ setTimeout(handleCRMHash, 1500); });
