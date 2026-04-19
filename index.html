@@ -14006,7 +14006,7 @@ async function renderCallsLog(){
   body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--t3)">Загрузка...</div>';
 
   const [binotelSnap, leadsSnap, chatsSnap] = await Promise.all([
-    fbDb.ref('binotelCalls').limitToLast(300).once('value').catch(()=>null),
+    fbDb.ref('binotelCalls').orderByChild('ts').limitToLast(2000).once('value').catch(()=>null),
     crmRef.once('value').catch(()=>null),
     fbDb.ref('crmChats').once('value').catch(()=>null),
   ]);
