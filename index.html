@@ -428,6 +428,13 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
   }
   /* Скрываем нижний nav когда открыт чат */
   #wachats-chat-col.mob-chat-visible ~ * #mob-nav,
+
+  /* Students tabs mobile */
+  #panel-students .btn.btn-sm[id^="stab-"]{font-size:11px;padding:5px 8px}
+  #stu-renewals-list .card,#stu-starts-list .card{padding:10px 12px}
+  #stu-renewals-list .btn.btn-sm,#stu-starts-list .btn.btn-sm{font-size:10px;padding:3px 7px}
+  .att-dot-row{gap:2px}
+  .att-dot-row span{width:16px!important;height:16px!important;font-size:8px!important}
   body:has(#wachats-chat-col.mob-chat-visible) #mob-nav { display:none!important; }
   .mob-chat-back{display:flex!important}
   #wachats-list-col.mob-chat-hidden{display:none!important}
@@ -723,7 +730,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
       </div>
       <!-- Tabs -->
       <div style="display:flex;gap:4px;padding:0 0 12px;flex-wrap:wrap;align-items:center">
-        <button class="btn btn-sm" id="stab-all" onclick="setStuTab('all')" style="font-size:12px;display:none">📋 Ученики</button>
+        <button class="btn btn-sm" id="stab-all" onclick="setStuTab('all')" style="font-size:12px">👥 Все ученики</button>
         <button class="btn btn-sm" id="stab-starts" onclick="setStuTab('starts')" style="font-size:12px">🚀 Старты</button>
         <button class="btn btn-sm" id="stab-renewals" onclick="setStuTab('renewals')" style="font-size:12px">🔄 Перестарты <span id="renewals-badge" style="background:var(--rd);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;margin-left:2px;display:none"></span></button>
         <button class="btn btn-sm" id="stab-attest" onclick="setStuTab('attest')" style="font-size:12px">🏅 Аттестации</button>
@@ -6730,7 +6737,7 @@ function renderLost(){
           <div style="font-size:12px;color:var(--t3);margin-top:2px">${t?.name||'—'} · Обучался: ${dur}</div>
           <div style="font-size:12px;color:var(--t3);margin-top:2px">Старт: ${fmtDateRu(e.dateStart)} · Деактивирован: ${fmtDateRu(e.deactivationDate||'')}</div>
           <div style="font-size:12px;color:var(--rd);margin-top:3px">Причина: ${e.deactivationReason||'—'}</div>
-          ${attDots.length?`<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:5px;align-items:center">
+          ${attDots.length?`<div class="att-dot-row" style="display:flex;gap:3px;flex-wrap:wrap;margin-top:5px;align-items:center">
             ${attDots.map(d=>`<span title="${d.tooltip||d.d}" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;font-size:9px;font-weight:700;color:${d.type==='none'?'#9896b0':'#fff'};background:${d.col};cursor:default">${d.lbl}</span>`).join('')}
           </div>`:''}
           ${isMissAlert?`<div style="margin-top:8px;padding:8px 10px;background:rgba(245,200,66,.1);border:1px solid rgba(245,200,66,.3);border-radius:8px">
@@ -6878,7 +6885,7 @@ function renderStarts(){
             <span style="font-size:10px;font-weight:600;color:${col};background:${col}22;border:1px solid ${col}44;padding:1px 7px;border-radius:8px">${mLbl}</span>
             ${stu?.parent?`<span>👤 ${stu.parent}</span>`:''}
           </div>
-          ${attDots.length?`<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:5px;align-items:center">
+          ${attDots.length?`<div class="att-dot-row" style="display:flex;gap:3px;flex-wrap:wrap;margin-top:5px;align-items:center">
             ${attDots.map(d=>`<span title="${d.tooltip||d.d}" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;font-size:9px;font-weight:700;color:${d.type==='none'?'#9896b0':'#fff'};background:${d.col};cursor:default">${d.lbl}</span>`).join('')}
           </div>`:''}
           ${isMissAlert?`<div style="margin-top:8px;padding:8px 10px;background:rgba(245,200,66,.1);border:1px solid rgba(245,200,66,.3);border-radius:8px">
@@ -6931,9 +6938,9 @@ function getAttendanceDots(enrollId, dateStart){
     if(slotDays.includes(dow)) scheduledDates.push(ds);
   }
 
-  const last10 = scheduledDates.slice(-10);
+  const last15 = scheduledDates.slice(-15);
 
-  return last10.map(ds=>{
+  return last15.map(ds=>{
     const key = `${enrollId}_${ds}`;
     const val = att[key];
     const d = new Date(ds+'T00:00:00Z');
@@ -7118,7 +7125,7 @@ function renderRenewals(){
             })()}
             ${stu?.parent?`<span>👤 ${stu.parent}</span>`:''}
           </div>
-          ${attDots.length?`<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:5px;align-items:center">
+          ${attDots.length?`<div class="att-dot-row" style="display:flex;gap:3px;flex-wrap:wrap;margin-top:5px;align-items:center">
             ${attDots.map(d=>`<span title="${d.tooltip||d.d}" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;font-size:9px;font-weight:700;color:${d.type==='none'?'#9896b0':'#fff'};background:${d.col};cursor:default">${d.lbl}</span>`).join('')}
           </div>`:''}
           ${isMissAlert?`<div style="margin-top:8px;padding:8px 10px;background:rgba(245,200,66,.1);border:1px solid rgba(245,200,66,.3);border-radius:8px">
@@ -14143,7 +14150,7 @@ async function renderCallsLog(){
   if(_callsFilter==='missed')     filtered = calls.filter(c=>c.isMissed);
   else if(_callsFilter==='in')    filtered = calls.filter(c=>String(c.callType)==='0' && !c.isMissed);
   else if(_callsFilter==='out')   filtered = calls.filter(c=>String(c.callType)==='1' && !c.isMissed);
-  else if(_callsFilter==='rec')   filtered = calls.filter(c=>c.recordingLink);
+  else if(_callsFilter==='rec')   filtered = calls.filter(c=>c.recordingLink).sort((a,b)=>(b.ts||'').localeCompare(a.ts||''));
   else if(_callsFilter==='debug')  { showBinotelDebug(); _callsFilter='all'; return; }
 
   const inCount  = calls.filter(c=>String(c.callType)==='0' && !c.isMissed).length;
