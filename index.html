@@ -14122,14 +14122,22 @@ async function renderCallsLog(){
   console.log('crmChats → добавлено звонков:', chatCallsFound, '| записей разговоров:', chatRecordingsFound);
 
   // Дедупликация — убираем дубли (Binotel retry: одинаковый phone+duration+callType в течение 5 мин)
+  // Важно: если один источник имеет запись, а другой нет — мерджим recordingLink
   const deduped = [];
-  const seen = new Set();
+  const seenMap = new Map(); // key → index in deduped
   calls.sort((a,b) => (b.ts||'').localeCompare(a.ts||''));
   for(const c of calls){
     const tMin = c.ts ? Math.floor(new Date(c.ts).getTime() / (5*60*1000)) : 0;
     const key = `${c.phone}|${c.callType}|${c.duration}|${tMin}`;
-    if(seen.has(key)) continue;
-    seen.add(key);
+    if(seenMap.has(key)){
+      // Если новый элемент имеет запись, а существующий нет — обновляем
+      const idx = seenMap.get(key);
+      if(!deduped[idx].recordingLink && c.recordingLink){
+        deduped[idx].recordingLink = c.recordingLink;
+      }
+      continue;
+    }
+    seenMap.set(key, deduped.length);
     deduped.push(c);
   }
   calls.length = 0; deduped.forEach(c => calls.push(c));
