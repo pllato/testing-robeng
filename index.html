@@ -11502,7 +11502,7 @@ function confirmSourceRequired(){
   // Пишем в Firebase если есть leadId
   if(_sourceRequiredLeadId){
     crmRef.child(_sourceRequiredLeadId).update({source, updatedAt: new Date().toISOString()});
-    if(S.crm?.[_sourceRequiredLeadId]) S.crm[_sourceRequiredLeadId].source = source;
+    if(window._crmLeadsCache?.[_sourceRequiredLeadId]) window._crmLeadsCache[_sourceRequiredLeadId].source = source;
   }
   const cb = _sourceRequiredCallback;
   _sourceRequiredCallback = null;
@@ -12804,6 +12804,7 @@ function renderCRM(){
   // Подписываемся на real-time обновления
   _crmRealtimeListener = crmRef.on('value', snap=>{
     const raw = snap.val()||{};
+    window._crmLeadsCache = raw; // всегда актуальный кэш для drag-drop
     let leads = Object.entries(raw)
       .map(([key, val])=>({...val, id: key}))
       .sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
@@ -13333,16 +13334,15 @@ function crmDrop(event, newStage){
   _crmDragId = null;
   if(!dragId || dragId==='null' || dragId==='undefined') return;
 
-  // Берём данные из локального кэша — не ждём Firebase (нет race condition)
-  const l = S.crm?.[dragId];
-  if(!l){ toast('Лид не найден', true); return; }
+  // Берём из локального кэша — быстро и без race condition
+  const cached = window._crmLeadsCache?.[dragId];
+  if(!cached){ toast('Лид не найден', true); return; }
+  const l = {...cached, id: dragId};
   if(l.stage === newStage){ toast('Уже в этой стадии'); return; }
 
   // Если источник не выставлен — требуем перед сменой стадии
   if(!l.source){
     requireSource(dragId, (chosenSource)=>{
-      // источник уже сохранён в Firebase и S.crm внутри confirmSourceRequired
-      // выполняем смену стадии напрямую — не через crmDrop (нет рекурсии)
       _doStageChange(dragId, newStage, {...l, source: chosenSource});
     });
     return;
@@ -13362,7 +13362,7 @@ function _doStageChange(dragId, newStage, l){
   crmRef.child(dragId).update(updateData);
 
   // Обновляем локальный кэш оптимистично
-  if(S.crm?.[dragId]) S.crm[dragId].stage = newStage;
+  if(window._crmLeadsCache?.[dragId]) window._crmLeadsCache[dragId].stage = newStage;
 
   // Лог в чат
   const chatMsg = `📌 Стадия: «${crmStage(l.stage).label}» → «${crmStage(newStage).label}»`;
