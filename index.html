@@ -1038,7 +1038,16 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
     </div>
     <!-- REPORTS -->
     <div class="panel" id="panel-reports">
-      <div class="filters" style="margin-bottom:16px">
+      <div class="filters" style="margin-bottom:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <!-- Tabs -->
+        <div class="view-toggle" id="rpt-tab-bar">
+          <button class="vt-btn active" id="rpt-tab-stats" onclick="setRptTab('stats')">📊 Статистика</button>
+          <button class="vt-btn" id="rpt-tab-leads" onclick="setRptTab('leads')">🎯 Аналитика лидов</button>
+        </div>
+      </div>
+
+      <!-- Stats tab controls -->
+      <div id="rpt-stats-controls" class="filters" style="margin-bottom:16px">
         <span class="fl">Период:</span>
         <div class="view-toggle">
           <button class="vt-btn active" id="rpt-7" onclick="setRptPeriod(7)">7 дней</button>
@@ -1047,7 +1056,25 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
           <button class="vt-btn" id="rpt-thu" onclick="setRptPeriodThu()">Чт→Чт (неделя)</button>
         </div>
       </div>
+
+      <!-- Leads analytics tab controls -->
+      <div id="rpt-leads-controls" style="display:none;margin-bottom:16px;display:none">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <div class="view-toggle">
+            <button class="vt-btn active" id="la-today" onclick="setLeadAnalyticsPeriod('today')">Сегодня</button>
+            <button class="vt-btn" id="la-week" onclick="setLeadAnalyticsPeriod('week')">Неделя</button>
+            <button class="vt-btn" id="la-month" onclick="setLeadAnalyticsPeriod('month')">Месяц</button>
+            <button class="vt-btn" id="la-all" onclick="setLeadAnalyticsPeriod('all')">Всё время</button>
+          </div>
+          <select id="la-source-filter" onchange="renderLeadAnalytics()"
+            style="background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:12px;padding:6px 10px">
+            <option value="">Все источники</option>
+          </select>
+        </div>
+      </div>
+
       <div id="rpt-body"></div>
+      <div id="rpt-leads-body" style="display:none"></div>
     </div>
   </div>
 </div>
@@ -7875,6 +7902,213 @@ function calcTeacherStats(t, dates){
   const missRate=(totalMiss+totalMakeup)>0?Math.round(totalMiss/(totalMiss+totalMakeup)*100):0;
 
   return{totalLessons,totalDone,totalMiss,totalMakeup,totalRestarts,totalActive,renewalRate,missRate,workHours,workSlots};
+}
+
+// ── LEAD ANALYTICS ────────────────────────────────────────────────────────────
+let _laTab = 'stats';
+let _laPeriod = 'week';
+
+function setRptTab(tab){
+  _laTab = tab;
+  document.getElementById('rpt-tab-stats').classList.toggle('active', tab==='stats');
+  document.getElementById('rpt-tab-leads').classList.toggle('active', tab==='leads');
+  document.getElementById('rpt-stats-controls').style.display = tab==='stats' ? '' : 'none';
+  document.getElementById('rpt-leads-controls').style.display = tab==='leads' ? 'flex' : 'none';
+  document.getElementById('rpt-body').style.display = tab==='stats' ? '' : 'none';
+  document.getElementById('rpt-leads-body').style.display = tab==='leads' ? '' : 'none';
+  if(tab==='leads'){ populateLASourceFilter(); renderLeadAnalytics(); }
+}
+
+function setLeadAnalyticsPeriod(p){
+  _laPeriod = p;
+  ['today','week','month','all'].forEach(k=>{
+    const b = document.getElementById('la-'+k);
+    if(b) b.classList.toggle('active', k===p);
+  });
+  renderLeadAnalytics();
+}
+
+function populateLASourceFilter(){
+  const sel = document.getElementById('la-source-filter');
+  if(!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Все источники</option>' +
+    CRM_SOURCES.map(s=>`<option value="${s.id}">${s.label}</option>`).join('');
+  if(cur) sel.value = cur;
+}
+
+function getLADateRange(){
+  const now = new Date();
+  const start = new Date();
+  if(_laPeriod==='today'){ start.setHours(0,0,0,0); }
+  else if(_laPeriod==='week'){ start.setDate(now.getDate()-7); start.setHours(0,0,0,0); }
+  else if(_laPeriod==='month'){ start.setDate(now.getDate()-30); start.setHours(0,0,0,0); }
+  else { return null; } // all time
+  return { from: start.toISOString(), to: now.toISOString() };
+}
+
+function renderLeadAnalytics(){
+  const el = document.getElementById('rpt-leads-body');
+  if(!el) return;
+  el.innerHTML = '<div style="text-align:center;padding:30px;color:var(--t3)">Загрузка...</div>';
+
+  const raw = window._crmLeadsCache || {};
+  let leads = Object.entries(raw).map(([id,l])=>({...l,id}));
+
+  // Период
+  const range = getLADateRange();
+  if(range) leads = leads.filter(l=>(l.createdAt||l.updatedAt||'') >= range.from);
+
+  // Источник
+  const srcFilter = document.getElementById('la-source-filter')?.value;
+  if(srcFilter) leads = leads.filter(l=>l.source===srcFilter);
+
+  const total = leads.length;
+  if(!total){
+    el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--t3);font-size:14px">Нет лидов за выбранный период</div>';
+    return;
+  }
+
+  // ── Подсчёт по стадиям ────────────────────────────────────────────
+  const byStage = {};
+  CRM_STAGES.forEach(s=>{ byStage[s.id]={stage:s, count:0, leads:[]}; });
+  leads.forEach(l=>{
+    const sid = l.stage||'new';
+    if(!byStage[sid]) byStage[sid]={stage:crmStage(sid), count:0, leads:[]};
+    byStage[sid].count++;
+    byStage[sid].leads.push(l);
+  });
+
+  // ── Подсчёт по источникам ─────────────────────────────────────────
+  const bySrc = {};
+  leads.forEach(l=>{
+    const src = l.source||'';
+    if(!bySrc[src]) bySrc[src]={label: CRM_SOURCES.find(s=>s.id===src)?.label || src || '— Не указан —', count:0, leads:[]};
+    bySrc[src].count++;
+    bySrc[src].leads.push(l);
+  });
+
+  // ── Подсчёт по дням ───────────────────────────────────────────────
+  const byDay = {};
+  leads.forEach(l=>{
+    const d = (l.createdAt||'').slice(0,10);
+    if(d){ byDay[d]=(byDay[d]||0)+1; }
+  });
+  const dayLabels = Object.keys(byDay).sort();
+
+  // ── HTML ─────────────────────────────────────────────────────────
+  const periodLabel = {today:'сегодня',week:'за неделю',month:'за месяц',all:'за всё время'}[_laPeriod];
+  const srcLabel = srcFilter ? (CRM_SOURCES.find(s=>s.id===srcFilter)?.label||srcFilter) : 'все источники';
+
+  let html = `
+  <div style="margin-bottom:20px">
+    <div style="font-size:18px;font-weight:700;color:var(--t1)">${total} лидов — ${periodLabel}${srcFilter?', '+srcLabel:''}</div>
+  </div>
+
+  <!-- Сводка по стадиям (качество) -->
+  <div style="margin-bottom:24px">
+    <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:12px">📊 По стадиям CRM</div>
+    <div style="display:flex;flex-direction:column;gap:6px">`;
+
+  CRM_STAGES.forEach(stage=>{
+    const d = byStage[stage.id];
+    if(!d || !d.count) return;
+    const pct = Math.round(d.count/total*100);
+    const bar = Math.round(pct*2.4); // max 240px
+    html += `
+      <div style="display:flex;align-items:center;gap:10px;cursor:pointer" onclick="toggleLALeadList('stage-${stage.id}')">
+        <div style="width:140px;font-size:12px;font-weight:600;color:${stage.hex||stage.color};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${stage.label}</div>
+        <div style="flex:1;background:var(--bg3);border-radius:4px;height:20px;position:relative;min-width:60px">
+          <div style="position:absolute;left:0;top:0;bottom:0;width:${bar}px;max-width:100%;background:${stage.hex||stage.color}55;border-radius:4px;transition:width .4s"></div>
+          <div style="position:absolute;left:8px;top:0;bottom:0;display:flex;align-items:center;font-size:11px;font-weight:700;color:${stage.hex||stage.color}">${d.count} (${pct}%)</div>
+        </div>
+        <div style="font-size:10px;color:var(--t3)">▼</div>
+      </div>
+      <div id="la-list-stage-${stage.id}" style="display:none;margin-left:150px;margin-bottom:4px">
+        ${buildLALeadMiniList(d.leads)}
+      </div>`;
+  });
+
+  html += `</div></div>
+
+  <!-- По источникам -->
+  <div style="margin-bottom:24px">
+    <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:12px">📍 По источникам</div>
+    <div style="display:flex;flex-direction:column;gap:6px">`;
+
+  Object.entries(bySrc).sort((a,b)=>b[1].count-a[1].count).forEach(([srcId,d])=>{
+    const pct = Math.round(d.count/total*100);
+    const bar = Math.round(pct*2.4);
+    const clr = '#7c5cfc';
+    html += `
+      <div style="display:flex;align-items:center;gap:10px;cursor:pointer" onclick="toggleLALeadList('src-${srcId||'none'}')">
+        <div style="width:140px;font-size:12px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.label}</div>
+        <div style="flex:1;background:var(--bg3);border-radius:4px;height:20px;position:relative;min-width:60px">
+          <div style="position:absolute;left:0;top:0;bottom:0;width:${bar}px;max-width:100%;background:rgba(124,92,252,.25);border-radius:4px;transition:width .4s"></div>
+          <div style="position:absolute;left:8px;top:0;bottom:0;display:flex;align-items:center;font-size:11px;font-weight:700;color:var(--ac2)">${d.count} (${pct}%)</div>
+        </div>
+        <div style="font-size:10px;color:var(--t3)">▼</div>
+      </div>
+      <div id="la-list-src-${srcId||'none'}" style="display:none;margin-left:150px;margin-bottom:4px">
+        ${buildLALeadMiniList(d.leads)}
+      </div>`;
+  });
+
+  html += `</div></div>`;
+
+  // По дням если больше 1 дня
+  if(dayLabels.length > 1){
+    const maxDay = Math.max(...dayLabels.map(d=>byDay[d]));
+    html += `
+    <div style="margin-bottom:24px">
+      <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:12px">📅 По дням</div>
+      <div style="display:flex;gap:4px;align-items:flex-end;height:80px;overflow-x:auto;padding-bottom:20px;position:relative">`;
+    dayLabels.forEach(d=>{
+      const cnt = byDay[d];
+      const h = Math.max(4, Math.round(cnt/maxDay*70));
+      const label = d.slice(5); // MM-DD
+      html += `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:32px">
+        <div style="font-size:9px;color:var(--t2);font-weight:600">${cnt}</div>
+        <div style="width:24px;background:var(--ac);border-radius:3px 3px 0 0;height:${h}px;opacity:.8"></div>
+        <div style="font-size:8px;color:var(--t3);transform:rotate(-45deg);transform-origin:top left;white-space:nowrap;margin-top:4px">${label}</div>
+      </div>`;
+    });
+    html += `</div></div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+function buildLALeadMiniList(leads){
+  return `<div style="background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden">` +
+    leads.slice(0,20).map(l=>{
+      const stage = crmStage(l.stage||'new');
+      const dt = l.createdAt ? new Date(l.createdAt).toLocaleString('ru',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+      const srcLabel = CRM_SOURCES.find(s=>s.id===l.source)?.label || l.source || '—';
+      // Записи звонков из crmChats
+      const hasRec = (window._crmLeadsCache?.[l.id]);
+      return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--b1);cursor:pointer"
+        onclick="nav(document.querySelector('[data-p=crm]'));setTimeout(()=>openCRMCard('${l.id}'),300)">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:600;color:var(--t1)">${l.name||l.phone||'—'}</div>
+          <div style="font-size:10px;color:var(--t3);display:flex;gap:8px;margin-top:2px;flex-wrap:wrap">
+            <span>${dt}</span>
+            <span style="color:${stage.hex||stage.color}">${stage.label}</span>
+            <span>📍${srcLabel}</span>
+            ${l.phone?`<span>${l.phone}</span>`:''}
+          </div>
+        </div>
+        <div style="font-size:10px;color:var(--ac);flex-shrink:0">Открыть →</div>
+      </div>`;
+    }).join('') +
+    (leads.length>20?`<div style="text-align:center;padding:8px;font-size:11px;color:var(--t3)">+${leads.length-20} ещё</div>`:'') +
+    `</div>`;
+}
+
+function toggleLALeadList(key){
+  const el = document.getElementById('la-list-'+key);
+  if(!el) return;
+  el.style.display = el.style.display==='none' ? 'block' : 'none';
 }
 
 function renderReports(){
