@@ -1103,40 +1103,56 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
 <!-- Modal: Add User -->
 <!-- Modal: Central File (rejection/complete) -->
 <div class="mo" id="m-central-file">
-  <div class="modal" style="max-width:400px">
+  <div class="modal" style="max-width:420px">
     <div class="mt">📁 Центральный файл</div>
-    <div style="font-size:13px;color:var(--t2);margin-bottom:16px">Укажите результат работы с лидом:</div>
-    <div style="display:flex;gap:8px;margin-bottom:16px">
+
+    <!-- Source row — shown only if not set -->
+    <div id="cf-source-row" style="display:none;margin-bottom:14px">
+      <div class="fr" style="margin-bottom:0">
+        <label>📍 Источник <span style="color:var(--rd)">*</span></label>
+        <select id="cf-source-select"
+          style="background:var(--bg3);border:2px solid var(--ac);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:13px;padding:8px 11px;width:100%">
+          <option value="">— Выберите источник —</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Result type -->
+    <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:8px">Результат работы с лидом <span style="color:var(--rd)">*</span></div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
       <button id="cf-btn-complete" onclick="setCFType('complete')"
-        style="flex:1;padding:12px;border-radius:var(--r);border:2px solid var(--gn);background:rgba(63,216,142,.1);color:var(--gn);font-family:var(--fb);font-size:13px;font-weight:700;cursor:pointer">
+        style="flex:1;padding:11px 8px;border-radius:var(--r);border:2px solid var(--b1);background:var(--bg3);color:var(--t2);font-family:var(--fb);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s">
         ✅ Завершить сделку
       </button>
       <button id="cf-btn-reject" onclick="setCFType('reject')"
-        style="flex:1;padding:12px;border-radius:var(--r);border:2px solid var(--b1);background:var(--bg3);color:var(--t2);font-family:var(--fb);font-size:13px;font-weight:700;cursor:pointer">
-        ❌ Отказ
+        style="flex:1;padding:11px 8px;border-radius:var(--r);border:2px solid var(--b1);background:var(--bg3);color:var(--t2);font-family:var(--fb);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s">
+        ❌ Некачественный лид
       </button>
     </div>
-    <div id="cf-reject-section" style="display:none">
-      <div class="fr">
-        <label>Причина отказа</label>
+
+    <!-- Reject reason — shown when "Некачественный лид" selected -->
+    <div id="cf-reject-section" style="display:none;margin-bottom:14px">
+      <div class="fr" style="margin-bottom:0">
+        <label>Причина <span style="color:var(--rd)">*</span></label>
         <select id="cf-reject-reason"
           style="background:var(--bg3);border:2px solid var(--rd);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:13px;padding:8px 11px;width:100%">
           <option value="">— Выберите причину —</option>
         </select>
       </div>
     </div>
-    <div style="display:flex;gap:8px;margin-top:16px">
+
+    <div style="display:flex;gap:8px;margin-top:4px">
       <button onclick="confirmCentralFile()" class="btn btn-a" style="flex:1">✓ Подтвердить</button>
       <button onclick="cancelCentralFile()" class="btn" style="flex:0 0 auto">Отмена</button>
     </div>
   </div>
 </div>
 
-<!-- Modal: Source Required -->
+<!-- Modal: Source Required (for non-closing stages) -->
 <div class="mo" id="m-source-required">
   <div class="modal" style="max-width:360px">
     <div class="mt">📌 Укажите источник лида</div>
-    <div style="font-size:13px;color:var(--t2);margin-bottom:16px">Для сохранения изменений необходимо указать, откуда пришёл клиент.</div>
+    <div style="font-size:13px;color:var(--t2);margin-bottom:16px">Необходимо указать, откуда пришёл клиент.</div>
     <div class="fr">
       <label>Источник</label>
       <select id="m-source-select" style="background:var(--bg3);border:2px solid var(--ac);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:13px;padding:8px 11px;width:100%">
@@ -11873,8 +11889,25 @@ function showCentralFileModal(leadId, stageId, onConfirm){
   _cfStage    = stageId;
   _cfCallback = onConfirm;
   _cfType     = null;
-  setCFType(null); // reset
+
+  // Populate selects
+  const cfSrcSel = document.getElementById('cf-source-select');
+  if(cfSrcSel){
+    cfSrcSel.innerHTML = '<option value="">— Выберите источник —</option>' +
+      CRM_SOURCES.map(s=>`<option value="${s.id}">${s.label}</option>`).join('');
+  }
   populateCFRejectSelect();
+
+  // Prefill source if already set
+  const cached = window._crmLeadsCache?.[leadId];
+  const existingSource = cached?.source||'';
+  const sourceRow = document.getElementById('cf-source-row');
+  if(sourceRow) sourceRow.style.display = existingSource ? 'none' : 'block';
+  if(cfSrcSel && existingSource) cfSrcSel.value = existingSource;
+
+  // Reset result buttons
+  setCFType(null);
+
   const el = document.getElementById('m-central-file');
   if(el){ el.style.display='flex'; el.style.zIndex='9999'; }
 }
@@ -11884,37 +11917,56 @@ function setCFType(type){
   const btnComplete = document.getElementById('cf-btn-complete');
   const btnReject   = document.getElementById('cf-btn-reject');
   const section     = document.getElementById('cf-reject-section');
-  if(btnComplete) btnComplete.style.cssText = type==='complete'
-    ? 'flex:1;padding:12px;border-radius:var(--r);border:2px solid var(--gn);background:rgba(63,216,142,.25);color:var(--gn);font-family:var(--fb);font-size:13px;font-weight:700;cursor:pointer'
-    : 'flex:1;padding:12px;border-radius:var(--r);border:2px solid var(--b1);background:var(--bg3);color:var(--t2);font-family:var(--fb);font-size:13px;font-weight:700;cursor:pointer';
-  if(btnReject) btnReject.style.cssText = type==='reject'
-    ? 'flex:1;padding:12px;border-radius:var(--r);border:2px solid var(--rd);background:rgba(240,89,117,.2);color:var(--rd);font-family:var(--fb);font-size:13px;font-weight:700;cursor:pointer'
-    : 'flex:1;padding:12px;border-radius:var(--r);border:2px solid var(--b1);background:var(--bg3);color:var(--t2);font-family:var(--fb);font-size:13px;font-weight:700;cursor:pointer';
-  if(section) section.style.display = type==='reject' ? 'block' : 'none';
+  const activeComplete = `flex:1;padding:11px 8px;border-radius:var(--r);border:2px solid var(--gn);background:rgba(63,216,142,.2);color:var(--gn);font-family:var(--fb);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s`;
+  const inactiveBtn   = `flex:1;padding:11px 8px;border-radius:var(--r);border:2px solid var(--b1);background:var(--bg3);color:var(--t2);font-family:var(--fb);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s`;
+  const activeReject  = `flex:1;padding:11px 8px;border-radius:var(--r);border:2px solid var(--rd);background:rgba(240,89,117,.2);color:var(--rd);font-family:var(--fb);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s`;
+  if(btnComplete) btnComplete.style.cssText = type==='complete' ? activeComplete : inactiveBtn;
+  if(btnReject)   btnReject.style.cssText   = type==='reject'   ? activeReject   : inactiveBtn;
+  if(section)     section.style.display     = type==='reject' ? 'block' : 'none';
 }
 
 function confirmCentralFile(){
-  if(!_cfType){ toast('Выберите тип завершения', true); return; }
+  // Validate source
+  const cached = window._crmLeadsCache?.[_cfLeadId];
+  const existingSource = cached?.source||'';
+  const cfSrcSel = document.getElementById('cf-source-select');
+  const sourceRow = document.getElementById('cf-source-row');
+  const sourceVal = sourceRow?.style.display !== 'none' ? (cfSrcSel?.value||'') : existingSource;
+  if(!sourceVal){ toast('Укажите источник лида', true); cfSrcSel?.focus(); return; }
+
+  // Validate result type
+  if(!_cfType){ toast('Выберите результат: Завершить или Некачественный лид', true); return; }
+
+  // Validate reject reason
+  let rejectReason = '';
   if(_cfType==='reject'){
-    const r = document.getElementById('cf-reject-reason')?.value;
-    if(!r){ toast('Укажите причину отказа', true); return; }
-    // Сохраняем причину в lead
-    if(_cfLeadId){
-      crmRef.child(_cfLeadId).update({rejectReason: r, closingType:'reject', updatedAt: new Date().toISOString()});
-      if(window._crmLeadsCache?.[_cfLeadId]){
-        window._crmLeadsCache[_cfLeadId].rejectReason = r;
-        window._crmLeadsCache[_cfLeadId].closingType = 'reject';
-      }
-      // Обновляем поле в открытой карточке
-      const sel = document.getElementById('crm-f-reject');
-      if(sel){ populateCRMRejectSelect(); sel.value = r; }
+    rejectReason = document.getElementById('cf-reject-reason')?.value||'';
+    if(!rejectReason){ toast('Укажите причину некачественного лида', true); return; }
+  }
+
+  // Save to Firebase
+  if(_cfLeadId){
+    const upd = {
+      closingType: _cfType,
+      rejectReason: rejectReason,
+      updatedAt: new Date().toISOString()
+    };
+    if(!existingSource) upd.source = sourceVal;
+    crmRef.child(_cfLeadId).update(upd);
+    if(window._crmLeadsCache?.[_cfLeadId]){
+      Object.assign(window._crmLeadsCache[_cfLeadId], upd);
     }
-  } else {
-    if(_cfLeadId){
-      crmRef.child(_cfLeadId).update({closingType:'complete', rejectReason:'', updatedAt: new Date().toISOString()});
-      if(window._crmLeadsCache?.[_cfLeadId]) window._crmLeadsCache[_cfLeadId].closingType = 'complete';
+    // Sync to open card form
+    if(!existingSource){
+      const fSrc = document.getElementById('crm-f-source');
+      if(fSrc){ populateCRMSourceSelect(); fSrc.value = sourceVal; }
+    }
+    if(rejectReason){
+      const fRej = document.getElementById('crm-f-reject');
+      if(fRej){ populateCRMRejectSelect(); fRej.value = rejectReason; }
     }
   }
+
   const el = document.getElementById('m-central-file');
   if(el) el.style.display='none';
   const cb = _cfCallback; _cfCallback=null;
@@ -13827,31 +13879,29 @@ function crmDrop(event, newStage){
   _crmDragId = null;
   if(!dragId || dragId==='null' || dragId==='undefined') return;
 
-  // Берём из локального кэша — быстро и без race condition
   const cached = window._crmLeadsCache?.[dragId];
   if(!cached){ toast('Лид не найден', true); return; }
   const l = {...cached, id: dragId};
   if(l.stage === newStage){ toast('Уже в этой стадии'); return; }
 
-  // Если источник не выставлен — требуем перед сменой стадии
-  if(!l.source){
-    requireSource(dragId, (chosenSource)=>{
-      _doStageChange(dragId, newStage, {...l, source: chosenSource});
-    });
-    return;
-  }
-
-  _doStageChange(dragId, newStage, l);
-}
-
-function _doStageChange(dragId, newStage, l){
-  // Если колонка "Центральный файл" — сначала выбрать тип завершения
+  // Центральный файл — единое окно (источник + результат + причина)
   if(isCentralFileStage(newStage)){
     showCentralFileModal(dragId, newStage, ()=>{
-      _doStageChangeCommit(dragId, newStage, l);
+      // После подтверждения берём актуальный кэш (source мог обновиться)
+      const fresh = window._crmLeadsCache?.[dragId]||l;
+      _doStageChangeCommit(dragId, newStage, fresh);
     });
     return;
   }
+
+  // Для всех остальных стадий — только проверка источника
+  if(!l.source){
+    requireSource(dragId, (chosenSource)=>{
+      _doStageChangeCommit(dragId, newStage, {...l, source: chosenSource});
+    });
+    return;
+  }
+
   _doStageChangeCommit(dragId, newStage, l);
 }
 
@@ -15819,7 +15869,16 @@ function renderCRMStageBar(activeId){
       const newStage = stage.id;
       const curStage = document.getElementById('crm-f-stage')?.value;
       if(newStage === curStage) return;
-      // Проверяем источник
+
+      // Центральный файл — единое окно (источник + результат внутри модалки)
+      if(isCentralFileStage(newStage) && _crmEditId){
+        showCentralFileModal(_crmEditId, newStage, ()=>{
+          _stageBarApply(newStage);
+        });
+        return;
+      }
+
+      // Все остальные стадии — только проверка источника
       const curSource = document.getElementById('crm-f-source')?.value;
       if(!curSource && _crmEditId){
         requireSource(_crmEditId, ()=>{
@@ -15827,13 +15886,7 @@ function renderCRMStageBar(activeId){
         });
         return;
       }
-      // Центральный файл — показываем модалку завершения
-      if(isCentralFileStage(newStage) && _crmEditId){
-        showCentralFileModal(_crmEditId, newStage, ()=>{
-          _stageBarApply(newStage);
-        });
-        return;
-      }
+
       _stageBarApply(newStage);
     });
     bar.appendChild(btn);
