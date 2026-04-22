@@ -13097,14 +13097,9 @@ function showStageQuickPick(leadId, anchorBtn){
   setTimeout(()=>{ document.addEventListener('click', function h(e){ if(!pick.contains(e.target)){ pick.remove(); document.removeEventListener('click',h); } }, {capture:true}); }, 10);
 }
 
-async function crmDropQuick(leadId, newStage){
-  const snap = await crmRef.child(leadId).once('value');
-  const l = snap.val();
-  if(!l) return;
-  if(l.stage === newStage){ toast('Уже в этой стадии'); return; }
-  // Re-use crmDrop logic
+function crmDropQuick(leadId, newStage){
   _crmDragId = leadId;
-  await crmDrop(null, newStage);
+  crmDrop(null, newStage);
 }
 
 function initCRMDragDrop(){
@@ -13334,68 +13329,70 @@ async function crmBulkStage(){
 // ── DRAG & DROP ───────────────────────────────────────────────────
 function crmDrop(event, newStage){
   if(event) event.preventDefault();
-  const dragId = _crmDragId; // сохраняем до сброса
+  const dragId = _crmDragId;
   _crmDragId = null;
   if(!dragId || dragId==='null' || dragId==='undefined') return;
 
-  // Оптимистично обновляем сразу — не ждём Firebase
+  // Берём данные из локального кэша — не ждём Firebase (нет race condition)
+  const l = S.crm?.[dragId];
+  if(!l){ toast('Лид не найден', true); return; }
+  if(l.stage === newStage){ toast('Уже в этой стадии'); return; }
+
+  // Если источник не выставлен — требуем перед сменой стадии
+  if(!l.source){
+    requireSource(dragId, (chosenSource)=>{
+      // источник уже сохранён в Firebase и S.crm внутри confirmSourceRequired
+      // выполняем смену стадии напрямую — не через crmDrop (нет рекурсии)
+      _doStageChange(dragId, newStage, {...l, source: chosenSource});
+    });
+    return;
+  }
+
+  _doStageChange(dragId, newStage, l);
+}
+
+function _doStageChange(dragId, newStage, l){
   const now = new Date().toISOString();
-  crmRef.child(dragId).once('value').then(snap=>{
-    const l = snap.val();
-    if(!l) return;
-    if(l.stage === newStage){ toast('Уже в этой стадии'); return; }
+  const updateData = {stage: newStage, lastContact: now, updatedAt: now};
 
-    // Если источник не выставлен — требуем перед сменой стадии
-    if(!l.source){
-      requireSource(dragId, ()=>{
-        // dragId уже сохранён в замыкании, _crmDragId уже null — ставим снова
-        _crmDragId = dragId;
-        crmDrop(null, newStage);
-      });
-      return;
-    }
+  if(newStage === 'trial_paid' && l.stage !== 'trial_paid' && !l.trialPaidAt){
+    updateData.trialPaidAt = now;
+    showLocalNotification('🧪 Пробный оплачен', l.name||l.phone||'—', 'crm', 'trial-paid');
+  }
+  crmRef.child(dragId).update(updateData);
 
-    // Пишем в Firebase
-    const updateData = {stage: newStage, lastContact: now, updatedAt: now};
-    // При переходе в "Пробный оплачен" фиксируем дату
-    if(newStage === 'trial_paid' && l.stage !== 'trial_paid' && !l.trialPaidAt){
-      updateData.trialPaidAt = now;
-      showLocalNotification('🧪 Пробный оплачен', l.name||l.phone||'—', 'crm', 'trial-paid');
-    }
-    crmRef.child(dragId).update(updateData);
+  // Обновляем локальный кэш оптимистично
+  if(S.crm?.[dragId]) S.crm[dragId].stage = newStage;
 
-    // Лог в чат
-    const chatMsg = `📌 Стадия: «${crmStage(l.stage).label}» → «${crmStage(newStage).label}»`;
-    crmChatRef.child(dragId).push({type:'system', text:chatMsg, ts:now, uid:fbAuth.currentUser?.uid||'', name:'Система'});
+  // Лог в чат
+  const chatMsg = `📌 Стадия: «${crmStage(l.stage).label}» → «${crmStage(newStage).label}»`;
+  crmChatRef.child(dragId).push({type:'system', text:chatMsg, ts:now, uid:fbAuth.currentUser?.uid||'', name:'Система'});
 
-    // Авто WhatsApp — берём шаблон из настроек (кастомные стадии) или из дефолтных
-    const allStageMsgs = Object.assign({}, CRM_STAGE_MSGS, S.settings?.crmStageMsgs || {});
-    const tpl = allStageMsgs[newStage];
-    if(tpl && l.phone){
-      const phone = (l.phone||'').replace(/\D/g,'');
-      const waMsg = resolveStageMsg(tpl, l);
-      if(phone && waMsg) notifyWhatsApp('+'+phone, waMsg).then(r=>{
-        if(r?.ok){
-          crmChatRef.child(dragId).push({type:'out', text:waMsg, ts:new Date().toISOString(), uid:fbAuth.currentUser?.uid||'', name:'Авто'});
-          crmRef.child(dragId+'/msgCount').transaction(v=>(v||0)+1);
-        }
-      });
-    }
+  // Авто WhatsApp
+  const allStageMsgs = Object.assign({}, CRM_STAGE_MSGS, S.settings?.crmStageMsgs || {});
+  const tpl = allStageMsgs[newStage];
+  if(tpl && l.phone){
+    const phone = (l.phone||'').replace(/\D/g,'');
+    const waMsg = resolveStageMsg(tpl, l);
+    if(phone && waMsg) notifyWhatsApp('+'+phone, waMsg).then(r=>{
+      if(r?.ok){
+        crmChatRef.child(dragId).push({type:'out', text:waMsg, ts:new Date().toISOString(), uid:fbAuth.currentUser?.uid||'', name:'Авто'});
+        crmRef.child(dragId+'/msgCount').transaction(v=>(v||0)+1);
+      }
+    });
+  }
 
-    // Уведомляем преподавателя если для этой стадии включено
-    const notifyStages = S.settings?.crmTeacherNotifyStages || [];
-    if(notifyStages.includes(newStage)){
-      sendTeacherStageNotify(dragId, crmStage(newStage).label);
-    }
+  // Уведомляем преподавателя
+  const notifyStages = S.settings?.crmTeacherNotifyStages || [];
+  if(notifyStages.includes(newStage)) sendTeacherStageNotify(dragId, crmStage(newStage).label);
 
-    // Пульс: фиксируем смену стадии
-    logAction('crm_stage',
-      `${l.name||'Лид'} → «${crmStage(newStage).label}»`,
-      `Из «${crmStage(l.stage).label}» · ${fbAuth.currentUser?.email||'—'}`
-    );
-    toast(`✓ ${l.name||'Лид'} → ${crmStage(newStage).label}`);
-    // real-time слушатель сам обновит канбан
-  });
+  // Пульс
+  logAction('crm_stage',
+    `${l.name||'Лид'} → «${crmStage(newStage).label}»`,
+    `Из «${crmStage(l.stage).label}» · ${fbAuth.currentUser?.email||'—'}`
+  );
+  toast(`✓ ${l.name||'Лид'} → ${crmStage(newStage).label}`);
+  // real-time слушатель сам обновит канбан
 }
 
 // ── OPEN CARD MODAL ───────────────────────────────────────────────
