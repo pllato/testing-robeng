@@ -1006,6 +1006,13 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
         <div style="margin-top:28px;padding-top:20px;border-top:1px solid var(--b1)">
           <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:4px">💼 Настройки CRM</div>
 
+          <!-- Sources editor -->
+          <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:8px;margin-top:12px">Список источников лидов</div>
+          <div style="font-size:11px;color:var(--t3);margin-bottom:8px">Отображается в карточке клиента в поле «Источник».</div>
+          <div id="crm-sources-editor" style="display:flex;flex-direction:column;gap:6px"></div>
+          <button class="btn btn-sm" onclick="addCRMSource()" style="margin-top:6px;font-size:11px">+ Добавить источник</button>
+          <button class="btn btn-sm btn-a" onclick="saveCRMSources();toast('Источники сохранены')" style="margin-top:6px;font-size:11px;margin-left:6px">💾 Сохранить источники</button>
+
           <!-- Stage editor -->
           <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:8px;margin-top:12px">Стадии канбана</div>
           <div id="crm-stages-editor"></div>
@@ -2078,6 +2085,10 @@ fbAuth.onAuthStateChanged(user=>{
           CRM_STAGES.length = 0;
           S.settings.crmStages.forEach(s=>CRM_STAGES.push({...s, color:s.hex||s.color||'#9896b0'}));
         }
+        if(S.settings?.crmSources && Array.isArray(S.settings.crmSources) && S.settings.crmSources.length){
+          CRM_SOURCES = [...S.settings.crmSources];
+        }
+        populateCRMSourceSelect();
       });
     }).catch(()=>{
       // No user record — treat as teacher, admin should add them
@@ -11048,6 +11059,9 @@ function renderAppSettings(){
   renderCRMStagesEditor();
   renderCRMStageSettings();
   renderCRMDistribSettings();
+  // Load & render sources
+  if(S.settings?.crmSources && S.settings.crmSources.length) CRM_SOURCES = [...S.settings.crmSources];
+  renderCRMSourcesEditor();
   // Renewal WA template
   const tmplEl=document.getElementById("set-renewal-template");
   if(tmplEl) tmplEl.value=S.settings.renewalWaTemplate||"Здравствуйте! 👋\n\nНапоминаем, что абонемент ученика *{name}* заканчивается {dateEnd}.\n\nПреподаватель: {teacher}\n\nДля продления свяжитесь с нами — мы будем рады продолжить занятия! 🎓";
@@ -11383,6 +11397,50 @@ function saveCRMStages(){
   if(!S.settings) S.settings={};
   S.settings.crmStages = CRM_STAGES.map(s=>({id:s.id,label:s.label,hex:s.hex,color:s.hex}));
   save();
+}
+
+// ── CRM Sources ──────────────────────────────────────────────────────────────
+const DEFAULT_CRM_SOURCES = [
+  {id:'whatsapp',   label:'WhatsApp'},
+  {id:'instagram',  label:'Instagram'},
+  {id:'website',    label:'Сайт'},
+  {id:'referral',   label:'Рекомендация'},
+  {id:'call',       label:'Входящий звонок'},
+  {id:'other',      label:'Другое'},
+];
+let CRM_SOURCES = [...DEFAULT_CRM_SOURCES];
+
+function renderCRMSourcesEditor(){
+  const el = document.getElementById('crm-sources-editor');
+  if(!el) return;
+  el.innerHTML = CRM_SOURCES.map((s,i)=>`
+    <div style="display:flex;align-items:center;gap:6px">
+      <input value="${s.label}" oninput="CRM_SOURCES[${i}].label=this.value;CRM_SOURCES[${i}].id=this.value.toLowerCase().replace(/[^a-zа-я0-9]/gi,'_')"
+        style="flex:1;background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);padding:5px 9px;font-size:12px;font-family:var(--fb)"/>
+      <button onclick="CRM_SOURCES.splice(${i},1);renderCRMSourcesEditor()"
+        style="background:rgba(220,60,60,.1);border:1px solid rgba(220,60,60,.3);color:var(--rd);border-radius:5px;padding:4px 8px;cursor:pointer;font-size:12px">✕</button>
+    </div>`).join('');
+}
+
+function addCRMSource(){
+  CRM_SOURCES.push({id:'source_'+Date.now(), label:'Новый источник'});
+  renderCRMSourcesEditor();
+}
+
+function saveCRMSources(){
+  if(!S.settings) S.settings={};
+  S.settings.crmSources = CRM_SOURCES.map(s=>({id:s.id,label:s.label}));
+  save();
+  populateCRMSourceSelect();
+}
+
+function populateCRMSourceSelect(){
+  const sel = document.getElementById('crm-f-source');
+  if(!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Не указан —</option>' +
+    CRM_SOURCES.map(s=>`<option value="${s.id}">${s.label}</option>`).join('');
+  if(cur) sel.value = cur;
 }
 
 function saveCRMSettings(){
@@ -13365,6 +13423,7 @@ function openCRMCard(id){
       document.getElementById('crm-f-name').value = l.name||'';
       document.getElementById('crm-f-phone').value = l.phone||'';
       // call buttons always visible
+      populateCRMSourceSelect();
       document.getElementById('crm-f-source').value = l.source||'';
       document.getElementById('crm-f-interest').value = l.interest||'';
       document.getElementById('crm-f-budget').value = l.budget||'';
@@ -14186,16 +14245,20 @@ async function renderCallsLog(){
     return;
   }
 
-  const rows = filtered.map(c=>{
+
+  // Пагинация — ограничиваем рендер чтобы не крашить браузер (844 аудиоплеера = смерть)
+  const PAGE = 80;
+  window._callsAllFiltered = filtered;
+  window._callsShown = window._callsShown || PAGE;
+  // Сбросить при смене фильтра
+  if(window._callsLastFilter !== _callsFilter){ window._callsShown = PAGE; window._callsLastFilter = _callsFilter; }
+  const visRows = filtered.slice(0, window._callsShown).map(c=>{
     const isOut = String(c.callType)==='1';
-    const unk   = c.callType==='?';
     const dirIcon  = c.isMissed ? '📵' : isOut ? '📞↗' : '📞↙';
     const dirLabel = c.isMissed ? 'Пропущен' : isOut ? 'Исходящий' : 'Входящий';
     const statusColor = c.isMissed?'var(--rd)': c.answered?'var(--gn)':'var(--t3)';
-    const statusLabel = c.isMissed?'❌ Пропущен': c.answered?'✅ Отвечен':'— Нет ответа';
     const durStr = c.duration>0?`${Math.floor(c.duration/60)}м ${c.duration%60}с`:'—';
     const dt = c.ts?new Date(c.ts).toLocaleString('ru',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
-
     const dealBtn = c.leadId
       ?`<button onclick="nav(document.querySelector('[data-p=crm]'));setTimeout(()=>openCRMCard('${c.leadId}'),300)"
           style="background:var(--acbg);border:1px solid var(--acb);border-radius:5px;color:var(--ac2);cursor:pointer;padding:3px 9px;font-size:11px;font-family:var(--fb)">
@@ -14203,39 +14266,27 @@ async function renderCallsLog(){
       :`<button onclick="createLeadFromCall('${c.phone}','${c.leadName||''}')"
           style="background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.3);border-radius:5px;color:var(--gn);cursor:pointer;padding:3px 9px;font-size:11px;font-family:var(--fb)">
           ➕ в CRM</button>`;
-
-    const callBtns = c.phone
-      ?`<button onclick="crmWACallByPhone('${c.phone}')"
-            style="background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.25);border-radius:5px;color:var(--gn);cursor:pointer;padding:3px 9px;font-size:11px">📞 WA</button>
-         <button onclick="crmCallByPhone('${c.phone}','${c.leadId||''}')"
-            style="background:rgba(124,92,252,.1);border:1px solid rgba(124,92,252,.25);border-radius:5px;color:var(--ac2);cursor:pointer;padding:3px 9px;font-size:11px">📞</button>`
-      :'';
-
+    const callBtns=`<button onclick="waOpen('${c.phone}')" style="background:var(--acbg);border:1px solid var(--acb);border-radius:5px;padding:3px 7px;cursor:pointer;font-size:12px">📲 WA</button>
+      <button onclick="startBinotelCall('${c.phone}')" style="background:var(--bg2);border:1px solid var(--b1);border-radius:5px;padding:3px 7px;cursor:pointer;font-size:12px">📞</button>`;
     const recHtml = c.recordingLink
-      ?`<div style="margin-top:5px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-          <span style="font-size:10px;color:var(--gn)">🎙</span>
-          <audio controls src="${c.recordingLink}" style="height:32px;max-width:180px;vertical-align:middle"></audio>
-          <a href="${c.recordingLink}" target="_blank" download style="font-size:10px;color:var(--ac);text-decoration:none;border:1px solid var(--ac);border-radius:4px;padding:2px 6px">⬇ скачать</a>
-        </div>`
-      :'';
-
-    return`<div style="display:grid;grid-template-columns:52px 1fr auto;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--b1)">
-      <div style="display:flex;flex-direction:column;align-items:center;gap:1px;min-width:44px">
-        <span style="font-size:20px">${dirIcon}</span>
-        <span style="font-size:8px;font-weight:600;color:${isOut?'var(--ac2)':c.isMissed?'var(--rd)':'var(--gn)'};text-align:center;line-height:1.2">${dirLabel}</span>
-        <span style="font-size:8px;color:${statusColor};text-align:center;line-height:1.2">${c.isMissed?'':c.answered?'':'нет отв.'}</span>
-      </div>
-      <div>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <span style="font-size:13px;font-weight:600;color:var(--t1)">${c.phone||'—'}</span>
-          ${c.leadName?`<span style="font-size:11px;color:var(--t2)">${c.leadName}</span>`:''}
+      ?`<div style="margin-top:6px"><audio controls src="${c.recordingLink}" style="height:28px;width:100%;max-width:320px"></audio>
+         <a href="${c.recordingLink}" download style="font-size:10px;color:var(--ac)">⬇ скачать</a></div>`:'';
+    return `<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 14px;border-bottom:1px solid var(--b1);gap:10px">
+      <div style="display:flex;align-items:flex-start;gap:10px;flex:1;min-width:0">
+        <div style="font-size:22px;line-height:1;padding-top:2px">${dirIcon}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <span style="font-size:11px;padding:1px 6px;border-radius:4px;background:${statusColor}22;color:${statusColor}">${dirLabel}</span>
+            <span style="font-size:13px;font-weight:600;color:var(--t1)">${c.phone||'—'}</span>
+            ${c.leadName?`<span style="font-size:11px;color:var(--t2)">${c.leadName}</span>`:''}
+          </div>
+          <div style="font-size:10px;color:var(--t3);margin-top:2px;display:flex;gap:10px;flex-wrap:wrap">
+            <span>🕐 ${dt}</span>
+            ${c.duration>0?`<span>⏱ ${durStr}</span>`:''}
+            ${c.internalNumber?`<span>☎ ${c.internalNumber}</span>`:''}
+          </div>
+          ${recHtml}
         </div>
-        <div style="font-size:10px;color:var(--t3);margin-top:2px;display:flex;gap:10px;flex-wrap:wrap">
-          <span>🕐 ${dt}</span>
-          ${c.duration>0?`<span>⏱ ${durStr}</span>`:''}
-          ${c.internalNumber?`<span>☎ ${c.internalNumber}</span>`:''}
-        </div>
-        ${recHtml}
       </div>
       <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex-shrink:0">
         ${dealBtn}
@@ -14244,8 +14295,12 @@ async function renderCallsLog(){
     </div>`;
   }).join('');
 
+  const moreBtn = filtered.length > window._callsShown
+    ? `<div style="text-align:center;padding:12px"><button onclick="window._callsShown+=${PAGE};renderCallsLog()" style="background:var(--bg3);border:1px solid var(--b1);border-radius:6px;padding:8px 20px;cursor:pointer;color:var(--t2);font-family:var(--fb);font-size:12px">Показать ещё (${filtered.length - window._callsShown} из ${filtered.length})</button></div>`
+    : '';
+
   body.innerHTML=`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">${tabBar}</div>
-    <div style="background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden">${rows}</div>`;
+    <div style="background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden">${visRows}${moreBtn}</div>`;
 }
 
 async function showBinotelDebug(){
@@ -15965,12 +16020,6 @@ function addCRMLinkToStudent(studentEl, phone){
             <label>Источник</label>
             <select id="crm-f-source" onchange="crmAutoSave()" style="background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:13px;padding:8px 11px;width:100%">
               <option value="">— Не указан —</option>
-              <option value="whatsapp">WhatsApp</option>
-              <option value="instagram">Instagram</option>
-              <option value="website">Сайт</option>
-              <option value="referral">Рекомендация</option>
-              <option value="call">Входящий звонок</option>
-              <option value="other">Другое</option>
             </select>
           </div>
           <div class="fr">
