@@ -1034,6 +1034,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
 
           <!-- Stage editor -->
           <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:8px;margin-top:12px">Стадии канбана</div>
+          <div style="font-size:11px;color:var(--t3);margin-bottom:8px">Поставьте 📁 у стадии «Центральный файл» — при переводе туда появится окно с выбором: Завершить сделку или Отказ с причиной.</div>
           <div id="crm-stages-editor"></div>
           <button class="btn btn-sm" onclick="addCRMStage()" style="margin-top:6px;font-size:11px">+ Добавить стадию</button>
           <button class="btn btn-sm btn-a" onclick="saveCRMStages();toast('Стадии сохранены')" style="margin-top:6px;font-size:11px;margin-left:6px">💾 Сохранить стадии</button>
@@ -2177,7 +2178,7 @@ fbAuth.onAuthStateChanged(user=>{
         // Загружаем сохранённые стадии CRM
         if(S.settings?.crmStages && Array.isArray(S.settings.crmStages) && S.settings.crmStages.length>=2){
           CRM_STAGES.length = 0;
-          S.settings.crmStages.forEach(s=>CRM_STAGES.push({...s, color:s.hex||s.color||'#9896b0'}));
+          S.settings.crmStages.forEach(s=>CRM_STAGES.push({...s, color:s.hex||s.color||'#9896b0', closingStage:!!s.closingStage}));
         }
         if(S.settings?.crmSources && Array.isArray(S.settings.crmSources) && S.settings.crmSources.length){
           CRM_SOURCES = [...S.settings.crmSources];
@@ -11689,6 +11690,19 @@ function renderCRMStagesEditor(){
 
     row.appendChild(colorInput);
     row.appendChild(labelInput);
+
+    // "Closing stage" checkbox — requires CF modal on drop
+    const cfLabel = document.createElement('label');
+    cfLabel.title = 'При переводе в эту стадию — обязательно указать тип завершения (Отказ / Завершить сделку)';
+    cfLabel.style.cssText = 'display:flex;align-items:center;gap:3px;cursor:pointer;flex-shrink:0;font-size:10px;color:var(--t3);white-space:nowrap';
+    const cfChk = document.createElement('input');
+    cfChk.type = 'checkbox';
+    cfChk.checked = !!stage.closingStage;
+    cfChk.addEventListener('change', ()=>{ CRM_STAGES[i].closingStage = cfChk.checked; saveCRMStages(); });
+    cfLabel.appendChild(cfChk);
+    cfLabel.appendChild(document.createTextNode('📁'));
+    row.appendChild(cfLabel);
+
     row.appendChild(upBtn);
     row.appendChild(dnBtn);
 
@@ -11744,7 +11758,7 @@ function deleteCRMStage(i){
 
 function saveCRMStages(){
   if(!S.settings) S.settings={};
-  S.settings.crmStages = CRM_STAGES.map(s=>({id:s.id,label:s.label,hex:s.hex,color:s.hex}));
+  S.settings.crmStages = CRM_STAGES.map(s=>({id:s.id,label:s.label,hex:s.hex,color:s.hex,closingStage:!!s.closingStage}));
   save();
 }
 
@@ -11844,11 +11858,14 @@ let _cfCallback = null;
 
 // Определяем — является ли стадия "Центральным файлом"
 // Проверяем по label (пользователь мог переименовать) — ищем по id тоже
-const CENTRAL_FILE_STAGE_LABELS = ['центральный файл','central file','архив','archive'];
 function isCentralFileStage(stageId){
-  const s = crmStage(stageId);
+  // Проверяем по флагу closingStage который ставится в редакторе стадий (📁)
+  // Также fallback на label для обратной совместимости
+  const s = CRM_STAGES.find(st=>st.id===stageId);
   if(!s) return false;
-  return CENTRAL_FILE_STAGE_LABELS.some(k=>s.label.toLowerCase().includes(k));
+  if(s.closingStage) return true;
+  const LABELS = ['центральный файл','central file','архив','archive','закрыт','closed'];
+  return LABELS.some(k=>s.label.toLowerCase().includes(k));
 }
 
 function showCentralFileModal(leadId, stageId, onConfirm){
@@ -11982,7 +11999,8 @@ function confirmSourceRequired(){
   const cb = _sourceRequiredCallback;
   _sourceRequiredCallback = null;
   _sourceRequiredLeadId   = null;
-  if(cb) cb(source);
+  // Небольшая задержка — даём браузеру закрыть текущую модалку перед открытием следующей
+  setTimeout(()=>{ if(cb) cb(source); }, 80);
 }
 
 function saveCRMSettings(){
