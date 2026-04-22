@@ -1054,6 +1054,23 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
 </div>
 
 <!-- Modal: Add User -->
+<!-- Modal: Source Required -->
+<div class="mo" id="m-source-required">
+  <div class="modal" style="max-width:360px">
+    <div class="mt">📌 Укажите источник лида</div>
+    <div style="font-size:13px;color:var(--t2);margin-bottom:16px">Для сохранения изменений необходимо указать, откуда пришёл клиент.</div>
+    <div class="fr">
+      <label>Источник</label>
+      <select id="m-source-select" style="background:var(--bg3);border:2px solid var(--ac);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:13px;padding:8px 11px;width:100%">
+        <option value="">— Выберите источник —</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button onclick="confirmSourceRequired()" class="btn btn-a" style="flex:1">✓ Сохранить</button>
+      <button onclick="cancelSourceRequired()" class="btn" style="flex:0 0 auto">Отмена</button>
+    </div>
+  </div>
+</div>
 <div class="mo" id="m-add-user" onmousedown="window._moDown=event.target" onclick="if(event.target===this&&window._moDown===this)close1('m-add-user')">
   <div class="modal modal-xl">
     <div class="mt" id="m-add-user-ttl">Добавить пользователя</div>
@@ -11443,6 +11460,47 @@ function populateCRMSourceSelect(){
   if(cur) sel.value = cur;
 }
 
+// ── Source Required Modal ─────────────────────────────────────────────────────
+let _sourceRequiredCallback = null;
+let _sourceRequiredLeadId   = null;
+
+function requireSource(leadId, onConfirm){
+  _sourceRequiredLeadId   = leadId;
+  _sourceRequiredCallback = onConfirm;
+  const sel = document.getElementById('m-source-select');
+  if(sel){
+    sel.innerHTML = '<option value="">— Выберите источник —</option>' +
+      CRM_SOURCES.map(s=>`<option value="${s.id}">${s.label}</option>`).join('');
+    sel.value = '';
+  }
+  open1('m-source-required');
+}
+
+function confirmSourceRequired(){
+  const sel = document.getElementById('m-source-select');
+  if(!sel?.value){ toast('Выберите источник', true); return; }
+  const source = sel.value;
+  close1('m-source-required');
+  // Обновляем в форме карточки если она открыта
+  const formSel = document.getElementById('crm-f-source');
+  if(formSel) formSel.value = source;
+  // Пишем в Firebase если есть leadId
+  if(_sourceRequiredLeadId){
+    crmRef.child(_sourceRequiredLeadId).update({source, updatedAt: new Date().toISOString()});
+    // Обновляем в S.crm
+    if(S.crm?.[_sourceRequiredLeadId]) S.crm[_sourceRequiredLeadId].source = source;
+  }
+  if(_sourceRequiredCallback) _sourceRequiredCallback(source);
+  _sourceRequiredCallback = null;
+  _sourceRequiredLeadId   = null;
+}
+
+function cancelSourceRequired(){
+  close1('m-source-required');
+  _sourceRequiredCallback = null;
+  _sourceRequiredLeadId   = null;
+}
+
 function saveCRMSettings(){
   if(!S.settings) S.settings={};
   const msgs = {};
@@ -13278,6 +13336,15 @@ function crmDrop(event, newStage){
     if(!l) return;
     if(l.stage === newStage){ toast('Уже в этой стадии'); return; }
 
+    // Если источник не выставлен — требуем перед сменой стадии
+    if(!l.source){
+      requireSource(dragId, ()=>{
+        // Повторяем drop с уже выставленным источником
+        crmDrop(null, newStage);
+      });
+      return;
+    }
+
     // Пишем в Firebase
     const updateData = {stage: newStage, lastContact: now, updatedAt: now};
     // При переходе в "Пробный оплачен" фиксируем дату
@@ -13542,6 +13609,15 @@ function crmAutoSave(){
   _crmAutoSaveTimer = setTimeout(()=>{
     const name = document.getElementById('crm-f-name')?.value.trim();
     if(!name) return;
+    // Проверяем источник — если не выставлен, показываем модалку
+    const source = document.getElementById('crm-f-source')?.value;
+    if(!source){
+      requireSource(_crmEditId, ()=>{
+        saveCRMCard(true);
+        if(indicator){ indicator.textContent = '✓ сохранено'; indicator.style.color='var(--gn)'; setTimeout(()=>{ if(indicator) indicator.textContent=''; }, 2000); }
+      });
+      return;
+    }
     saveCRMCard(true); // silent=true — не закрывать карточку
     if(indicator){ indicator.textContent = '✓ сохранено'; indicator.style.color='var(--gn)'; setTimeout(()=>{ if(indicator) indicator.textContent=''; }, 2000); }
   }, 1500);
