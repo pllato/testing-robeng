@@ -1013,6 +1013,25 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
           <button class="btn btn-sm" onclick="addCRMSource()" style="margin-top:6px;font-size:11px">+ Добавить источник</button>
           <button class="btn btn-sm btn-a" onclick="saveCRMSources();toast('Источники сохранены')" style="margin-top:6px;font-size:11px;margin-left:6px">💾 Сохранить источники</button>
 
+          <!-- Rejection reasons editor -->
+          <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:8px;margin-top:20px">Причины отказа</div>
+          <div style="font-size:11px;color:var(--t3);margin-bottom:8px">Используется при переводе лида в колонку «Центральный файл».</div>
+          <div id="crm-reject-editor" style="display:flex;flex-direction:column;gap:6px"></div>
+          <button class="btn btn-sm" onclick="addCRMRejectReason()" style="margin-top:6px;font-size:11px">+ Добавить причину</button>
+          <button class="btn btn-sm btn-a" onclick="saveCRMRejectReasons();toast('Причины сохранены')" style="margin-top:6px;font-size:11px;margin-left:6px">💾 Сохранить</button>
+
+          <!-- Timezone setting -->
+          <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:8px;margin-top:20px">🕐 Часовой пояс сервера</div>
+          <div style="font-size:11px;color:var(--t3);margin-bottom:8px">Относительно этого UTC-смещения рассылаются напоминания об уроках и другие автосообщения.</div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <label style="font-size:12px;color:var(--t2)">UTC +</label>
+            <input id="set-tz-offset" type="number" min="-12" max="14" step="1" value="5"
+              style="width:70px;background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);padding:6px 10px;font-family:var(--fb);font-size:13px"/>
+            <span style="font-size:11px;color:var(--t3)">Алматы = +5</span>
+          </div>
+          <button class="btn btn-sm btn-a" onclick="saveTZOffset()" style="margin-top:8px;font-size:11px">💾 Сохранить часовой пояс</button>
+          <div id="tz-saved" style="display:none;font-size:11px;color:var(--gn);margin-top:6px">✓ Сохранено</div>
+
           <!-- Stage editor -->
           <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:8px;margin-top:12px">Стадии канбана</div>
           <div id="crm-stages-editor"></div>
@@ -1081,6 +1100,37 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
 </div>
 
 <!-- Modal: Add User -->
+<!-- Modal: Central File (rejection/complete) -->
+<div class="mo" id="m-central-file">
+  <div class="modal" style="max-width:400px">
+    <div class="mt">📁 Центральный файл</div>
+    <div style="font-size:13px;color:var(--t2);margin-bottom:16px">Укажите результат работы с лидом:</div>
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <button id="cf-btn-complete" onclick="setCFType('complete')"
+        style="flex:1;padding:12px;border-radius:var(--r);border:2px solid var(--gn);background:rgba(63,216,142,.1);color:var(--gn);font-family:var(--fb);font-size:13px;font-weight:700;cursor:pointer">
+        ✅ Завершить сделку
+      </button>
+      <button id="cf-btn-reject" onclick="setCFType('reject')"
+        style="flex:1;padding:12px;border-radius:var(--r);border:2px solid var(--b1);background:var(--bg3);color:var(--t2);font-family:var(--fb);font-size:13px;font-weight:700;cursor:pointer">
+        ❌ Отказ
+      </button>
+    </div>
+    <div id="cf-reject-section" style="display:none">
+      <div class="fr">
+        <label>Причина отказа</label>
+        <select id="cf-reject-reason"
+          style="background:var(--bg3);border:2px solid var(--rd);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:13px;padding:8px 11px;width:100%">
+          <option value="">— Выберите причину —</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button onclick="confirmCentralFile()" class="btn btn-a" style="flex:1">✓ Подтвердить</button>
+      <button onclick="cancelCentralFile()" class="btn" style="flex:0 0 auto">Отмена</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: Source Required -->
 <div class="mo" id="m-source-required">
   <div class="modal" style="max-width:360px">
@@ -1824,10 +1874,10 @@ async function notifyWhatsApp(phone, message){
 
 // ── Тихие часы: 21:00 – 09:00 КЗ (UTC+5) ────────────────────────
 function isQuietHours(){
-  // Правильный способ: берём UTC часы и прибавляем +5 (KZ)
+  const tz = getTZOffset();
   const utcHour = new Date().getUTCHours();
-  const kzHour = (utcHour + 5) % 24;
-  return kzHour >= 21 || kzHour < 9;
+  const localHour = (utcHour + tz) % 24;
+  return localHour >= 21 || localHour < 9;
 }
 
 // Системное сообщение с тихими часами — откладывает если ночь
@@ -1842,9 +1892,9 @@ async function sendSystemWA(phone, message, meta={}){
     const nowUtc = new Date();
     const sendAt = new Date(nowUtc);
     // Если UTC час >= 16 (= 21:00 KZ) — откладываем на завтра
-    const kzHourNow = (nowUtc.getUTCHours() + 5) % 24;
+    const kzHourNow = (nowUtc.getUTCHours() + getTZOffset()) % 24;
     if(kzHourNow >= 21) sendAt.setUTCDate(sendAt.getUTCDate()+1);
-    sendAt.setUTCHours(4, 0, 0, 0); // 04:00 UTC = 09:00 KZ
+    sendAt.setUTCHours(24 - getTZOffset() + 9, 0, 0, 0); // 09:00 local time
     const key = 'pending_sys_' + Date.now() + '_' + Math.random().toString(36).slice(2);
     fbDb.ref('pendingNotifications/'+key).set({
       phones:[phone.replace(/\D/g,'')], msg:signed,
@@ -2132,7 +2182,14 @@ fbAuth.onAuthStateChanged(user=>{
         if(S.settings?.crmSources && Array.isArray(S.settings.crmSources) && S.settings.crmSources.length){
           CRM_SOURCES = [...S.settings.crmSources];
         }
+        if(S.settings?.crmRejectReasons && Array.isArray(S.settings.crmRejectReasons) && S.settings.crmRejectReasons.length){
+          CRM_REJECT_REASONS = [...S.settings.crmRejectReasons];
+        }
+        if(S.settings?.tzOffset != null){
+          window._TZ_OFFSET_HOURS_OVERRIDE = S.settings.tzOffset;
+        }
         populateCRMSourceSelect();
+        populateCRMRejectSelect();
       });
     }).catch(()=>{
       // No user record — treat as teacher, admin should add them
@@ -5071,7 +5128,7 @@ function setAtt(enrollId,dateStr,val,user){
 const TZ_OFFSET_HOURS = 5; // UTC+5
 
 function nowKZ() {
-  return new Date(Date.now() + TZ_OFFSET_HOURS * 3600000);
+  return new Date(Date.now() + getTZOffset() * 3600000);
 }
 
 function todayKZ() {
@@ -7988,7 +8045,17 @@ function renderLeadAnalytics(){
     bySrc[src].leads.push(l);
   });
 
-  // ── Подсчёт по дням ───────────────────────────────────────────────
+  // ── Подсчёт по причинам отказа ────────────────────────────────────────────
+  const byReject = {};
+  leads.forEach(l=>{
+    if(l.closingType==='reject' || l.rejectReason){
+      const rid = l.rejectReason||'unknown';
+      if(!byReject[rid]) byReject[rid]={label: CRM_REJECT_REASONS.find(r=>r.id===rid)?.label || rid || 'Не указана', count:0, leads:[]};
+      byReject[rid].count++;
+      byReject[rid].leads.push(l);
+    }
+  });
+  const totalRejects = Object.values(byReject).reduce((s,d)=>s+d.count,0);
   const byDay = {};
   leads.forEach(l=>{
     const d = (l.createdAt||'').slice(0,10);
@@ -8029,8 +8096,31 @@ function renderLeadAnalytics(){
       </div>`;
   });
 
-  html += `</div></div>
+  html += `</div></div>`;
 
+  // Rejection reasons block
+  if(totalRejects > 0){
+    html += `<div style="margin-bottom:24px">
+    <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:4px">❌ Отказы — ${totalRejects} (${Math.round(totalRejects/total*100)}%)</div>
+    <div style="font-size:11px;color:var(--t3);margin-bottom:10px">Разбивка по причинам</div>
+    <div style="display:flex;flex-direction:column;gap:6px">`;
+    Object.entries(byReject).sort((a,b)=>b[1].count-a[1].count).forEach(([rid,d])=>{
+      const pct = Math.round(d.count/totalRejects*100);
+      const bar = Math.round(pct*2.4);
+      html += `<div style="display:flex;align-items:center;gap:10px;cursor:pointer" onclick="toggleLALeadList('rej-${rid}')">
+        <div style="width:140px;font-size:12px;font-weight:600;color:var(--rd);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.label}</div>
+        <div style="flex:1;background:var(--bg3);border-radius:4px;height:20px;position:relative;min-width:60px">
+          <div style="position:absolute;left:0;top:0;bottom:0;width:${bar}px;max-width:100%;background:rgba(240,89,117,.25);border-radius:4px"></div>
+          <div style="position:absolute;left:8px;top:0;bottom:0;display:flex;align-items:center;font-size:11px;font-weight:700;color:var(--rd)">${d.count} (${pct}%)</div>
+        </div>
+        <div style="font-size:10px;color:var(--t3)">▼</div>
+      </div>
+      <div id="la-list-rej-${rid}" style="display:none;margin-left:150px;margin-bottom:4px">${buildLALeadMiniList(d.leads)}</div>`;
+    });
+    html += `</div></div>`;
+  }
+
+  html += `
   <!-- По источникам -->
   <div style="margin-bottom:24px">
     <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:12px">📍 По источникам</div>
@@ -8095,6 +8185,7 @@ function buildLALeadMiniList(leads){
             <span>${dt}</span>
             <span style="color:${stage.hex||stage.color}">${stage.label}</span>
             <span>📍${srcLabel}</span>
+            ${l.rejectReason ? `<span style="color:var(--rd)">❌${CRM_REJECT_REASONS.find(r=>r.id===l.rejectReason)?.label||l.rejectReason}</span>` : ''}
             ${l.phone?`<span>${l.phone}</span>`:''}
           </div>
         </div>
@@ -10053,8 +10144,9 @@ function startLessonReminders(){
 
 function checkLessonReminders(){
   const now=new Date();
-  // Всегда используем KZ время (UTC+5), независимо от часового пояса браузера
-  const nowKZDate = new Date(now.getTime() + 5*3600000);
+  // Используем настроенный часовой пояс (по умолчанию UTC+5 Алматы)
+  const tz = getTZOffset();
+  const nowKZDate = new Date(now.getTime() + tz*3600000);
   const today=nowKZDate.toISOString().slice(0,10);
   const nowMinutes=nowKZDate.getUTCHours()*60+nowKZDate.getUTCMinutes();
 
@@ -11313,6 +11405,12 @@ function renderAppSettings(){
   // Load & render sources
   if(S.settings?.crmSources && S.settings.crmSources.length) CRM_SOURCES = [...S.settings.crmSources];
   renderCRMSourcesEditor();
+  // Load & render reject reasons
+  if(S.settings?.crmRejectReasons && S.settings.crmRejectReasons.length) CRM_REJECT_REASONS = [...S.settings.crmRejectReasons];
+  renderCRMRejectEditor();
+  // Load TZ offset
+  const tzEl = document.getElementById('set-tz-offset');
+  if(tzEl) tzEl.value = S.settings?.tzOffset ?? 5;
   // Renewal WA template
   const tmplEl=document.getElementById("set-renewal-template");
   if(tmplEl) tmplEl.value=S.settings.renewalWaTemplate||"Здравствуйте! 👋\n\nНапоминаем, что абонемент ученика *{name}* заканчивается {dateEnd}.\n\nПреподаватель: {teacher}\n\nДля продления свяжитесь с нами — мы будем рады продолжить занятия! 🎓";
@@ -11684,6 +11782,149 @@ function saveCRMSources(){
   save();
   populateCRMSourceSelect();
 }
+
+// ── CRM Rejection Reasons ─────────────────────────────────────────────────────
+const DEFAULT_CRM_REJECT_REASONS = [
+  {id:'expensive',   label:'Дорого'},
+  {id:'no_time',     label:'Нет времени'},
+  {id:'not_interested', label:'Не заинтересован'},
+  {id:'competitor',  label:'Ушёл к конкуренту'},
+  {id:'trial_bad',   label:'Не понравился пробный'},
+  {id:'age',         label:'Не подходит возраст'},
+  {id:'other',       label:'Другое'},
+];
+let CRM_REJECT_REASONS = [...DEFAULT_CRM_REJECT_REASONS];
+
+function renderCRMRejectEditor(){
+  const el = document.getElementById('crm-reject-editor');
+  if(!el) return;
+  el.innerHTML = CRM_REJECT_REASONS.map((r,i)=>`
+    <div style="display:flex;align-items:center;gap:6px">
+      <input value="${r.label}" oninput="CRM_REJECT_REASONS[${i}].label=this.value;CRM_REJECT_REASONS[${i}].id=this.value.toLowerCase().replace(/[^a-zа-я0-9]/gi,'_').slice(0,30)"
+        style="flex:1;background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);padding:5px 9px;font-size:12px;font-family:var(--fb)"/>
+      <button onclick="CRM_REJECT_REASONS.splice(${i},1);renderCRMRejectEditor()"
+        style="background:rgba(220,60,60,.1);border:1px solid rgba(220,60,60,.3);color:var(--rd);border-radius:5px;padding:4px 8px;cursor:pointer;font-size:12px">✕</button>
+    </div>`).join('');
+}
+
+function addCRMRejectReason(){
+  CRM_REJECT_REASONS.push({id:'reason_'+Date.now(), label:'Новая причина'});
+  renderCRMRejectEditor();
+}
+
+function saveCRMRejectReasons(){
+  if(!S.settings) S.settings={};
+  S.settings.crmRejectReasons = CRM_REJECT_REASONS.map(r=>({id:r.id,label:r.label}));
+  save();
+  populateCRMRejectSelect();
+  populateCFRejectSelect();
+}
+
+function populateCRMRejectSelect(){
+  const sel = document.getElementById('crm-f-reject');
+  if(!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Не указана —</option>' +
+    CRM_REJECT_REASONS.map(r=>`<option value="${r.id}">${r.label}</option>`).join('');
+  if(cur) sel.value = cur;
+}
+
+function populateCFRejectSelect(){
+  const sel = document.getElementById('cf-reject-reason');
+  if(!sel) return;
+  sel.innerHTML = '<option value="">— Выберите причину —</option>' +
+    CRM_REJECT_REASONS.map(r=>`<option value="${r.id}">${r.label}</option>`).join('');
+}
+
+// ── Central File modal ────────────────────────────────────────────────────────
+let _cfLeadId   = null;
+let _cfStage    = null;
+let _cfType     = null; // 'complete' | 'reject'
+let _cfCallback = null;
+
+// Определяем — является ли стадия "Центральным файлом"
+// Проверяем по label (пользователь мог переименовать) — ищем по id тоже
+const CENTRAL_FILE_STAGE_LABELS = ['центральный файл','central file','архив','archive'];
+function isCentralFileStage(stageId){
+  const s = crmStage(stageId);
+  if(!s) return false;
+  return CENTRAL_FILE_STAGE_LABELS.some(k=>s.label.toLowerCase().includes(k));
+}
+
+function showCentralFileModal(leadId, stageId, onConfirm){
+  _cfLeadId   = leadId;
+  _cfStage    = stageId;
+  _cfCallback = onConfirm;
+  _cfType     = null;
+  setCFType(null); // reset
+  populateCFRejectSelect();
+  const el = document.getElementById('m-central-file');
+  if(el){ el.style.display='flex'; el.style.zIndex='9999'; }
+}
+
+function setCFType(type){
+  _cfType = type;
+  const btnComplete = document.getElementById('cf-btn-complete');
+  const btnReject   = document.getElementById('cf-btn-reject');
+  const section     = document.getElementById('cf-reject-section');
+  if(btnComplete) btnComplete.style.cssText = type==='complete'
+    ? 'flex:1;padding:12px;border-radius:var(--r);border:2px solid var(--gn);background:rgba(63,216,142,.25);color:var(--gn);font-family:var(--fb);font-size:13px;font-weight:700;cursor:pointer'
+    : 'flex:1;padding:12px;border-radius:var(--r);border:2px solid var(--b1);background:var(--bg3);color:var(--t2);font-family:var(--fb);font-size:13px;font-weight:700;cursor:pointer';
+  if(btnReject) btnReject.style.cssText = type==='reject'
+    ? 'flex:1;padding:12px;border-radius:var(--r);border:2px solid var(--rd);background:rgba(240,89,117,.2);color:var(--rd);font-family:var(--fb);font-size:13px;font-weight:700;cursor:pointer'
+    : 'flex:1;padding:12px;border-radius:var(--r);border:2px solid var(--b1);background:var(--bg3);color:var(--t2);font-family:var(--fb);font-size:13px;font-weight:700;cursor:pointer';
+  if(section) section.style.display = type==='reject' ? 'block' : 'none';
+}
+
+function confirmCentralFile(){
+  if(!_cfType){ toast('Выберите тип завершения', true); return; }
+  if(_cfType==='reject'){
+    const r = document.getElementById('cf-reject-reason')?.value;
+    if(!r){ toast('Укажите причину отказа', true); return; }
+    // Сохраняем причину в lead
+    if(_cfLeadId){
+      crmRef.child(_cfLeadId).update({rejectReason: r, closingType:'reject', updatedAt: new Date().toISOString()});
+      if(window._crmLeadsCache?.[_cfLeadId]){
+        window._crmLeadsCache[_cfLeadId].rejectReason = r;
+        window._crmLeadsCache[_cfLeadId].closingType = 'reject';
+      }
+      // Обновляем поле в открытой карточке
+      const sel = document.getElementById('crm-f-reject');
+      if(sel){ populateCRMRejectSelect(); sel.value = r; }
+    }
+  } else {
+    if(_cfLeadId){
+      crmRef.child(_cfLeadId).update({closingType:'complete', rejectReason:'', updatedAt: new Date().toISOString()});
+      if(window._crmLeadsCache?.[_cfLeadId]) window._crmLeadsCache[_cfLeadId].closingType = 'complete';
+    }
+  }
+  const el = document.getElementById('m-central-file');
+  if(el) el.style.display='none';
+  const cb = _cfCallback; _cfCallback=null;
+  if(cb) cb();
+}
+
+function cancelCentralFile(){
+  const el = document.getElementById('m-central-file');
+  if(el) el.style.display='none';
+  _cfCallback=null; _cfLeadId=null; _cfStage=null;
+}
+
+// ── Timezone setting ──────────────────────────────────────────────────────────
+function saveTZOffset(){
+  const val = parseInt(document.getElementById('set-tz-offset')?.value)||5;
+  if(!S.settings) S.settings={};
+  S.settings.tzOffset = val;
+  save();
+  // Патчим TZ_OFFSET_HOURS динамически — но это const, обходим через window
+  window._TZ_OFFSET_HOURS_OVERRIDE = val;
+  const saved = document.getElementById('tz-saved');
+  if(saved){ saved.style.display='block'; setTimeout(()=>saved.style.display='none',2000); }
+  toast('✓ Часовой пояс сохранён');
+}
+
+// Хелпер для получения актуального смещения
+function getTZOffset(){ return window._TZ_OFFSET_HOURS_OVERRIDE ?? TZ_OFFSET_HOURS; }
 
 function populateCRMSourceSelect(){
   const sel = document.getElementById('crm-f-source');
@@ -13586,6 +13827,17 @@ function crmDrop(event, newStage){
 }
 
 function _doStageChange(dragId, newStage, l){
+  // Если колонка "Центральный файл" — сначала выбрать тип завершения
+  if(isCentralFileStage(newStage)){
+    showCentralFileModal(dragId, newStage, ()=>{
+      _doStageChangeCommit(dragId, newStage, l);
+    });
+    return;
+  }
+  _doStageChangeCommit(dragId, newStage, l);
+}
+
+function _doStageChangeCommit(dragId, newStage, l){
   const now = new Date().toISOString();
   const updateData = {stage: newStage, lastContact: now, updatedAt: now};
 
@@ -13732,7 +13984,9 @@ function openCRMCard(id){
       document.getElementById('crm-f-phone').value = l.phone||'';
       // call buttons always visible
       populateCRMSourceSelect();
+      populateCRMRejectSelect();
       document.getElementById('crm-f-source').value = l.source||'';
+      document.getElementById('crm-f-reject').value = l.rejectReason||'';
       document.getElementById('crm-f-interest').value = l.interest||'';
       document.getElementById('crm-f-budget').value = l.budget||'';
       document.getElementById('crm-f-age').value = l.childAge||'';
@@ -13871,6 +14125,7 @@ function saveCRMCard(silent=false){
     name,
     phone: document.getElementById('crm-f-phone').value.trim(),
     source: document.getElementById('crm-f-source').value.trim(),
+    rejectReason: document.getElementById('crm-f-reject')?.value.trim()||'',
     interest: document.getElementById('crm-f-interest').value.trim(),
     budget: document.getElementById('crm-f-budget').value.trim(),
     childAge: document.getElementById('crm-f-age').value.trim(),
@@ -15550,18 +15805,26 @@ function renderCRMStageBar(activeId){
       const curSource = document.getElementById('crm-f-source')?.value;
       if(!curSource && _crmEditId){
         requireSource(_crmEditId, ()=>{
-          document.getElementById('crm-f-stage').value = newStage;
-          renderCRMStageBar(newStage);
-          crmAutoSave();
+          _stageBarApply(newStage);
         });
         return;
       }
-      document.getElementById('crm-f-stage').value = newStage;
-      renderCRMStageBar(newStage);
-      crmAutoSave();
+      // Центральный файл — показываем модалку завершения
+      if(isCentralFileStage(newStage) && _crmEditId){
+        showCentralFileModal(_crmEditId, newStage, ()=>{
+          _stageBarApply(newStage);
+        });
+        return;
+      }
+      _stageBarApply(newStage);
     });
     bar.appendChild(btn);
   });
+}
+function _stageBarApply(newStage){
+  document.getElementById('crm-f-stage').value = newStage;
+  renderCRMStageBar(newStage);
+  crmAutoSave();
 }
 let _crmLeadForStudent = null; // leadId при создании ученика из CRM
 
@@ -16353,6 +16616,14 @@ function addCRMLinkToStudent(studentEl, phone){
               <option value="">— Не указан —</option>
             </select>
           </div>
+          <div class="fr">
+            <label>❌ Причина отказа</label>
+            <select id="crm-f-reject" onchange="crmAutoSave()" style="background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:13px;padding:8px 11px;width:100%">
+              <option value="">— Не указана —</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
           <div class="fr">
             <label>📖 Предмет / Курс</label>
             <select id="crm-f-interest" onchange="crmAutoSave()" style="background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:13px;padding:8px 11px;width:100%">
