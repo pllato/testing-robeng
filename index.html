@@ -13339,7 +13339,8 @@ function crmDrop(event, newStage){
     // Если источник не выставлен — требуем перед сменой стадии
     if(!l.source){
       requireSource(dragId, ()=>{
-        // Повторяем drop с уже выставленным источником
+        // dragId уже сохранён в замыкании, _crmDragId уже null — ставим снова
+        _crmDragId = dragId;
         crmDrop(null, newStage);
       });
       return;
@@ -15302,8 +15303,22 @@ function renderCRMStageBar(activeId){
     btn.textContent = stage.label;
     btn.title = stage.label;
     btn.addEventListener('click', ()=>{
-      document.getElementById('crm-f-stage').value = stage.id;
-      renderCRMStageBar(stage.id);
+      const newStage = stage.id;
+      const curStage = document.getElementById('crm-f-stage')?.value;
+      if(newStage === curStage) return;
+      // Проверяем источник
+      const curSource = document.getElementById('crm-f-source')?.value;
+      if(!curSource && _crmEditId){
+        requireSource(_crmEditId, ()=>{
+          document.getElementById('crm-f-stage').value = newStage;
+          renderCRMStageBar(newStage);
+          crmAutoSave();
+        });
+        return;
+      }
+      document.getElementById('crm-f-stage').value = newStage;
+      renderCRMStageBar(newStage);
+      crmAutoSave();
     });
     bar.appendChild(btn);
   });
