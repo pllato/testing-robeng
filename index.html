@@ -7162,16 +7162,19 @@ function renderRenewals(){
     if(alertA&&!alertB) return -1;
     if(alertB&&!alertA) return 1;
 
-    // Потом просроченные
-    const da=daysUntil(a.dateEnd), db=daysUntil(b.dateEnd);
-    if(da<0&&db>=0)return -1;
-    if(db<0&&da>=0)return 1;
+    const vacA = (a.vacations||[]).find(v=>v.to>=today2&&v.from<=today2);
+    const vacB = (b.vacations||[]).find(v=>v.to>=today2&&v.from<=today2);
 
-    // Для всех остальных — единая хронология (для отпуска по дате конца отпуска)
-    const vacA=(a.vacations||[]).find(v=>v.to>=today2&&v.from<=today2);
-    const vacB=(b.vacations||[]).find(v=>v.to>=today2&&v.from<=today2);
-    const sortA=vacA?vacA.to:(a.dateEnd||'');
-    const sortB=vacB?vacB.to:(b.dateEnd||'');
+    // Потом просроченные (НЕ на отпуске)
+    const da = daysUntil(a.dateEnd), db = daysUntil(b.dateEnd);
+    const overdueA = da<0 && !vacA;
+    const overdueB = db<0 && !vacB;
+    if(overdueA&&!overdueB) return -1;
+    if(overdueB&&!overdueA) return 1;
+
+    // Далее — единая хронология: отпускники по дате конца отпуска, остальные по dateEnd
+    const sortA = vacA ? vacA.to : (a.dateEnd||'');
+    const sortB = vacB ? vacB.to : (b.dateEnd||'');
     return sortA.localeCompare(sortB);
   });
 
@@ -15527,7 +15530,22 @@ function renderWAChatsContent(leads){
     </div>
   </div>`;
 
+  // Сохраняем позицию скролла списка чатов перед перерисовкой
+  const listBodyBefore = document.getElementById('wachat-list-body');
+  const savedListScroll = listBodyBefore ? listBodyBefore.scrollTop : (window._wachatListScroll||0);
+
   el.innerHTML = html;
+
+  // Восстанавливаем скролл списка
+  const listBodyAfter = document.getElementById('wachat-list-body');
+  if(listBodyAfter && savedListScroll > 0){
+    requestAnimationFrame(()=>{ listBodyAfter.scrollTop = savedListScroll; });
+  }
+  // Слушаем скролл и запоминаем позицию
+  if(listBodyAfter && !listBodyAfter._scrollTracked){
+    listBodyAfter._scrollTracked = true;
+    listBodyAfter.addEventListener('scroll', ()=>{ window._wachatListScroll = listBodyAfter.scrollTop; }, {passive:true});
+  }
 
   // Wire search — Enter to search, Escape to clear
   const sinp = document.getElementById('wachat-search');
