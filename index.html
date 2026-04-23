@@ -2197,10 +2197,15 @@ fbAuth.onAuthStateChanged(user=>{
           S.settings.crmStages.forEach(s=>CRM_STAGES.push({...s, color:s.hex||s.color||'#9896b0', closingStage:!!s.closingStage}));
         }
         if(S.settings?.crmSources && Array.isArray(S.settings.crmSources) && S.settings.crmSources.length){
-          CRM_SOURCES = [...S.settings.crmSources];
+          CRM_SOURCES = S.settings.crmSources.map(s=>({...s}));
+        } else {
+          // Первый запуск — сохраняем дефолты в Firebase
+          if(!S.settings) S.settings={};
+          S.settings.crmSources = DEFAULT_CRM_SOURCES.map(s=>({...s}));
+          save();
         }
         if(S.settings?.crmRejectReasons && Array.isArray(S.settings.crmRejectReasons) && S.settings.crmRejectReasons.length){
-          CRM_REJECT_REASONS = [...S.settings.crmRejectReasons];
+          CRM_REJECT_REASONS = S.settings.crmRejectReasons.map(r=>({...r}));
         }
         if(S.settings?.tzOffset != null){
           window._TZ_OFFSET_HOURS_OVERRIDE = S.settings.tzOffset;
@@ -11437,11 +11442,15 @@ function renderAppSettings(){
   renderCRMStagesEditor();
   renderCRMStageSettings();
   renderCRMDistribSettings();
-  // Load & render sources
-  if(S.settings?.crmSources && S.settings.crmSources.length) CRM_SOURCES = [...S.settings.crmSources];
+  // Load & render sources — всегда берём из S.settings если есть
+  const savedSources = S.settings?.crmSources;
+  if(savedSources && Array.isArray(savedSources) && savedSources.length)
+    CRM_SOURCES = savedSources.map(s=>({...s}));
   renderCRMSourcesEditor();
   // Load & render reject reasons
-  if(S.settings?.crmRejectReasons && S.settings.crmRejectReasons.length) CRM_REJECT_REASONS = [...S.settings.crmRejectReasons];
+  const savedRejects = S.settings?.crmRejectReasons;
+  if(savedRejects && Array.isArray(savedRejects) && savedRejects.length)
+    CRM_REJECT_REASONS = savedRejects.map(r=>({...r}));
   renderCRMRejectEditor();
   // Load TZ offset
   const tzEl = document.getElementById('set-tz-offset');
@@ -11798,24 +11807,27 @@ function saveCRMStages(){
 
 // ── CRM Sources ──────────────────────────────────────────────────────────────
 const DEFAULT_CRM_SOURCES = [
-  {id:'whatsapp',   label:'WhatsApp'},
-  {id:'instagram',  label:'Instagram'},
-  {id:'website',    label:'Сайт'},
-  {id:'referral',   label:'Рекомендация'},
-  {id:'call',       label:'Входящий звонок'},
-  {id:'other',      label:'Другое'},
+  {id:'sayan_whatsapp',    label:'Саян - WhatsApp'},
+  {id:'erzhan_whatsapp',   label:'Ержан - WhatsApp'},
+  {id:'google_ads',        label:'Заявка с Реклама Гугла'},
+  {id:'referral',          label:'Рекомендация'},
+  {id:'call',              label:'Входящий звонок'},
+  {id:'other',             label:'Другое'},
+  {id:'instagram_direct',  label:'Instagram direct'},
 ];
 let CRM_SOURCES = [...DEFAULT_CRM_SOURCES];
 
 function renderCRMSourcesEditor(){
   const el = document.getElementById('crm-sources-editor');
   if(!el) return;
+  // Читаем актуальные значения из DOM перед перерисовкой
   el.innerHTML = CRM_SOURCES.map((s,i)=>`
-    <div style="display:flex;align-items:center;gap:6px">
-      <input value="${s.label}" oninput="CRM_SOURCES[${i}].label=this.value;CRM_SOURCES[${i}].id=this.value.toLowerCase().replace(/[^a-zа-я0-9]/gi,'_')"
+    <div style="display:flex;align-items:center;gap:6px" data-src-i="${i}">
+      <input value="${s.label.replace(/"/g,'&quot;')}" data-i="${i}"
+        oninput="CRM_SOURCES[+this.dataset.i].label=this.value;CRM_SOURCES[+this.dataset.i].id=this.value.toLowerCase().replace(/[^a-zа-яёА-ЯЁ0-9]+/gi,'_').slice(0,40)"
         style="flex:1;background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);padding:5px 9px;font-size:12px;font-family:var(--fb)"/>
-      <button onclick="CRM_SOURCES.splice(${i},1);renderCRMSourcesEditor()"
-        style="background:rgba(220,60,60,.1);border:1px solid rgba(220,60,60,.3);color:var(--rd);border-radius:5px;padding:4px 8px;cursor:pointer;font-size:12px">✕</button>
+      <button data-i="${i}" onclick="CRM_SOURCES.splice(+this.dataset.i,1);renderCRMSourcesEditor();saveCRMSources()"
+        style="background:rgba(220,60,60,.1);border:1px solid rgba(220,60,60,.3);color:var(--rd);border-radius:5px;padding:4px 8px;cursor:pointer;font-size:12px;flex-shrink:0">✕</button>
     </div>`).join('');
 }
 
@@ -11825,10 +11837,20 @@ function addCRMSource(){
 }
 
 function saveCRMSources(){
+  // Читаем актуальные значения из DOM (на случай если oninput не успел)
+  const inputs = document.querySelectorAll('#crm-sources-editor input[data-i]');
+  inputs.forEach(inp=>{
+    const i = +inp.dataset.i;
+    if(CRM_SOURCES[i]){
+      CRM_SOURCES[i].label = inp.value;
+      CRM_SOURCES[i].id = inp.value.toLowerCase().replace(/[^a-zа-яёА-ЯЁ0-9]+/gi,'_').slice(0,40);
+    }
+  });
   if(!S.settings) S.settings={};
   S.settings.crmSources = CRM_SOURCES.map(s=>({id:s.id,label:s.label}));
   save();
   populateCRMSourceSelect();
+  populateCFRejectSelect && populateCFRejectSelect();
 }
 
 // ── CRM Rejection Reasons ─────────────────────────────────────────────────────
