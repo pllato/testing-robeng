@@ -14762,12 +14762,15 @@ function resolveCallType(callType, rawCallType){
 async function renderCallsLog(){
   const body = document.getElementById('callslog-body');
   if(!body) return;
-  body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--t3)">Загрузка...</div>';
+  body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--t3)">Загрузка звонков...</div>';
+
+  // Таймаут на весь запрос — не висим бесконечно
+  const timeout = ms => new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')), ms));
 
   const [binotelSnap, leadsSnap, chatsSnap] = await Promise.all([
-    fbDb.ref('binotelCalls').orderByChild('ts').limitToLast(2000).once('value').catch(()=>null),
-    crmRef.once('value').catch(()=>null),
-    fbDb.ref('crmChats').once('value').catch(()=>null),
+    Promise.race([fbDb.ref('binotelCalls').orderByChild('ts').limitToLast(2000).once('value'), timeout(8000)]).catch(()=>null),
+    Promise.race([crmRef.once('value'), timeout(5000)]).catch(()=>null),
+    Promise.race([fbDb.ref('crmChats').once('value'), timeout(5000)]).catch(()=>null),
   ]);
 
   const calls = [];
@@ -15021,12 +15024,21 @@ async function showBinotelDebug(){
   statusDiv.style.cssText = 'padding:10px 16px;background:var(--bg3);border-radius:8px;margin-bottom:12px;font-size:12px;color:var(--t1)';
   const lastDbg = dbgList[0];
   const lastCall = callsList[0];
+  // Проверяем — все ли debug-ивенты являются apiCallSettings (не CALL_COMPLETED)
+  const allApiSettings = dbgList.length > 0 && dbgList.every(e=>{
+    try{ const p=JSON.parse(e.raw||'{}'); return p.event==='CALL_SETTINGS' || (p.body?.requestType==='apiCallSettings'); }catch{ return false; }
+  });
+  const workerUrl = 'https://flat-pond-6e68.uurraa.workers.dev';
   statusDiv.innerHTML = `
     <b>Воркер:</b> ${workerStatus}&nbsp;&nbsp;
-    <b>Последний debug-ивент:</b> ${lastDbg ? (lastDbg.ts||'').slice(0,16)+' — '+(JSON.parse(lastDbg.raw||'{}').event||'?') : 'нет'}&nbsp;&nbsp;
+    <b>Последний debug-ивент:</b> ${lastDbg ? (lastDbg.ts||'').slice(0,16) : 'нет'}&nbsp;&nbsp;
     <b>Последний звонок в Firebase:</b> ${lastCall ? (lastCall.ts||'').slice(0,16) : 'нет'}
-    ${!lastDbg ? '<br><span style="color:var(--am)">⚠️ В binotelDebug нет данных — возможно Binotel не отправляет webhook или URL воркера в настройках Binotel устарел</span>' : ''}
-    ${lastDbg && lastCall && lastCall.ts < lastDbg.ts ? '<br><span style="color:var(--am)">⚠️ Есть debug-ивенты, но записи не создаются — проверь обработку CALL_COMPLETED в воркере</span>' : ''}
+    ${!lastDbg ? '<br><span style="color:var(--am)">⚠️ В binotelDebug нет данных — возможно Binotel не отправляет webhook</span>' : ''}
+    ${allApiSettings ? `<br><span style="color:var(--rd)">⚠️ Binotel шлёт только события начала звонка (apiCallSettings), но не завершения.<br>
+    В настройках Binotel добавьте URL для завершённых звонков:<br>
+    <code style="background:var(--bg4);padding:2px 6px;border-radius:3px;font-size:11px;user-select:all">${workerUrl}/binotel-completed</code><br>
+    Раздел: Настройки → Интеграции → Webhook → «URL для окончания звонка» (или CALL_COMPLETED)</span>` : ''}
+    ${!allApiSettings && lastDbg && lastCall && lastCall.ts < lastDbg.ts ? '<br><span style="color:var(--am)">⚠️ Есть debug-ивенты, но записи не создаются — проверь обработку CALL_COMPLETED в воркере</span>' : ''}
   `;
   el.appendChild(statusDiv);
 
