@@ -10186,18 +10186,19 @@ function startLessonReminders(){
 }
 
 function checkLessonReminders(){
-  const now=new Date();
-  // Используем настроенный часовой пояс (по умолчанию UTC+5 Алматы)
-  const tz = getTZOffset();
-  const nowKZDate = new Date(now.getTime() + tz*3600000);
-  const today=nowKZDate.toISOString().slice(0,10);
-  const nowMinutes=nowKZDate.getUTCHours()*60+nowKZDate.getUTCMinutes();
+  const now = new Date();
+  // ВСЕГДА используем Алматинское время (UTC+5) для расписания уроков
+  // Независимо от того, где находится браузер сотрудника
+  const ALMATY_OFFSET = 5; // UTC+5 — фиксировано для уроков
+  const nowAlmaty = new Date(now.getTime() + ALMATY_OFFSET * 3600000);
+  const today = nowAlmaty.toISOString().slice(0, 10);
+  const nowMinutes = nowAlmaty.getUTCHours() * 60 + nowAlmaty.getUTCMinutes();
 
-  // Напоминание преподавателям за 15 мин (отдельная настройка)
-  checkTeacherBeforeLesson(now, today, nowMinutes);
+  // Напоминание преподавателям за 15 мин
+  checkTeacherBeforeLesson(now, today, nowMinutes, nowAlmaty);
   // Напоминание если не отмечено посещение через 1 час после урока
-  checkUnmarkedAttendanceReminders(now, today, nowMinutes);
-  // Итог дня (в eodRemindHour:00)
+  checkUnmarkedAttendanceReminders(now, today, nowMinutes, nowAlmaty);
+  // Итог дня
   checkEndOfDayReminders(now, today);
 
   // Проверяем настройку 5-мин напоминаний
@@ -10206,45 +10207,48 @@ function checkLessonReminders(){
   S.enrollments.forEach(e=>{
     if(e.inactive)return;
     if(!enrollActive(e,today))return;
-    const dow=(nowKZDate.getUTCDay()+6)%7;
+    // ВАЖНО: dow всегда по Алматинскому времени, не браузерному
+    const dow=(nowAlmaty.getUTCDay()+6)%7;
     const sl=e.slots.find(s=>s.day===dow);
     if(!sl)return;
 
-    const lessonTime=TIMES[sl.ti]; // "13:00"
+    const lessonTime=TIMES[sl.ti];
     const [lh,lm]=lessonTime.split(':').map(Number);
     const lessonMinutes=lh*60+lm;
     const diff=lessonMinutes-nowMinutes;
 
-    // Отправляем за 5-6 минут (окно 1 мин чтобы не пропустить)
-    if(diff<5||diff>6)return;
+    // Окно 4–8 минут до урока (шире = не пропустим при любом таймере)
+    if(diff<4||diff>8)return;
 
     const key=`${e.id}_${today}_${lessonTime}`;
-    // Сессионная проверка — быстрый выход если уже отправляли в этой вкладке
     if(_reminderSentKeys.has(key))return;
+    // localStorage — переживает обновление вкладки
+    const lsKey='rs_'+key;
+    try{ if(localStorage.getItem(lsKey)){ _reminderSentKeys.add(key); return; } }catch(_){}
 
     // Атомарная кросс-вкладочная блокировка через Firebase transaction
     const fbKey=`remindersSent/${today}_${String(e.id)}_${lessonTime.replace(':','-')}`;
     fbDb.ref(fbKey).transaction(current=>{
-      if(current!==null) return; // уже занято — отменяем транзакцию (undefined = abort)
-      return Date.now();         // занимаем слот атомарно
+      if(current!==null) return; // уже занято — отменяем
+      return Date.now();
     }).then(result=>{
-      if(!result.committed) return; // другая вкладка успела первой
+      if(!result.committed) return;
 
-      _reminderSentKeys.add(key); // помечаем локально
+      _reminderSentKeys.add(key);
+      try{ localStorage.setItem(lsKey,'1'); }catch(_){}
 
       const st=student(e.studentId);
       const t=teacher(e.teacherId);
       if(!st)return;
 
-      // Проверяем персональные настройки ученика
       const stuNotify=st.notify||{};
-      const remindStudent = stuNotify.remindStudent!==false; // по умолчанию вкл
-      const remindParent  = stuNotify.remindParent!==false;  // по умолчанию вкл
+      const remindStudent = stuNotify.remindStudent!==false;
+      const remindParent  = stuNotify.remindParent!==false;
+      if(!remindStudent && !remindParent) return;
 
-      if(!remindStudent && !remindParent) return; // оба выключены
-
+      // Дата — всегда по Алматинскому времени
       const months=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
-      const d=now.getDate(),mo=now.getMonth();
+      const d=nowAlmaty.getUTCDate(), mo=nowAlmaty.getUTCMonth();
       const dateRu=`${d} ${months[mo]}`;
 
       const msg=`⏰ Напоминание об уроке!\n\n👤 Ученик: ${st.name}\n👩‍🏫 Преподаватель: ${t?.name||'—'}\n🕐 Время: ${lessonTime}\n📅 ${dateRu}\n📖 ${e.topic||'Английский'}\n\nУрок начнётся через 5 минут!`;
@@ -10750,11 +10754,10 @@ let _teacherBeforeKeys = new Set(); // дедупликация за 15 мин
 let _eodSentKeys = new Set();       // дедупликация итога дня
 
 // Вызывается из checkLessonReminders каждую минуту
-function checkTeacherBeforeLesson(now, today, nowMinutes){
+function checkTeacherBeforeLesson(now, today, nowMinutes, nowAlmaty){
   if((S.settings||{}).teacherBeforeRemind === false) return;
-  // dow считаем по KZ дате
-  const nowKZDate = new Date(now.getTime() + 5*3600000);
-  const dow = (nowKZDate.getUTCDay()+6)%7;
+  // dow по Алматинскому времени
+  const dow = (nowAlmaty.getUTCDay()+6)%7;
 
   // Группируем уроки по преподавателю — в одно сообщение все уроки через 15 мин
   const byTeacher = {}; // teacherId → [{st, e, time}]
@@ -10799,12 +10802,11 @@ function checkTeacherBeforeLesson(now, today, nowMinutes){
 let _attReminderKeys = new Set(); // дедупликация напоминаний о незаполненной посещаемости
 
 // Напоминание через 2 часа после урока если нет отметки
-function checkUnmarkedAttendanceReminders(now, today, nowMinutes){
+function checkUnmarkedAttendanceReminders(now, today, nowMinutes, nowAlmaty){
   if((S.settings||{}).attRemindEnabled === false) return;
   const att = S.attendance || {};
-  const nowKZDate = new Date(now.getTime() + 5*3600000);
-  const dow = (nowKZDate.getUTCDay()+6)%7;
-  const kzNowMin = nowKZDate.getUTCHours()*60 + nowKZDate.getUTCMinutes();
+  const dow = (nowAlmaty.getUTCDay()+6)%7;
+  const kzNowMin = nowAlmaty.getUTCHours()*60 + nowAlmaty.getUTCMinutes();
 
   const byTeacher = {}; // teacherId → [lessons]
   S.enrollments.forEach(e=>{
@@ -10857,11 +10859,11 @@ function checkUnmarkedAttendanceReminders(now, today, nowMinutes){
 function checkEndOfDayReminders(now, today){
   if((S.settings||{}).eodRemindEnabled === false) return;
   const eodHour = (S.settings||{}).eodRemindHour || 21;
-  // Используем KZ время
-  const nowKZDate = new Date(now.getTime() + 5*3600000);
-  const kzHour = nowKZDate.getUTCHours();
-  const kzMin = nowKZDate.getUTCMinutes();
-  if(kzHour !== eodHour || kzMin > 5) return; // только в HH:00–HH:05
+  // Алматинское время UTC+5 фиксировано
+  const nowAlmatyEod = new Date(Date.now() + 5*3600000);
+  const kzHour = nowAlmatyEod.getUTCHours();
+  const kzMin  = nowAlmatyEod.getUTCMinutes();
+  if(kzHour !== eodHour || kzMin > 5) return;
 
   const eodKey = `eod_${today}`;
   if(_eodSentKeys.has(eodKey)) return;
@@ -14998,6 +15000,13 @@ async function showBinotelDebug(){
   const el = document.getElementById('callslog-body');
   if(el) el.innerHTML += '<div id="dbg-load" style="text-align:center;padding:16px;color:var(--t3)">Загрузка...</div>';
 
+  // Пингуем воркер
+  let workerStatus = '?';
+  try{
+    const r = await fetch('https://flat-pond-6e68.uurraa.workers.dev/ping', {method:'GET'}).catch(()=>null);
+    workerStatus = r?.ok ? `✅ Онлайн (${r.status})` : `⚠️ ${r?.status||'offline'}`;
+  }catch(e){ workerStatus = '❌ Недоступен'; }
+
   const [dbgSnap, callsSnap] = await Promise.all([
     fbDb.ref('binotelDebug').limitToLast(30).once('value').catch(()=>null),
     fbDb.ref('binotelCalls').limitToLast(10).once('value').catch(()=>null),
@@ -15006,6 +15015,20 @@ async function showBinotelDebug(){
 
   const dbgList = Object.values(dbgSnap?.val()||{}).sort((a,b)=>(b.ts||'').localeCompare(a.ts||''));
   const callsList = Object.values(callsSnap?.val()||{}).sort((a,b)=>(b.ts||'').localeCompare(a.ts||''));
+
+  // Показываем статус воркера
+  const statusDiv = document.createElement('div');
+  statusDiv.style.cssText = 'padding:10px 16px;background:var(--bg3);border-radius:8px;margin-bottom:12px;font-size:12px;color:var(--t1)';
+  const lastDbg = dbgList[0];
+  const lastCall = callsList[0];
+  statusDiv.innerHTML = `
+    <b>Воркер:</b> ${workerStatus}&nbsp;&nbsp;
+    <b>Последний debug-ивент:</b> ${lastDbg ? (lastDbg.ts||'').slice(0,16)+' — '+(JSON.parse(lastDbg.raw||'{}').event||'?') : 'нет'}&nbsp;&nbsp;
+    <b>Последний звонок в Firebase:</b> ${lastCall ? (lastCall.ts||'').slice(0,16) : 'нет'}
+    ${!lastDbg ? '<br><span style="color:var(--am)">⚠️ В binotelDebug нет данных — возможно Binotel не отправляет webhook или URL воркера в настройках Binotel устарел</span>' : ''}
+    ${lastDbg && lastCall && lastCall.ts < lastDbg.ts ? '<br><span style="color:var(--am)">⚠️ Есть debug-ивенты, но записи не создаются — проверь обработку CALL_COMPLETED в воркере</span>' : ''}
+  `;
+  el.appendChild(statusDiv);
 
   // ── Console debug output ──────────────────────────────────────
   console.group('%c🔍 Binotel Debug', 'color:#a87fff;font-weight:bold;font-size:14px');
@@ -15658,6 +15681,9 @@ function openWAChat(leadId, _fromRender){
       <div id="wachat-msgs" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px"></div>
       <div style="padding:10px 12px;border-top:1px solid var(--b1);flex-shrink:0;background:var(--bg3)">
         <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:4px">
+          <label title="Отправить файл" style="background:var(--bg4);border:1px solid var(--b2);border-radius:8px;color:var(--t3);cursor:pointer;padding:7px 10px;font-size:15px;flex-shrink:0;display:flex;align-items:center">
+            📎<input id="wachat-file-inp" type="file" style="display:none" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.mp3,.mp4,.txt">
+          </label>
           <textarea id="wachat-inp" placeholder="${isStaff?'Сообщение сотруднику (внутри портала)...':'Сообщение клиенту в WhatsApp...'}" rows="2"
             style="flex:1;background:var(--bg4);border:1px solid var(--b2);border-radius:8px;color:var(--t1);font-family:var(--fb);font-size:13px;padding:7px 10px;resize:none"></textarea>
           <button id="wachat-send-btn" style="${sendBtnStyle}">${sendBtnLabel}</button>
@@ -15676,6 +15702,13 @@ function openWAChat(leadId, _fromRender){
     const inp = document.getElementById('wachat-inp');
     inp?.addEventListener('keydown', e=>{
       if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); doSend(); }
+    });
+    // Файловый инпут
+    document.getElementById('wachat-file-inp')?.addEventListener('change', async function(){
+      const file = this.files?.[0];
+      if(!file) return;
+      this.value = ''; // сбрасываем для повторного выбора
+      await sendWAFile(leadId, file);
     });
     // Авто-фокус при открытии
     setTimeout(()=>inp?.focus(), 50);
@@ -15869,6 +15902,79 @@ function normalizePhone(raw){
   // Если 10 цифр — добавляем 7 (KZ/RU)
   if(d.length===10) d = '7'+d;
   return d;
+}
+
+async function sendWAFile(leadId, file){
+  const l = window._crmLeadsCache?.[leadId];
+  if(!l) return;
+  const phone = (l.phone||'').replace(/\D/g,'');
+  if(!phone){ toast('Нет номера телефона', true); return; }
+
+  // Показываем превью в чате
+  const now = new Date().toISOString();
+  const uid = fbAuth.currentUser?.uid||'';
+  const userName = S.appUsers?.[uid]?.name || fbAuth.currentUser?.email || '—';
+
+  // Читаем файл в base64
+  const toBase64 = f => new Promise((res, rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(f); });
+
+  toast('📎 Отправка файла...');
+  try{
+    const b64 = await toBase64(file);
+    const base64data = b64.split(',')[1];
+    const mimeType = file.type || 'application/octet-stream';
+
+    // Определяем тип для Green API
+    let waType = 'document';
+    if(mimeType.startsWith('image/')) waType = 'image';
+    else if(mimeType.startsWith('audio/')) waType = 'audio';
+    else if(mimeType.startsWith('video/')) waType = 'video';
+
+    // Отправляем через Green API (uploadFile + sendFile)
+    const apiUrl = S.settings?.greenApiUrl || 'https://api.green-api.com';
+    const instId  = S.settings?.greenApiId  || '';
+    const apiKey  = S.settings?.greenApiKey || '';
+    if(!instId || !apiKey){ toast('Green API не настроен', true); return; }
+
+    // 1. Upload file
+    const upResp = await fetch(`${apiUrl}/waInstance${instId}/uploadFile/${apiKey}`, {
+      method: 'POST',
+      headers: {'Content-Type': mimeType},
+      body: Uint8Array.from(atob(base64data), c=>c.charCodeAt(0))
+    });
+    const upData = await upResp.json();
+    const fileUrl = upData.urlFile;
+    if(!fileUrl){ toast('Ошибка загрузки файла', true); return; }
+
+    // 2. Send file
+    const sendResp = await fetch(`${apiUrl}/waInstance${instId}/sendFileByUrl/${apiKey}`, {
+      method: 'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        chatId: `${phone}@c.us`,
+        urlFile: fileUrl,
+        fileName: file.name,
+        caption: ''
+      })
+    });
+    const sendData = await sendResp.json();
+    if(sendData.idMessage){
+      // Логируем в чат Firebase
+      crmChatRef.child(leadId).push({
+        type:'out', text:`📎 ${file.name}`, ts:now,
+        uid, name:userName, file:{name:file.name,url:fileUrl,mime:mimeType}
+      });
+      crmRef.child(leadId+'/msgCount').transaction(v=>(v||0)+1);
+      crmRef.child(leadId+'/lastMsg').set(`📎 ${file.name}`);
+      crmRef.child(leadId+'/lastContact').set(now);
+      toast('✓ Файл отправлен');
+    } else {
+      toast('Ошибка отправки файла', true);
+    }
+  } catch(err){
+    console.error('sendWAFile error:', err);
+    toast('Ошибка: ' + (err.message||err), true);
+  }
 }
 
 async function sendWAMessage(leadId, toWA){
