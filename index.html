@@ -673,6 +673,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
         <div class="view-toggle">
           <button class="vt-btn active" id="vt-one" onclick="setView('one')">По преподавателю</button>
           <button class="vt-btn" id="vt-all" onclick="setView('all')">Все преподаватели</button>
+          <button class="vt-btn" id="vt-combined" onclick="setView('combined')">🗓 Сводный</button>
         </div>
         <span class="fl" id="sched-t-lbl">Преподаватель:</span>
         <select class="fsel" id="sched-sel" onchange="renderSchedule()"></select>
@@ -2363,6 +2364,7 @@ function renderPanel(p){
       schedView='one';
       document.getElementById('vt-one').classList.add('active');
       document.getElementById('vt-all').classList.remove('active');
+      document.getElementById('vt-combined')?.classList.remove('active');
       document.getElementById('sched-t-lbl').style.display='none';
       document.getElementById('sched-sel').style.display='none';
       const vt=document.getElementById('vt-one');
@@ -5290,9 +5292,111 @@ function setView(v){
   schedView=v;
   document.getElementById('vt-one').classList.toggle('active',v==='one');
   document.getElementById('vt-all').classList.toggle('active',v==='all');
+  document.getElementById('vt-combined').classList.toggle('active',v==='combined');
   document.getElementById('sched-t-lbl').style.display=v==='one'?'':'none';
   document.getElementById('sched-sel').style.display=v==='one'?'':'none';
   renderSchedule();
+}
+
+function buildCombinedView(wd, today, isCurWeek){
+  const teachers = (S.teachers||[]).filter(t=>t.status==='active');
+  if(!teachers.length) return '<div class="empty"><div class="empty-icon">👤</div><div class="empty-text">Нет активных преподавателей</div></div>';
+
+  // Header row with days
+  const dayHeader = `
+    <div style="display:grid;grid-template-columns:110px repeat(7,1fr);gap:2px;margin-bottom:2px;position:sticky;top:0;z-index:10;background:var(--bg2)">
+      <div style="padding:6px 8px;font-size:11px;font-weight:700;color:var(--t3)">Преподаватель</div>
+      ${DS.map((d,i)=>{
+        const isT = wd[i]===today;
+        return `<div style="padding:6px 4px;text-align:center;font-size:11px;font-weight:700;
+          color:${isT?'var(--ac2)':'var(--t2)'};
+          background:${isT?'rgba(124,92,252,.15)':isCurWeek?'rgba(124,92,252,.04)':'var(--bg3)'};
+          border-radius:6px 6px 0 0">
+          ${d}<br><span style="font-size:10px;font-weight:400;color:var(--t3)">${wd[i]?wd[i].slice(5).replace('-','.'):''}</span>
+          ${isT?'<br><span style="font-size:9px;font-weight:700;color:var(--ac2)">★</span>':''}
+        </div>`;
+      }).join('')}
+    </div>`;
+
+  // One row per teacher
+  const rows = teachers.map(t=>{
+    const sj = subj(t.subjId);
+    const av = getTeacherAvailForDate(t.id, wd.find(d=>d)||today);
+
+    // For each day — collect all lessons sorted by time
+    const dayCells = wd.map((dt,di)=>{
+      const slots = [];
+      // Find all time slots this teacher is available on this day
+      TIMES.forEach((time,ti)=>{
+        if(!(av[di]&&av[di][ti])) return;
+        const enrs = enrollmentsAt(t.id, di, ti, dt);
+        enrs.forEach(e=>{
+          const st = student(e.studentId);
+          const att = dt ? getAtt(e.id,dt) : null;
+          const isVac = att==='vacation';
+          const isMiss = att==='miss';
+          const isDone = att==='done';
+          const mk = dt&&S.makeups&&S.makeups[attKey(e.id,dt)];
+          const dotColor = isDone?'#3fd88e':isMiss?'#f05975':isVac?'#38bdf8':'var(--t3)';
+          slots.push(`<div style="display:flex;align-items:center;gap:3px;padding:2px 4px;border-radius:4px;background:var(--bg4);margin-bottom:2px;cursor:pointer"
+            onclick="showDetail(${e.id})">
+            <span style="width:5px;height:5px;border-radius:50%;background:${dotColor};flex-shrink:0"></span>
+            <span style="font-size:10px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px">${st?st.name.split(' ')[0]:'?'}</span>
+            <span style="font-size:9px;color:var(--t3);flex-shrink:0">${time}</span>
+          </div>`);
+        });
+        // Empty available slot
+        if(!enrs.length){
+          slots.push(`<div style="padding:2px 4px;border-radius:4px;border:1px dashed var(--b1);margin-bottom:2px;cursor:pointer;opacity:.5"
+            onclick="openSlotAdd('${t.id}',${di},${ti},'${time}')">
+            <span style="font-size:9px;color:var(--t3)">${time} +</span>
+          </div>`);
+        }
+      });
+      const isT = dt===today;
+      return `<div style="padding:4px;min-height:32px;background:${isT?'rgba(124,92,252,.06)':isCurWeek?'rgba(124,92,252,.02)':'transparent'};border-radius:4px">
+        ${slots.join('')}
+        ${!slots.length?`<div style="font-size:9px;color:var(--b2);padding:4px 2px">—</div>`:''}
+      </div>`;
+    });
+
+    return `<div style="display:grid;grid-template-columns:110px repeat(7,1fr);gap:2px;border-top:1px solid var(--b1);padding:3px 0">
+      <div style="padding:4px 6px;display:flex;align-items:flex-start;gap:6px">
+        <div class="av ${AVC[t.ci||0]}" style="width:26px;height:26px;font-size:9px;flex-shrink:0">${inits(t.name)}</div>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--t1);line-height:1.2">${t.name.split(' ')[0]}</div>
+          <div style="display:flex;align-items:center;gap:3px;margin-top:1px">
+            <span style="width:5px;height:5px;border-radius:50%;background:${sj.color};display:inline-block"></span>
+            <span style="font-size:9px;color:var(--t3)">${sj.name}</span>
+          </div>
+        </div>
+      </div>
+      ${dayCells.join('')}
+    </div>`;
+  }).join('');
+
+  // Summary row: total lessons per day
+  const summaryRow = `<div style="display:grid;grid-template-columns:110px repeat(7,1fr);gap:2px;border-top:2px solid var(--b2);padding:4px 0;background:var(--bg2);position:sticky;bottom:0">
+    <div style="padding:4px 6px;font-size:10px;font-weight:700;color:var(--t3)">Итого уроков</div>
+    ${wd.map((dt,di)=>{
+      let total = 0;
+      teachers.forEach(t=>{
+        const av = getTeacherAvailForDate(t.id, dt||today);
+        TIMES.forEach((_,ti)=>{
+          if(av[di]&&av[di][ti]) total += enrollmentsAt(t.id,di,ti,dt).length;
+        });
+      });
+      return `<div style="padding:4px;text-align:center;font-size:11px;font-weight:700;color:${total>0?'var(--ac2)':'var(--t3)'}">${total||'—'}</div>`;
+    }).join('')}
+  </div>`;
+
+  return `<div style="overflow-x:auto">
+    <div style="min-width:700px">
+      ${dayHeader}
+      ${rows}
+      ${summaryRow}
+    </div>
+  </div>`;
 }
 
 function buildSchedTable(tid,wd,today,isCurWeek){
@@ -5417,6 +5521,11 @@ function renderSchedule(){
     // Hide view toggle for teacher
     const vt=document.getElementById('vt-one');
     if(vt)vt.closest('.view-toggle')?.style && (vt.closest('.view-toggle').style.display='none');
+    return;
+  }
+
+  if(schedView==='combined'){
+    wrap.innerHTML = buildCombinedView(wd, today, isCurWeek);
     return;
   }
 
