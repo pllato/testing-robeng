@@ -5302,101 +5302,94 @@ function buildCombinedView(wd, today, isCurWeek){
   const teachers = (S.teachers||[]).filter(t=>t.status==='active');
   if(!teachers.length) return '<div class="empty"><div class="empty-icon">👤</div><div class="empty-text">Нет активных преподавателей</div></div>';
 
-  // Header row with days
-  const dayHeader = `
-    <div style="display:grid;grid-template-columns:110px repeat(7,1fr);gap:2px;margin-bottom:2px;position:sticky;top:0;z-index:10;background:var(--bg2)">
-      <div style="padding:6px 8px;font-size:11px;font-weight:700;color:var(--t3)">Преподаватель</div>
-      ${DS.map((d,i)=>{
-        const isT = wd[i]===today;
-        return `<div style="padding:6px 4px;text-align:center;font-size:11px;font-weight:700;
-          color:${isT?'var(--ac2)':'var(--t2)'};
-          background:${isT?'rgba(124,92,252,.15)':isCurWeek?'rgba(124,92,252,.04)':'var(--bg3)'};
-          border-radius:6px 6px 0 0">
-          ${d}<br><span style="font-size:10px;font-weight:400;color:var(--t3)">${wd[i]?wd[i].slice(5).replace('-','.'):''}</span>
-          ${isT?'<br><span style="font-size:9px;font-weight:700;color:var(--ac2)">★</span>':''}
-        </div>`;
-      }).join('')}
-    </div>`;
+  // Precompute availability maps
+  const avMaps = {};
+  teachers.forEach(t=>{ avMaps[t.id] = getTeacherAvailForDate(t.id, wd[0]||today); });
 
-  // One row per teacher
-  const rows = teachers.map(t=>{
-    const sj = subj(t.subjId);
-    const av = getTeacherAvailForDate(t.id, wd.find(d=>d)||today);
-
-    // For each day — collect all lessons sorted by time
-    const dayCells = wd.map((dt,di)=>{
-      const slots = [];
-      // Find all time slots this teacher is available on this day
-      TIMES.forEach((time,ti)=>{
-        if(!(av[di]&&av[di][ti])) return;
-        const enrs = enrollmentsAt(t.id, di, ti, dt);
-        enrs.forEach(e=>{
-          const st = student(e.studentId);
-          const att = dt ? getAtt(e.id,dt) : null;
-          const isVac = att==='vacation';
-          const isMiss = att==='miss';
-          const isDone = att==='done';
-          const mk = dt&&S.makeups&&S.makeups[attKey(e.id,dt)];
-          const dotColor = isDone?'#3fd88e':isMiss?'#f05975':isVac?'#38bdf8':'var(--t3)';
-          slots.push(`<div style="display:flex;align-items:center;gap:3px;padding:2px 4px;border-radius:4px;background:var(--bg4);margin-bottom:2px;cursor:pointer"
-            onclick="showDetail(${e.id})">
-            <span style="width:5px;height:5px;border-radius:50%;background:${dotColor};flex-shrink:0"></span>
-            <span style="font-size:10px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px">${st?st.name.split(' ')[0]:'?'}</span>
-            <span style="font-size:9px;color:var(--t3);flex-shrink:0">${time}</span>
-          </div>`);
-        });
-        // Empty available slot
-        if(!enrs.length){
-          slots.push(`<div style="padding:2px 4px;border-radius:4px;border:1px dashed var(--b1);margin-bottom:2px;cursor:pointer;opacity:.5"
-            onclick="openSlotAdd('${t.id}',${di},${ti},'${time}')">
-            <span style="font-size:9px;color:var(--t3)">${time} +</span>
-          </div>`);
-        }
-      });
-      const isT = dt===today;
-      return `<div style="padding:4px;min-height:32px;background:${isT?'rgba(124,92,252,.06)':isCurWeek?'rgba(124,92,252,.02)':'transparent'};border-radius:4px">
-        ${slots.join('')}
-        ${!slots.length?`<div style="font-size:9px;color:var(--b2);padding:4px 2px">—</div>`:''}
-      </div>`;
-    });
-
-    return `<div style="display:grid;grid-template-columns:110px repeat(7,1fr);gap:2px;border-top:1px solid var(--b1);padding:3px 0">
-      <div style="padding:4px 6px;display:flex;align-items:flex-start;gap:6px">
-        <div class="av ${AVC[t.ci||0]}" style="width:26px;height:26px;font-size:9px;flex-shrink:0">${inits(t.name)}</div>
-        <div>
-          <div style="font-size:11px;font-weight:700;color:var(--t1);line-height:1.2">${t.name.split(' ')[0]}</div>
-          <div style="display:flex;align-items:center;gap:3px;margin-top:1px">
-            <span style="width:5px;height:5px;border-radius:50%;background:${sj.color};display:inline-block"></span>
-            <span style="font-size:9px;color:var(--t3)">${sj.name}</span>
-          </div>
-        </div>
-      </div>
-      ${dayCells.join('')}
-    </div>`;
-  }).join('');
-
-  // Summary row: total lessons per day
-  const summaryRow = `<div style="display:grid;grid-template-columns:110px repeat(7,1fr);gap:2px;border-top:2px solid var(--b2);padding:4px 0;background:var(--bg2);position:sticky;bottom:0">
-    <div style="padding:4px 6px;font-size:10px;font-weight:700;color:var(--t3)">Итого уроков</div>
-    ${wd.map((dt,di)=>{
-      let total = 0;
+  // Collect all lessons: {ti, di, dt, st, t, e, att, sj}
+  const allLessons = [];
+  TIMES.forEach((time,ti)=>{
+    wd.forEach((dt,di)=>{
       teachers.forEach(t=>{
-        const av = getTeacherAvailForDate(t.id, dt||today);
-        TIMES.forEach((_,ti)=>{
-          if(av[di]&&av[di][ti]) total += enrollmentsAt(t.id,di,ti,dt).length;
+        if(!(avMaps[t.id][di]&&avMaps[t.id][di][ti])) return;
+        enrollmentsAt(t.id,di,ti,dt||'').forEach(e=>{
+          const st = student(e.studentId);
+          if(!st) return;
+          const att = dt ? getAtt(e.id,dt) : null;
+          const sj  = subj(t.subjId);
+          allLessons.push({ti,di,dt,st,t,e,att,sj});
         });
       });
-      return `<div style="padding:4px;text-align:center;font-size:11px;font-weight:700;color:${total>0?'var(--ac2)':'var(--t3)'}">${total||'—'}</div>`;
+    });
+  });
+
+  // Which time slots have at least one lesson?
+  const usedTi = [...new Set(allLessons.map(l=>l.ti))].sort((a,b)=>a-b);
+
+  if(!usedTi.length){
+    return '<div style="text-align:center;padding:40px;color:var(--t3);font-size:13px">Нет записей на эту неделю</div>';
+  }
+
+  const COL = '72px repeat(7,1fr)';
+
+  // ── Header ────────────────────────────────────────────────────
+  let html = '<div style="overflow-x:auto"><div style="min-width:660px">';
+  html += `<div style="display:grid;grid-template-columns:${COL};gap:1px;position:sticky;top:0;z-index:10;background:var(--bg2);border-bottom:2px solid var(--b2);padding-bottom:2px;margin-bottom:3px">
+    <div style="padding:7px 5px;font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em">Время</div>
+    ${DS.map((d,i)=>{
+      const isT = wd[i]===today;
+      return '<div style="padding:6px 4px;text-align:center;font-size:11px;font-weight:700;color:'+(isT?'var(--ac2)':'var(--t1)')+(isT?';background:rgba(124,92,252,.12)':'')+';border-radius:5px">'+d+' <span style="font-size:10px;font-weight:400;color:var(--t3)">'+(wd[i]?wd[i].slice(5).replace('-','.'):'')+' </span>'+(isT?'<br><span style="font-size:8px;font-weight:700;color:var(--ac2);letter-spacing:.08em">СЕГОДНЯ</span>':'')+'</div>';
     }).join('')}
   </div>`;
 
-  return `<div style="overflow-x:auto">
-    <div style="min-width:700px">
-      ${dayHeader}
-      ${rows}
-      ${summaryRow}
-    </div>
-  </div>`;
+  // ── One row per time slot ─────────────────────────────────────
+  usedTi.forEach(ti=>{
+    const time = TIMES[ti];
+    html += '<div style="display:grid;grid-template-columns:'+COL+';gap:1px;margin-bottom:1px;align-items:stretch">';
+
+    // Time label
+    html += '<div style="padding:5px 5px;font-size:11px;font-weight:700;color:var(--t3);background:var(--bg3);border-radius:4px 0 0 4px;display:flex;align-items:flex-start;padding-top:8px">'+time+'</div>';
+
+    // Day cells
+    wd.forEach((dt,di)=>{
+      const cell = allLessons.filter(l=>l.ti===ti&&l.di===di);
+      const isT = dt===today;
+      html += '<div style="padding:2px;min-height:34px;background:'+(isT?'rgba(124,92,252,.05)':'')+';border-radius:0 4px 4px 0">';
+      if(!cell.length){
+        html += '<div style="min-height:30px"></div>';
+      } else {
+        cell.forEach(({st,t,att,sj,e})=>{
+          const dotClr = att==='done'?'#3fd88e':att==='miss'?'#f05975':att==='vacation'?'#38bdf8':att==='makeup'?'#f5c842':sj.color||'var(--ac)';
+          const bgClr  = att==='done'?'rgba(63,216,142,.08)':att==='miss'?'rgba(240,89,117,.08)':att==='vacation'?'rgba(56,189,248,.08)':'var(--bg3)';
+          const icon   = att==='done'?'✅':att==='miss'?'❌':att==='vacation'?'🏖':att==='makeup'?'🔄':'';
+          html += '<div onclick="openCombinedStudentCard('+st.id+')" style="display:flex;align-items:flex-start;gap:4px;padding:4px 5px;border-radius:6px;background:'+bgClr+';border-left:3px solid '+dotClr+';cursor:pointer;margin-bottom:2px;transition:filter .12s" onmouseover="this.style.filter='brightness(1.12)'" onmouseout="this.style.filter=''">'
+            +'<div style="min-width:0;flex:1">'
+            +'<div style="font-size:11px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+st.name.split(' ')[0]+(icon?' '+icon:'')+'</div>'
+            +'<div style="font-size:9px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span style="color:'+sj.color+';font-weight:600">'+t.name.split(' ')[0]+'</span></div>'
+            +'</div></div>';
+        });
+      }
+      html += '</div>';
+    });
+
+    html += '</div>';
+  });
+
+  // ── Footer: total lessons per day ─────────────────────────────
+  html += '<div style="display:grid;grid-template-columns:'+COL+';gap:1px;border-top:2px solid var(--b2);margin-top:6px;padding-top:4px">'
+    +'<div style="padding:5px 5px;font-size:10px;font-weight:700;color:var(--t3)">Итого</div>'
+    +wd.map((dt,di)=>{
+      const cnt = allLessons.filter(l=>l.di===di).length;
+      return '<div style="padding:5px 4px;text-align:center;font-size:12px;font-weight:700;color:'+(cnt?'var(--ac2)':'var(--t3)')+'">'+( cnt||'—')+'</div>';
+    }).join('')+'</div>';
+
+  html += '</div></div>';
+  return html;
+}
+
+function openCombinedStudentCard(studentId){
+  const enr = (S.enrollments||[]).find(e=>e.studentId===studentId&&!e.inactive);
+  if(enr) showDetail(enr.id);
 }
 
 function buildSchedTable(tid,wd,today,isCurWeek){
