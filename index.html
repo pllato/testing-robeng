@@ -5362,7 +5362,7 @@ function buildCombinedView(wd, today, isCurWeek){
           const dotClr = att==='done'?'#3fd88e':att==='miss'?'#f05975':att==='vacation'?'#38bdf8':att==='makeup'?'#f5c842':sj.color||'var(--ac)';
           const bgClr  = att==='done'?'rgba(63,216,142,.08)':att==='miss'?'rgba(240,89,117,.08)':att==='vacation'?'rgba(56,189,248,.08)':'var(--bg3)';
           const icon   = att==='done'?'✅':att==='miss'?'❌':att==='vacation'?'🏖':att==='makeup'?'🔄':'';
-          html += '<div onclick="openCombinedStudentCard('+st.id+')" style="display:flex;align-items:flex-start;gap:4px;padding:4px 5px;border-radius:6px;background:'+bgClr+';border-left:3px solid '+dotClr+';cursor:pointer;margin-bottom:2px;transition:filter .12s" onmouseover="this.style.filter='brightness(1.12)'" onmouseout="this.style.filter=''">'
+          html += '<div onclick="openCombinedStudentCard('+st.id+')" style="display:flex;align-items:flex-start;gap:4px;padding:4px 5px;border-radius:6px;background:'+bgClr+';border-left:3px solid '+dotClr+';cursor:pointer;margin-bottom:2px;transition:opacity .12s" onmouseover="this.style.opacity=\'0.8\'" onmouseout="this.style.opacity=\'1\'">'
             +'<div style="min-width:0;flex:1">'
             +'<div style="font-size:11px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+st.name.split(' ')[0]+(icon?' '+icon:'')+'</div>'
             +'<div style="font-size:9px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span style="color:'+sj.color+';font-weight:600">'+t.name.split(' ')[0]+'</span></div>'
