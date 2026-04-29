@@ -1906,13 +1906,15 @@ async function sendSystemWA(phone, message, meta={}){
     : message + '\n\n_Системное сообщение Robeng ELC_';
 
   if(isQuietHours()){
-    // Считаем время отправки: завтра 09:00 KZ = 04:00 UTC
+    // Откладываем на 09:00 по местному времени (следующее утро если уже поздно)
     const nowUtc = new Date();
     const sendAt = new Date(nowUtc);
-    // Если UTC час >= 16 (= 21:00 KZ) — откладываем на завтра
     const kzHourNow = (nowUtc.getUTCHours() + getTZOffset()) % 24;
-    if(kzHourNow >= 21) sendAt.setUTCDate(sendAt.getUTCDate()+1);
-    sendAt.setUTCHours(24 - getTZOffset() + 9, 0, 0, 0); // 09:00 local time
+    // Если уже вечер (>= 21:00) — переходим на следующий день
+    if(kzHourNow >= 21) sendAt.setUTCDate(sendAt.getUTCDate() + 1);
+    // 09:00 местного = (9 - tzOffset) UTC. Для UTC+5: 9-5=4 UTC
+    const utcHourFor9am = 9 - getTZOffset();
+    sendAt.setUTCHours(utcHourFor9am >= 0 ? utcHourFor9am : utcHourFor9am + 24, 0, 0, 0);
     const key = 'pending_sys_' + Date.now() + '_' + Math.random().toString(36).slice(2);
     fbDb.ref('pendingNotifications/'+key).set({
       phones:[phone.replace(/\D/g,'')], msg:signed,
@@ -10289,9 +10291,8 @@ function startLessonReminders(){
 
 function checkLessonReminders(){
   const now = new Date();
-  // ВСЕГДА используем Алматинское время (UTC+5) для расписания уроков
-  // Независимо от того, где находится браузер сотрудника
-  const ALMATY_OFFSET = 5; // UTC+5 — фиксировано для уроков
+  // Используем настроенный часовой пояс (по умолчанию UTC+5 Алматы)
+  const ALMATY_OFFSET = getTZOffset(); // из настроек (или 5 по умолчанию)
   const nowAlmaty = new Date(now.getTime() + ALMATY_OFFSET * 3600000);
   const today = nowAlmaty.toISOString().slice(0, 10);
   const nowMinutes = nowAlmaty.getUTCHours() * 60 + nowAlmaty.getUTCMinutes();
