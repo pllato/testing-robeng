@@ -15846,6 +15846,126 @@ function openCRMInFullChat(){
   }, 150);
 }
 
+// ── ОТПРАВКА ФАЙЛОВ В CRM-ЧАТ ────────────────────────────────────
+async function onCRMChatFileSelected(inputEl){
+  const file = inputEl.files?.[0];
+  if(!file) return;
+  inputEl.value = ''; // очищаем чтобы можно было выбрать тот же файл повторно
+
+  if(!_crmEditId){ toast('Сначала откройте лида', true); return; }
+  const sizeMB = file.size / (1024*1024);
+
+  // Получаем телефон клиента
+  const snap = await crmRef.child(_crmEditId).once('value');
+  const lead = snap.val();
+  const phoneRaw = (lead?.phone||'').replace(/\D/g,'');
+  if(!phoneRaw){ toast('У клиента не указан телефон', true); return; }
+
+  // Лимиты Green API / WhatsApp:
+  // 100 МБ — общий лимит файлов
+  // Если больше — отправим только ссылку текстом
+  const MAX_WA_MB = 100;
+  const willSendAsLink = sizeMB > MAX_WA_MB;
+
+  // Подпись из текстового поля
+  const captionInp = document.getElementById('crm-chat-inp');
+  const caption = (captionInp?.value || '').trim();
+
+  // UI прогресс
+  const progressBox = document.getElementById('crm-chat-upload-progress');
+  const progressName = document.getElementById('crm-chat-upload-name');
+  const progressPct = document.getElementById('crm-chat-upload-pct');
+  const progressBar = document.getElementById('crm-chat-upload-bar');
+  if(progressBox) progressBox.style.display = '';
+  if(progressName) progressName.textContent = '📤 ' + file.name + ' · ' + sizeMB.toFixed(1) + ' МБ';
+  if(progressPct) progressPct.textContent = '0%';
+  if(progressBar) progressBar.style.width = '0%';
+
+  try {
+    // 1) Получаем presigned URL и загружаем в R2
+    const params = new URLSearchParams({
+      leadId: _crmEditId,
+      fileName: file.name,
+      contentType: file.type || 'application/octet-stream'
+    });
+    const prepResp = await fetch('https://flat-pond-6e68.uurraa.workers.dev/upload-chat-file?'+params, { method: 'POST', body: '{}' });
+    const prep = await prepResp.json();
+    if(!prep.ok) throw new Error(prep.error || 'Не удалось получить URL загрузки');
+
+    // 2) Загружаем в R2 с прогрессом через XHR
+    await new Promise((resolve, reject)=>{
+      const xhr = new XMLHttpRequest();
+      xhr.open('PUT', prep.presignedUrl, true);
+      xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+      xhr.upload.onprogress = e=>{
+        if(!e.lengthComputable) return;
+        const pct = Math.round((e.loaded / e.total) * 100);
+        if(progressBar) progressBar.style.width = pct + '%';
+        if(progressPct) progressPct.textContent = pct + '%';
+      };
+      xhr.onload = ()=> xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error('R2 upload status ' + xhr.status));
+      xhr.onerror = ()=> reject(new Error('Network error при загрузке в R2'));
+      xhr.send(file);
+    });
+
+    if(progressName) progressName.textContent = '📤 ' + file.name + ' — отправка в WhatsApp...';
+
+    // 3) Записываем в чат лида в Firebase
+    const now = new Date().toISOString();
+    const uid = fbAuth.currentUser?.uid||'';
+    const usnap = await fbDb.ref('appUsers/'+uid).once('value');
+    const uname = usnap.val()?.name || fbAuth.currentUser?.email || '—';
+    const mt = (file.type||'').startsWith('image/') ? 'image'
+             : (file.type||'').startsWith('video/') ? 'video'
+             : (file.type||'').startsWith('audio/') ? 'audio'
+             : 'document';
+    const chatMsg = {
+      type:'out',
+      text: caption || (willSendAsLink ? '📎 Файл: ' + prep.publicUrl : ''),
+      mediaUrl: prep.publicUrl,
+      mediaType: mt,
+      mediaName: file.name,
+      mediaSize: file.size,
+      ts: now, uid, name: uname,
+    };
+    crmChatRef.child(_crmEditId).push(chatMsg);
+    crmRef.child(_crmEditId+'/msgCount').transaction(v=>(v||0)+1);
+    crmRef.child(_crmEditId+'/lastContact').set(now);
+
+    // 4) Отправляем в WhatsApp
+    let waResult;
+    if(willSendAsLink){
+      // Файл слишком большой — отправляем только ссылку текстом
+      const linkMsg = (caption ? caption + '\n\n' : '') + '📎 Файл (' + sizeMB.toFixed(1) + ' МБ): ' + prep.publicUrl;
+      waResult = await notifyWhatsApp('+'+phoneRaw, linkMsg);
+    } else {
+      // Отправляем как настоящий файл через Green API
+      const resp = await fetch('https://flat-pond-6e68.uurraa.workers.dev/send-wa-file', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: '+'+phoneRaw,
+          fileUrl: prep.publicUrl,
+          fileName: file.name,
+          caption: caption,
+        })
+      });
+      waResult = await resp.json().catch(()=>({}));
+    }
+
+    if(!waResult || waResult.ok === false){
+      toast('⚠ Файл загружен, но WhatsApp не отправил: ' + (waResult?.error||'ошибка'), true);
+    } else {
+      toast(willSendAsLink ? '✓ Ссылка отправлена в WhatsApp' : '✓ Файл отправлен в WhatsApp');
+      if(caption && captionInp) captionInp.value = ''; // подпись использовали — очищаем
+    }
+  } catch(e){
+    toast('Ошибка: ' + e.message, true);
+  } finally {
+    setTimeout(()=>{ if(progressBox) progressBox.style.display='none'; }, 1500);
+  }
+}
+
 function sendCRMMsg(){
   const inp = document.getElementById('crm-chat-inp');
   const text = (inp?.value||'').trim();
@@ -17054,10 +17174,19 @@ function openWAChat(leadId, _fromRender){
         </div>
       </div>
       <div id="wachat-msgs" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px"></div>
+      <div id="wachat-upload-progress" style="display:none;padding:6px 12px;background:var(--bg3);border-top:1px solid var(--b1);font-size:11px;color:var(--t2)">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+          <span id="wachat-upload-name">Загрузка...</span>
+          <span id="wachat-upload-pct" style="margin-left:auto;color:var(--ac2);font-weight:700">0%</span>
+        </div>
+        <div style="background:var(--bg4);border-radius:8px;height:3px;overflow:hidden"><div id="wachat-upload-bar" style="height:100%;background:var(--gn);width:0%;transition:width .2s"></div></div>
+      </div>
       <div style="padding:10px 12px;border-top:1px solid var(--b1);flex-shrink:0;background:var(--bg3)">
         <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:4px">
-          <textarea id="wachat-inp" placeholder="${isStaff?'Сообщение сотруднику (внутри портала)...':'Сообщение клиенту в WhatsApp...'}" rows="2"
+          <textarea id="wachat-inp" placeholder="${isStaff?'Сообщение сотруднику (внутри портала)...':'Сообщение клиенту в WhatsApp... (или подпись к файлу)'}" rows="2"
             style="flex:1;background:var(--bg4);border:1px solid var(--b2);border-radius:8px;color:var(--t1);font-family:var(--fb);font-size:13px;padding:7px 10px;resize:none"></textarea>
+          <button id="wachat-attach-btn" style="background:rgba(124,92,252,.1);border:1px solid rgba(124,92,252,.25);border-radius:8px;color:var(--ac2);cursor:pointer;padding:8px 12px;font-size:16px" title="Прикрепить файл / фото / видео">📎</button>
+          <input type="file" id="wachat-file-input" style="display:none" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.txt"/>
           <button id="wachat-send-btn" style="${sendBtnStyle}">${sendBtnLabel}</button>
         </div>
         ${sendHint}
@@ -17069,6 +17198,8 @@ function openWAChat(leadId, _fromRender){
     document.getElementById('wachat-call-btn')?.addEventListener('click', ()=>crmCall(leadId));
     document.getElementById('wachat-unread-btn')?.addEventListener('click', ()=>markChatUnread(leadId));
     document.getElementById('wachat-del-btn')?.addEventListener('click', ()=>archiveChatLead(leadId));
+    document.getElementById('wachat-attach-btn')?.addEventListener('click', ()=>document.getElementById('wachat-file-input').click());
+    document.getElementById('wachat-file-input')?.addEventListener('change', e=>onWAChatFileSelected(e.target, leadId));
     const doSend = ()=>sendWAMessage(leadId, !isStaff);
     document.getElementById('wachat-send-btn')?.addEventListener('click', doSend);
     const inp = document.getElementById('wachat-inp');
@@ -17267,6 +17398,103 @@ function normalizePhone(raw){
   // Если 10 цифр — добавляем 7 (KZ/RU)
   if(d.length===10) d = '7'+d;
   return d;
+}
+
+// ── ОТПРАВКА ФАЙЛОВ В ОСНОВНОЙ ЧАТ (Чаты) ────────────────────────
+async function onWAChatFileSelected(inputEl, leadId){
+  const file = inputEl.files?.[0];
+  if(!file) return;
+  inputEl.value = '';
+
+  if(!leadId){ toast('Лид не выбран', true); return; }
+  const sizeMB = file.size / (1024*1024);
+
+  const snap = await crmRef.child(leadId).once('value');
+  const lead = snap.val();
+  const phoneRaw = (lead?.phone||'').replace(/\D/g,'');
+  if(!phoneRaw){ toast('У клиента не указан телефон', true); return; }
+
+  const MAX_WA_MB = 100;
+  const willSendAsLink = sizeMB > MAX_WA_MB;
+
+  const captionInp = document.getElementById('wachat-inp');
+  const caption = (captionInp?.value || '').trim();
+
+  const progressBox = document.getElementById('wachat-upload-progress');
+  const progressName = document.getElementById('wachat-upload-name');
+  const progressPct = document.getElementById('wachat-upload-pct');
+  const progressBar = document.getElementById('wachat-upload-bar');
+  if(progressBox) progressBox.style.display = '';
+  if(progressName) progressName.textContent = '📤 ' + file.name + ' · ' + sizeMB.toFixed(1) + ' МБ';
+  if(progressPct) progressPct.textContent = '0%';
+  if(progressBar) progressBar.style.width = '0%';
+
+  try {
+    const params = new URLSearchParams({
+      leadId, fileName: file.name, contentType: file.type || 'application/octet-stream'
+    });
+    const prepResp = await fetch('https://flat-pond-6e68.uurraa.workers.dev/upload-chat-file?'+params, { method: 'POST', body: '{}' });
+    const prep = await prepResp.json();
+    if(!prep.ok) throw new Error(prep.error || 'Не удалось получить URL загрузки');
+
+    await new Promise((resolve, reject)=>{
+      const xhr = new XMLHttpRequest();
+      xhr.open('PUT', prep.presignedUrl, true);
+      xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+      xhr.upload.onprogress = e=>{
+        if(!e.lengthComputable) return;
+        const pct = Math.round((e.loaded / e.total) * 100);
+        if(progressBar) progressBar.style.width = pct + '%';
+        if(progressPct) progressPct.textContent = pct + '%';
+      };
+      xhr.onload = ()=> xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error('R2 upload status ' + xhr.status));
+      xhr.onerror = ()=> reject(new Error('Network error'));
+      xhr.send(file);
+    });
+
+    if(progressName) progressName.textContent = '📤 ' + file.name + ' — отправка...';
+
+    const now = new Date().toISOString();
+    const uid = fbAuth.currentUser?.uid||'';
+    const usnap = await fbDb.ref('appUsers/'+uid).once('value');
+    const uname = usnap.val()?.name || fbAuth.currentUser?.email || '—';
+    const mt = (file.type||'').startsWith('image/') ? 'image'
+             : (file.type||'').startsWith('video/') ? 'video'
+             : (file.type||'').startsWith('audio/') ? 'audio'
+             : 'document';
+    crmChatRef.child(leadId).push({
+      type:'out',
+      text: caption || (willSendAsLink ? '📎 Файл: ' + prep.publicUrl : ''),
+      mediaUrl: prep.publicUrl, mediaType: mt, mediaName: file.name, mediaSize: file.size,
+      ts: now, uid, name: uname,
+    });
+    crmRef.child(leadId+'/msgCount').transaction(v=>(v||0)+1);
+    crmRef.child(leadId+'/lastContact').set(now);
+
+    let waResult;
+    if(willSendAsLink){
+      const linkMsg = (caption ? caption + '\n\n' : '') + '📎 Файл (' + sizeMB.toFixed(1) + ' МБ): ' + prep.publicUrl;
+      waResult = await notifyWhatsApp('+'+phoneRaw, linkMsg);
+    } else {
+      const resp = await fetch('https://flat-pond-6e68.uurraa.workers.dev/send-wa-file', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: '+'+phoneRaw, fileUrl: prep.publicUrl, fileName: file.name, caption })
+      });
+      waResult = await resp.json().catch(()=>({}));
+    }
+
+    if(!waResult || waResult.ok === false){
+      toast('⚠ WhatsApp не отправил: ' + (waResult?.error||'ошибка'), true);
+    } else {
+      toast(willSendAsLink ? '✓ Ссылка отправлена' : '✓ Файл отправлен');
+      if(caption && captionInp) captionInp.value = '';
+    }
+  } catch(e){
+    toast('Ошибка: ' + e.message, true);
+  } finally {
+    setTimeout(()=>{ if(progressBox) progressBox.style.display='none'; }, 1500);
+  }
 }
 
 async function sendWAMessage(leadId, toWA){
@@ -18203,15 +18431,25 @@ function addCRMLinkToStudent(studentEl, phone){
           <button onclick="openCRMInFullChat()" title="Открыть в полном окне чатов" style="background:var(--acbg);border:1px solid var(--acb);border-radius:6px;color:var(--ac2);cursor:pointer;padding:3px 9px;font-size:10px;font-family:var(--fb);font-weight:600">↗ Полный чат</button>
         </div>
         <div id="crm-chat-preview" style="flex:1;min-height:420px;max-height:520px;overflow-y:auto;background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);padding:10px"></div>
+        <!-- Прогресс загрузки файла -->
+        <div id="crm-chat-upload-progress" style="display:none;background:var(--bg3);border:1px solid var(--b2);border-radius:8px;padding:6px 10px;font-size:11px;color:var(--t2)">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+            <span id="crm-chat-upload-name">Загрузка...</span>
+            <span id="crm-chat-upload-pct" style="margin-left:auto;color:var(--ac2);font-weight:700">0%</span>
+          </div>
+          <div style="background:var(--bg4);border-radius:8px;height:3px;overflow:hidden"><div id="crm-chat-upload-bar" style="height:100%;background:var(--gn);width:0%;transition:width .2s"></div></div>
+        </div>
         <div style="display:flex;gap:6px">
-          <textarea id="crm-chat-inp" placeholder="Сообщение клиенту в WhatsApp..." rows="2"
+          <textarea id="crm-chat-inp" placeholder="Сообщение клиенту в WhatsApp... (или подпись к файлу)" rows="2"
             style="flex:1;background:var(--bg3);border:1px solid var(--b2);border-radius:8px;color:var(--t1);font-family:var(--fb);font-size:12px;padding:7px 10px;resize:none"
             onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendCRMMsgWA();}"></textarea>
           <div style="display:flex;flex-direction:column;gap:4px">
-            <button onclick="sendCRMMsgWA()" style="background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.25);border-radius:6px;color:var(--gn);cursor:pointer;padding:5px 9px;font-size:16px" title="Отправить в WhatsApp">📲</button>
+            <button onclick="document.getElementById('crm-chat-file-input').click()" style="background:rgba(124,92,252,.1);border:1px solid rgba(124,92,252,.25);border-radius:6px;color:var(--ac2);cursor:pointer;padding:5px 9px;font-size:16px" title="Прикрепить файл / фото / видео">📎</button>
+            <button onclick="sendCRMMsgWA()" style="background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.25);border-radius:6px;color:var(--gn);cursor:pointer;padding:5px 9px;font-size:16px" title="Отправить текст в WhatsApp">📲</button>
           </div>
+          <input type="file" id="crm-chat-file-input" style="display:none" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.txt" onchange="onCRMChatFileSelected(this)"/>
         </div>
-        <div style="font-size:10px;color:var(--t3)">Enter — отправить в WhatsApp клиенту · ↗ для полного функционала (звонки, файлы)</div>
+        <div style="font-size:10px;color:var(--t3)">Enter — отправить · 📎 файл/видео/фото (до 100 МБ через WA, больше — ссылкой)</div>
       </div>
     </div>
 
