@@ -11547,12 +11547,28 @@ function startLessonReminders(){
   setInterval(checkLessonReminders, 60*1000);
   checkLessonReminders();
 
-  // Опрашиваем Binotel API для записей завершённых звонков каждые 2 мин
-  function pollBinotelRecordings(){
-    fetch('https://flat-pond-6e68.uurraa.workers.dev/binotel-poll', { method: 'GET' })
-      .then(r => r.json())
-      .then(d => { if(d.saved > 0) console.log('[Binotel poll] сохранено:', d.saved); })
-      .catch(() => {});
+  // Опрашиваем Binotel API для записей завершённых звонков каждые 2 мин.
+  // Lock через Firebase: только одна вкладка/сотрудник опрашивает за раз
+  // (экономит запросы Workers и трафик Firebase на больших командах)
+  async function pollBinotelRecordings(){
+    try {
+      const lockRef = fbDb.ref('binotelPollLock');
+      const myId = (fbAuth.currentUser?.uid || 'anon') + '_' + Math.random().toString(36).slice(2,8);
+      const now = Date.now();
+      // Транзакция: захватываем lock если он истёк (старше 90 сек) или пустой
+      const result = await lockRef.transaction(current => {
+        if (current && current.expiresAt > now) return; // занят кем-то ещё, прерываем
+        return { holderId: myId, acquiredAt: now, expiresAt: now + 90*1000 };
+      });
+      if (!result.committed || result.snapshot.val()?.holderId !== myId) return; // не смогли захватить
+
+      // Захватили — опрашиваем
+      const r = await fetch('https://flat-pond-6e68.uurraa.workers.dev/binotel-poll', { method: 'GET' });
+      const d = await r.json().catch(()=>({}));
+      if (d.saved > 0) console.log('[Binotel poll] сохранено:', d.saved);
+    } catch (e) {
+      // Тихо игнорируем — следующая вкладка попробует
+    }
   }
   setTimeout(pollBinotelRecordings, 30*1000);
   setInterval(pollBinotelRecordings, 2*60*1000);
@@ -12946,9 +12962,9 @@ async function dedupMergeGroup(phone, gi){
 
   await crmRef.child(mainKey).update({ stage:bestStage, notes:mergedNotes||mainLead.notes||'', lastContact, msgCount:totalMsgs, updatedAt:new Date().toISOString() });
 
-  // Move messages from duplicates to main
+  // Move messages from duplicates to main (limit 1000 на дубликат — больше реально не бывает)
   for(const dup of rest){
-    const chatSnap = await crmChatRef.child(dup.key).once('value');
+    const chatSnap = await crmChatRef.child(dup.key).limitToLast(1000).once('value');
     const msgs = chatSnap.val()||{};
     for(const msg of Object.values(msgs)) await crmChatRef.child(mainKey).push(msg);
     await crmRef.child(dup.key).remove();
@@ -14787,7 +14803,8 @@ async function crmSearchInMessages(q, leads){
   if(toFetch.length){
     await Promise.all(toFetch.map(async l=>{
       try{
-        const snap = await crmChatRef.child(l.id).once('value');
+        // Лимит 200 сообщений на лида — поиск глубже всё равно бесполезен
+        const snap = await crmChatRef.child(l.id).limitToLast(200).once('value');
         const msgs = snap.val()||{};
         _crmSearchMsgs[l.id] = Object.values(msgs).map(m=>m.text||'').join(' ').toLowerCase();
       }catch(e){ _crmSearchMsgs[l.id]=''; }
@@ -16266,11 +16283,12 @@ async function renderCallsLog(){
   if(!body) return;
   body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--t3)">Загрузка...</div>';
 
-  const [binotelSnap, leadsSnap, chatsSnap] = await Promise.all([
-    fbDb.ref('binotelCalls').orderByChild('ts').limitToLast(2000).once('value').catch(()=>null),
+  const [binotelSnap, leadsSnap] = await Promise.all([
+    fbDb.ref('binotelCalls').orderByChild('ts').limitToLast(500).once('value').catch(()=>null),
     crmRef.once('value').catch(()=>null),
-    fbDb.ref('crmChats').once('value').catch(()=>null),
   ]);
+  // crmChats не загружаем целиком — слишком дорого. Записи разговоров уже в binotelCalls.recordingLink
+  const chatsSnap = null;
 
   const calls = [];
 
