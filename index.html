@@ -15761,7 +15761,7 @@ function loadCRMChatPreview(id){
   const el = document.getElementById('crm-chat-preview');
   if(!el) return;
   if(_crmChatListener){ crmChatRef.off('value',_crmChatListener); _crmChatListener=null; }
-  _crmChatListener = crmChatRef.child(id).limitToLast(30).on('value', snap=>{
+  _crmChatListener = crmChatRef.child(id).limitToLast(200).on('value', snap=>{
     const msgs = [];
     snap.forEach(ch=>{ msgs.push({...ch.val(), _key:ch.key}); });
     msgs.sort((a,b)=>a.ts.localeCompare(b.ts));
@@ -15833,6 +15833,17 @@ function loadCRMChatPreview(id){
 function deleteCRMMsg(leadId, msgKey){
   if(!confirm('Удалить сообщение?')) return;
   crmChatRef.child(leadId).child(msgKey).remove().then(()=>toast('Удалено')).catch(()=>toast('Ошибка',true));
+}
+
+// Открыть текущий лид в полном окне Чатов (с записями, звонками, файлами)
+function openCRMInFullChat(){
+  if(!_crmEditId){ toast('Сначала откройте лида', true); return; }
+  const id = _crmEditId;
+  close1('m-crm-card');
+  setTimeout(()=>{
+    nav(document.querySelector('[data-p="wachats"]'));
+    setTimeout(()=>openWAChat(id), 400);
+  }, 150);
 }
 
 function sendCRMMsg(){
@@ -18187,8 +18198,11 @@ function addCRMLinkToStudent(studentEl, phone){
       </div>
       <!-- Right: chat -->
       <div style="display:flex;flex-direction:column;gap:6px">
-        <div style="font-size:12px;font-weight:600;color:var(--t2)">💬 Переписка</div>
-        <div id="crm-chat-preview" style="flex:1;min-height:300px;max-height:360px;overflow-y:auto;background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);padding:10px"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:12px;font-weight:600;color:var(--t2)">💬 Переписка с клиентом</div>
+          <button onclick="openCRMInFullChat()" title="Открыть в полном окне чатов" style="background:var(--acbg);border:1px solid var(--acb);border-radius:6px;color:var(--ac2);cursor:pointer;padding:3px 9px;font-size:10px;font-family:var(--fb);font-weight:600">↗ Полный чат</button>
+        </div>
+        <div id="crm-chat-preview" style="flex:1;min-height:420px;max-height:520px;overflow-y:auto;background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);padding:10px"></div>
         <div style="display:flex;gap:6px">
           <textarea id="crm-chat-inp" placeholder="Сообщение клиенту в WhatsApp..." rows="2"
             style="flex:1;background:var(--bg3);border:1px solid var(--b2);border-radius:8px;color:var(--t1);font-family:var(--fb);font-size:12px;padding:7px 10px;resize:none"
@@ -18197,7 +18211,7 @@ function addCRMLinkToStudent(studentEl, phone){
             <button onclick="sendCRMMsgWA()" style="background:rgba(63,216,142,.1);border:1px solid rgba(63,216,142,.25);border-radius:6px;color:var(--gn);cursor:pointer;padding:5px 9px;font-size:16px" title="Отправить в WhatsApp">📲</button>
           </div>
         </div>
-        <div style="font-size:10px;color:var(--t3)">Enter — отправить в WhatsApp клиенту</div>
+        <div style="font-size:10px;color:var(--t3)">Enter — отправить в WhatsApp клиенту · ↗ для полного функционала (звонки, файлы)</div>
       </div>
     </div>
 
