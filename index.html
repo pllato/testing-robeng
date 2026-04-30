@@ -270,17 +270,53 @@ body{font-family:var(--fb);background:var(--bg);color:var(--t1);min-height:100vh
 .rpt-tbl tr:last-child td{border-bottom:none}
 .rpt-tbl tr:hover td{background:var(--bg3)}
 /* ── TASKS & CHAT ─────────────────────────────────────────────── */
-.task-card{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rl);padding:14px 16px;margin-bottom:8px;transition:border-color .15s;cursor:pointer}
-.task-card:hover{border-color:var(--b2)}
-.task-card.done{opacity:.55}
+.task-shell{display:flex;flex-direction:column;gap:14px}
+.task-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.task-toolbar-left,.task-toolbar-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.task-board-pick{min-width:210px;background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-family:var(--fb);font-size:12px;padding:6px 10px}
+.task-board-card{background:linear-gradient(135deg,var(--bg2),var(--bg3));border:1px solid var(--b1);border-radius:var(--rl);padding:14px 16px}
+.task-board-name{font-family:var(--fd);font-size:14px;font-weight:600;color:var(--t1)}
+.task-board-meta{font-size:12px;color:var(--t3);margin-top:5px;line-height:1.6}
+.task-kanban-wrap{display:flex;gap:12px;overflow-x:auto;padding-bottom:10px;min-height:420px}
+.task-kanban-col{min-width:292px;max-width:292px;flex-shrink:0;background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rl);display:flex;flex-direction:column;max-height:calc(100vh - 250px)}
+.task-kanban-col.drag-over{border-color:var(--ac);box-shadow:0 0 0 2px rgba(124,92,252,.18)}
+.task-kanban-head{padding:11px 12px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.task-kanban-title{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--t1)}
+.task-stage-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.task-stage-count{font-size:11px;font-weight:700;color:var(--t2);background:var(--bg3);border:1px solid var(--b1);padding:2px 8px;border-radius:999px}
+.task-kanban-body{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:8px}
+.task-stage-empty{border:1px dashed var(--b2);border-radius:12px;color:var(--t3);font-size:11px;text-align:center;padding:18px 12px;background:rgba(255,255,255,.02)}
+.task-card{background:var(--bg3);border:1px solid var(--b1);border-radius:16px;padding:14px 14px 12px;transition:border-color .15s,transform .15s,box-shadow .15s;cursor:pointer;display:flex;flex-direction:column;gap:10px}
+.task-card:hover{border-color:var(--b2);transform:translateY(-1px)}
+.task-card.dragging{opacity:.45;transform:rotate(1deg)}
+.task-card.done{opacity:.72}
 .task-card.priority-high{border-left:3px solid var(--rd)}
 .task-card.priority-medium{border-left:3px solid var(--am)}
 .task-card.priority-low{border-left:3px solid var(--gn)}
-.task-title{font-size:14px;font-weight:600;color:var(--t1);display:flex;align-items:center;gap:8px}
+.task-title{font-size:14px;font-weight:600;color:var(--t1);display:flex;align-items:flex-start;gap:8px;line-height:1.45}
 .task-title.done-text{text-decoration:line-through;color:var(--t3)}
-.task-meta{font-size:11px;color:var(--t3);margin-top:4px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-.task-assignees{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.task-desc-cut{font-size:12px;color:var(--t3);line-height:1.55;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.task-meta{font-size:11px;color:var(--t3);display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.task-assignees,.task-avatars{display:flex;gap:4px;flex-wrap:wrap}
 .task-av{width:22px;height:22px;border-radius:50%;background:var(--acbg);color:var(--ac2);font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--fd)}
+.task-member-chip{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--b1);border-radius:999px;padding:4px 9px;font-size:11px;color:var(--t2)}
+.task-chip-row{display:flex;gap:6px;flex-wrap:wrap}
+.task-file-link{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--b2);border-radius:8px;padding:6px 10px;color:var(--ac2);text-decoration:none;font-size:11px}
+.task-file-link:hover{border-color:var(--ac);color:var(--t1)}
+.task-file-count{display:inline-flex;align-items:center;gap:4px;background:var(--tlbg);border:1px solid rgba(63,200,216,.28);color:var(--tl);border-radius:999px;padding:2px 8px;font-size:10px;font-weight:600}
+.task-upload-box{border:1px dashed var(--b2);border-radius:12px;padding:12px;background:var(--bg3)}
+.task-upload-list{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.task-upload-item{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:7px 10px;font-size:12px;color:var(--t2)}
+.task-upload-note{font-size:11px;color:var(--t3);margin-top:6px;line-height:1.5}
+.task-detail-block{background:var(--bg3);border:1px solid var(--b1);border-radius:14px;padding:12px 13px}
+.task-detail-grid{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:14px}
+.task-detail-label{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.task-detail-text{font-size:12px;color:var(--t2);line-height:1.6}
+.task-stage-editor{display:flex;flex-direction:column;gap:9px}
+.task-stage-row{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--b1);border-radius:12px;padding:9px 10px}
+.task-stage-row input[type="text"]{flex:1;background:var(--bg4);border:1px solid var(--b2);border-radius:8px;color:var(--t1);font-family:var(--fb);font-size:12px;padding:6px 9px}
+.task-stage-row input[type="color"]{width:30px;height:30px;border:none;background:none;padding:0;cursor:pointer}
+.task-stage-row button{flex-shrink:0}
 .priority-badge{display:inline-flex;align-items:center;padding:1px 7px;border-radius:8px;font-size:10px;font-weight:600}
 .p-high{background:var(--rdbg);color:var(--rd);border:1px solid rgba(240,89,117,.25)}
 .p-medium{background:var(--ambg);color:var(--am);border:1px solid rgba(245,200,66,.25)}
@@ -302,6 +338,12 @@ body{font-family:var(--fb);background:var(--bg);color:var(--t1);min-height:100vh
 .chat-send{background:var(--ac);border:none;border-radius:8px;color:#fff;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;flex-shrink:0}
 .chat-send:hover{background:var(--ac2)}
 .chat-input::-webkit-scrollbar{display:none}
+@media screen and (max-width:768px){
+  .task-toolbar{align-items:stretch}
+  .task-toolbar-left,.task-toolbar-right{width:100%}
+  .task-board-pick{width:100%;min-width:0}
+  .task-kanban-col{min-width:84vw;max-width:84vw}
+}
 /* view toggle */
 .view-toggle{display:flex;background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);overflow:hidden}
 .vt-btn{padding:5px 13px;font-size:12px;font-weight:500;font-family:var(--fb);border:none;background:transparent;color:var(--t2);cursor:pointer;transition:all .15s}
@@ -511,6 +553,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
     <div class="ni admin-only" data-p="callslog" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">📞</span>Звонки <span id="missed-badge" style="display:none;background:var(--rd);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
     <div class="ni" data-p="teamchat" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">💬</span>Командный чат <span id="chat-badge" style="display:none;background:var(--gn);color:var(--bg);font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
     <div class="ni" data-p="tasks" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">✅</span>Задачи <span id="tasks-badge" style="display:none;background:var(--rd);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
+    <div class="ni admin-only" data-p="taskautomations" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">🤖</span>Автоматические задачи</div>
     <div class="nav-sec">Система</div>
     <div class="ni admin-only" data-p="users" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">👤</span>Пользователи</div>
     <div class="ni" data-p="reports" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">📊</span>Отчёты</div>
@@ -673,7 +716,6 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
         <div class="view-toggle">
           <button class="vt-btn active" id="vt-one" onclick="setView('one')">По преподавателю</button>
           <button class="vt-btn" id="vt-all" onclick="setView('all')">Все преподаватели</button>
-          <button class="vt-btn" id="vt-combined" onclick="setView('combined')">🗓 Сводный</button>
         </div>
         <span class="fl" id="sched-t-lbl">Преподаватель:</span>
         <select class="fsel" id="sched-sel" onchange="renderSchedule()"></select>
@@ -830,15 +872,43 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
     </div>
     <!-- TASKS -->
     <div class="panel" id="panel-tasks">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
-        <div class="view-toggle">
-          <button class="vt-btn active" id="tk-all" onclick="setTaskTab('all')">Все мои</button>
-          <button class="vt-btn" id="tk-mine" onclick="setTaskTab('mine')">Назначены мне</button>
-          <button class="vt-btn" id="tk-done" onclick="setTaskTab('done')">Завершённые</button>
+      <div class="task-shell">
+        <div class="task-toolbar">
+          <div class="task-toolbar-left">
+            <select id="tasks-board-switch" class="task-board-pick" onchange="switchTaskBoard(this.value)"></select>
+            <div class="view-toggle">
+              <button class="vt-btn active" id="tk-all" onclick="setTaskTab('all')">Все доступные</button>
+              <button class="vt-btn" id="tk-mine" onclick="setTaskTab('mine')">Назначены мне</button>
+              <button class="vt-btn" id="tk-done" onclick="setTaskTab('done')">Завершённые</button>
+            </div>
+          </div>
+          <div class="task-toolbar-right">
+            <button class="btn btn-sm" onclick="openTaskBoardModal()">+ Канбан</button>
+            <button class="btn btn-sm" onclick="openTaskBoardModal(currentTaskBoardId)">⚙ Канбан</button>
+            <button class="btn btn-a btn-sm" onclick="openTaskModal()">+ Новая задача</button>
+          </div>
         </div>
-        <button class="btn btn-a btn-sm" onclick="openTaskModal()">+ Новая задача</button>
+        <div id="tasks-board-info" class="task-board-card"></div>
+        <div id="tasks-list"></div>
       </div>
-      <div id="tasks-list"></div>
+    </div>
+    <!-- TASK AUTOMATIONS -->
+    <div class="panel" id="panel-taskautomations">
+      <div class="task-shell">
+        <div class="card" style="padding:16px 18px">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap">
+            <div>
+              <div style="font-size:15px;font-weight:700;color:var(--t1);margin-bottom:6px">Автоматические задачи</div>
+              <div style="font-size:12px;color:var(--t3);max-width:760px">
+                Здесь настраиваются шаблоны задач, которые создаются без ручного ввода. Сейчас уже поддержан сценарий:
+                <b style="color:var(--t1)">когда создаётся новый ученик</b>.
+              </div>
+            </div>
+            <button class="btn btn-a btn-sm" onclick="openTaskAutomationModal()">+ Автозадача</button>
+          </div>
+        </div>
+        <div id="task-automations-list"></div>
+      </div>
     </div>
     <!-- TEAM CHAT -->
     <div class="panel" id="panel-teamchat">
@@ -1346,6 +1416,16 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
 <div class="mo" id="m-task" onmousedown="window._moDown=event.target" onclick="if(event.target===this&&window._moDown===this)close1('m-task')">
   <div class="modal modal-lg">
     <div class="mt" id="m-task-ttl">Новая задача</div>
+    <div class="fr-row">
+      <div class="fr">
+        <label>Канбан</label>
+        <select id="task-board"></select>
+      </div>
+      <div class="fr">
+        <label>Стадия</label>
+        <select id="task-stage"></select>
+      </div>
+    </div>
     <div class="fr"><label>Название</label><input type="text" id="task-title" placeholder="Что нужно сделать?"/></div>
     <div class="fr"><label>Описание</label><textarea id="task-desc" placeholder="Подробности..."></textarea></div>
     <div class="fr-row">
@@ -1367,9 +1447,110 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
       <label>Соисполнители</label>
       <div id="task-coassignees-wrap" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"></div>
     </div>
+    <div class="fr">
+      <label>Кто видит задачу</label>
+      <div id="task-watchers-wrap" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"></div>
+    </div>
+    <div class="fr">
+      <label>Файлы</label>
+      <div class="task-upload-box">
+        <input type="file" id="task-files" multiple style="display:none" onchange="onTaskFilesSelected(this.files)"/>
+        <button class="btn btn-sm" type="button" onclick="document.getElementById('task-files').click()">+ Добавить файлы</button>
+        <div class="task-upload-note">Файлы прикрепляются к задаче и видны всем, у кого есть доступ к карточке.</div>
+        <div class="task-upload-list" id="task-files-list"></div>
+      </div>
+    </div>
     <div class="ma">
       <button class="btn" onclick="close1('m-task')">Отмена</button>
       <button class="btn btn-a" onclick="saveTask()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Task Board -->
+<div class="mo" id="m-task-board" onmousedown="window._moDown=event.target" onclick="if(event.target===this&&window._moDown===this)close1('m-task-board')">
+  <div class="modal modal-lg">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;gap:10px">
+      <div class="mt" id="m-task-board-ttl" style="margin-bottom:0;flex:1">Новый канбан</div>
+      <button class="btn btn-xs" onclick="close1('m-task-board')">✕</button>
+    </div>
+    <div class="fr">
+      <label>Название канбана</label>
+      <input type="text" id="task-board-name" placeholder="Например: Продажи, Контент, Операционка"/>
+    </div>
+    <div class="fr">
+      <label>Описание</label>
+      <textarea id="task-board-desc" placeholder="Коротко: для чего этот канбан и кто в нём работает"></textarea>
+    </div>
+    <div class="fr">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+        <label style="margin:0">Стадии канбана</label>
+        <button class="btn btn-sm" type="button" onclick="addTaskBoardStage()">+ Стадия</button>
+      </div>
+      <div id="task-board-stages" class="task-stage-editor"></div>
+    </div>
+    <div class="ma" style="align-items:center">
+      <button class="btn btn-r" id="task-board-delete-btn" onclick="deleteTaskBoard()" style="margin-right:auto;display:none">Удалить канбан</button>
+      <button class="btn" onclick="close1('m-task-board')">Отмена</button>
+      <button class="btn btn-a" onclick="saveTaskBoard()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Task Automation -->
+<div class="mo" id="m-task-automation" onmousedown="window._moDown=event.target" onclick="if(event.target===this&&window._moDown===this)close1('m-task-automation')">
+  <div class="modal modal-lg">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;gap:10px">
+      <div class="mt" id="m-task-automation-ttl" style="margin-bottom:0;flex:1">Новая автозадача</div>
+      <button class="btn btn-xs" onclick="close1('m-task-automation')">✕</button>
+    </div>
+    <div class="fr-row">
+      <div class="fr">
+        <label>Сценарий</label>
+        <select id="task-automation-event">
+          <option value="student.created">Когда создаётся новый ученик</option>
+        </select>
+      </div>
+      <div class="fr">
+        <label style="display:flex;align-items:center;gap:8px">
+          <input type="checkbox" id="task-automation-enabled" style="accent-color:var(--gn)"/>
+          <span>Активна</span>
+        </label>
+      </div>
+    </div>
+    <div class="fr"><label>Название задачи</label><input type="text" id="task-automation-title" placeholder="Например: Звонок после старта"/></div>
+    <div class="fr"><label>Описание</label><textarea id="task-automation-desc" placeholder="Что именно нужно сделать автоматически?"></textarea></div>
+    <div class="fr">
+      <label>Канбан</label>
+      <input type="text" id="task-automation-board-name" placeholder="Например: Задачи производства" oninput="refreshTaskAutomationStageOptions()"/>
+      <div class="task-upload-note" style="margin-top:6px">Если канбана с таким названием ещё нет, он создастся автоматически.</div>
+    </div>
+    <div class="fr">
+      <label>Стадия</label>
+      <select id="task-automation-stage"></select>
+      <div class="task-upload-note" id="task-automation-stage-hint" style="margin-top:6px"></div>
+    </div>
+    <div class="fr">
+      <label>Исполнитель</label>
+      <select id="task-automation-assignee"><option value="">— Не назначен —</option></select>
+    </div>
+    <div class="fr">
+      <label>Кто видит задачу</label>
+      <div id="task-automation-watchers-wrap" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"></div>
+    </div>
+    <div class="fr">
+      <label>Файлы</label>
+      <div class="task-upload-box">
+        <input type="file" id="task-automation-files" multiple style="display:none" onchange="onTaskAutomationFilesSelected(this.files)"/>
+        <button class="btn btn-sm" type="button" onclick="document.getElementById('task-automation-files').click()">+ Добавить файлы</button>
+        <div class="task-upload-note">Эти файлы будут автоматически прикладываться к каждой созданной задаче по этому шаблону.</div>
+        <div class="task-upload-list" id="task-automation-files-list"></div>
+      </div>
+    </div>
+    <div class="ma" style="align-items:center">
+      <button class="btn btn-r" id="task-automation-delete-btn" onclick="deleteTaskAutomation()" style="margin-right:auto;display:none">Удалить шаблон</button>
+      <button class="btn" onclick="close1('m-task-automation')">Отмена</button>
+      <button class="btn btn-a" id="task-automation-save-btn" onclick="saveTaskAutomation()">Сохранить</button>
     </div>
   </div>
 </div>
@@ -1382,11 +1563,28 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
       <button class="btn btn-xs" onclick="close1('m-task-detail')">✕</button>
     </div>
     <div id="m-td-meta" style="margin-bottom:12px"></div>
-    <div id="m-td-desc" style="font-size:13px;color:var(--t2);margin-bottom:14px;white-space:pre-wrap"></div>
     <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
       <button class="btn btn-g btn-sm" id="m-td-complete-btn" onclick="toggleTaskDone()"></button>
       <button class="btn btn-sm" onclick="editCurrentTask()">✎ Редактировать</button>
       <button class="btn btn-r btn-sm" onclick="deleteCurrentTask()">Удалить</button>
+    </div>
+    <div class="task-detail-grid">
+      <div class="task-detail-block">
+        <div class="task-detail-label">Описание</div>
+        <div id="m-td-desc" class="task-detail-text" style="white-space:pre-wrap"></div>
+      </div>
+      <div class="task-detail-block">
+        <div class="task-detail-label">Участники</div>
+        <div id="m-td-members" class="task-chip-row"></div>
+      </div>
+      <div class="task-detail-block">
+        <div class="task-detail-label">Кто видит задачу</div>
+        <div id="m-td-watchers" class="task-chip-row"></div>
+      </div>
+      <div class="task-detail-block">
+        <div class="task-detail-label">Файлы</div>
+        <div id="m-td-files" class="task-chip-row"></div>
+      </div>
     </div>
     <div class="divider"></div>
     <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:8px">Чат</div>
@@ -1906,15 +2104,13 @@ async function sendSystemWA(phone, message, meta={}){
     : message + '\n\n_Системное сообщение Robeng ELC_';
 
   if(isQuietHours()){
-    // Откладываем на 09:00 по местному времени (следующее утро если уже поздно)
+    // Считаем время отправки: завтра 09:00 KZ = 04:00 UTC
     const nowUtc = new Date();
     const sendAt = new Date(nowUtc);
+    // Если UTC час >= 16 (= 21:00 KZ) — откладываем на завтра
     const kzHourNow = (nowUtc.getUTCHours() + getTZOffset()) % 24;
-    // Если уже вечер (>= 21:00) — переходим на следующий день
-    if(kzHourNow >= 21) sendAt.setUTCDate(sendAt.getUTCDate() + 1);
-    // 09:00 местного = (9 - tzOffset) UTC. Для UTC+5: 9-5=4 UTC
-    const utcHourFor9am = 9 - getTZOffset();
-    sendAt.setUTCHours(utcHourFor9am >= 0 ? utcHourFor9am : utcHourFor9am + 24, 0, 0, 0);
+    if(kzHourNow >= 21) sendAt.setUTCDate(sendAt.getUTCDate()+1);
+    sendAt.setUTCHours(24 - getTZOffset() + 9, 0, 0, 0); // 09:00 local time
     const key = 'pending_sys_' + Date.now() + '_' + Math.random().toString(36).slice(2);
     fbDb.ref('pendingNotifications/'+key).set({
       phones:[phone.replace(/\D/g,'')], msg:signed,
@@ -2063,6 +2259,7 @@ let currentRole = null; // 'admin' | 'teacher'
 let currentTeacherId = null; // teacher record id when role=teacher
 const usersRef = fbDb.ref('appUsers');
 const availRequestsRef = fbDb.ref('availRequests');
+const taskBoardsRef = dbRef.child('settings/taskBoards');
 const tasksRef = fbDb.ref('tasks');
 const chatRef = fbDb.ref('taskChats');
 const teamChatRef = fbDb.ref('teamChat');
@@ -2160,6 +2357,14 @@ fbAuth.onAuthStateChanged(user=>{
         });
         usersRef.on('value', uSnap=>{ S.appUsers = uSnap.val()||{}; renderUsers && document.getElementById('panel-users')?.classList.contains('active') && renderUsers(); const b=document.getElementById('current-role-badge'); if(b&&currentRole==='admin'){const uid=fbAuth.currentUser?.uid;const isCRMReg=uid&&S.appUsers?.[uid]?.crmRole==='registrar';b.textContent=isCRMReg?'🗂 Регистратор CRM':'👑 Администратор';} });
         startTeamChatBadgeListener();
+        ensureTaskBoards();
+        taskBoardsRef.on('value', snap=>{
+          taskBoardsCache = snap.val()||{};
+          if(!S.settings) S.settings = {};
+          S.settings.taskBoards = {...taskBoardsCache};
+          if(curPanel()==='tasks') renderTasks();
+          if(curPanel()==='taskautomations') renderTaskAutomations();
+        });
         tasksRef.on('value',()=>{updateTasksBadge();updateTodayBadge();if(curPanel()==='tasks')renderTasks();if(curPanel()==='today')renderToday();});
         startDbListener();
         autoBackupOnLogin();
@@ -2311,8 +2516,8 @@ function countFree(){
 }
 
 // ── NAVIGATION ───────────────────────────────────────────────────
-const TITLES={today:'Сегодня ☀️',tasks:'Задачи',teamchat:'Командный чат',dashboard:'Главная',subjects:'Предметы',teachers:'Преподаватели',availability:'Время работы',schedule:'Расписание',freeSlots:'Свободные слоты',students:'Ученики',reports:'Отчёты по преподавателям',journal:'Журнал действий',notifylog:'📨 Журнал уведомлений',analytics:'🧠 Аналитика',trash:'Корзина',backups:'Резервные копии',users:'Пользователи',videoreviews:'Видео уроков',surveys:'Опросы',crm:'CRM — Клиенты',wachats:'Чаты',callslog:'Журнал звонков'};
-const ACTS={today:'',tasks:'',teamchat:'',dashboard:'+',subjects:'',teachers:'+ Преподаватель',availability:'',schedule:'',freeSlots:'',students:'+ Ученик',reports:'',journal:'',notifylog:'',analytics:'',trash:'',backups:'',users:'',videoreviews:'',surveys:'',crm:'',wachats:'',callslog:'📞 Позвонить'};
+const TITLES={today:'Сегодня ☀️',tasks:'Задачи',taskautomations:'Автоматические задачи',teamchat:'Командный чат',dashboard:'Главная',subjects:'Предметы',teachers:'Преподаватели',availability:'Время работы',schedule:'Расписание',freeSlots:'Свободные слоты',students:'Ученики',reports:'Отчёты по преподавателям',journal:'Журнал действий',notifylog:'📨 Журнал уведомлений',analytics:'🧠 Аналитика',trash:'Корзина',backups:'Резервные копии',users:'Пользователи',videoreviews:'Видео уроков',surveys:'Опросы',crm:'CRM — Клиенты',wachats:'Чаты',callslog:'Журнал звонков'};
+const ACTS={today:'',tasks:'',taskautomations:'+ Автозадача',teamchat:'',dashboard:'+',subjects:'',teachers:'+ Преподаватель',availability:'',schedule:'',freeSlots:'',students:'+ Ученик',reports:'',journal:'',notifylog:'',analytics:'',trash:'',backups:'',users:'',videoreviews:'',surveys:'',crm:'',wachats:'',callslog:'📞 Позвонить'};
 function curPanel(){return document.querySelector('.ni.active')?.dataset.p||'dashboard';}
 function nav(el){
   // Close more menu on nav
@@ -2330,10 +2535,17 @@ function nav(el){
   document.getElementById('exp-btn').style.display=p==='schedule'?'':'none';
   renderPanel(p);
 }
-function mainAct(){const p=curPanel();if(p==='callslog')openDialer();else if(p==='teachers')openTeacherModal();else openStudentModal();}
+function mainAct(){
+  const p=curPanel();
+  if(p==='callslog')openDialer();
+  else if(p==='teachers')openTeacherModal();
+  else if(p==='taskautomations')openTaskAutomationModal();
+  else openStudentModal();
+}
 function renderPanel(p){
   if(p==='today'){renderToday();return;}
   if(p==='tasks'){renderTasks();return;}
+  if(p==='taskautomations'){renderTaskAutomations();return;}
   if(p==='teamchat'){initTeamChat();updateChatBadge(0);return;}
   if(p==='dashboard'){renderDashboard();if(currentRole==='admin')updateReminderFailureBadge();}
   else if(p==='subjects')renderSubjects();
@@ -2366,7 +2578,6 @@ function renderPanel(p){
       schedView='one';
       document.getElementById('vt-one').classList.add('active');
       document.getElementById('vt-all').classList.remove('active');
-      document.getElementById('vt-combined')?.classList.remove('active');
       document.getElementById('sched-t-lbl').style.display='none';
       document.getElementById('sched-sel').style.display='none';
       const vt=document.getElementById('vt-one');
@@ -5294,104 +5505,9 @@ function setView(v){
   schedView=v;
   document.getElementById('vt-one').classList.toggle('active',v==='one');
   document.getElementById('vt-all').classList.toggle('active',v==='all');
-  document.getElementById('vt-combined').classList.toggle('active',v==='combined');
   document.getElementById('sched-t-lbl').style.display=v==='one'?'':'none';
   document.getElementById('sched-sel').style.display=v==='one'?'':'none';
   renderSchedule();
-}
-
-function buildCombinedView(wd, today, isCurWeek){
-  const teachers = (S.teachers||[]).filter(t=>t.status==='active');
-  if(!teachers.length) return '<div class="empty"><div class="empty-icon">👤</div><div class="empty-text">Нет активных преподавателей</div></div>';
-
-  // Precompute availability maps
-  const avMaps = {};
-  teachers.forEach(t=>{ avMaps[t.id] = getTeacherAvailForDate(t.id, wd[0]||today); });
-
-  // Collect all lessons: {ti, di, dt, st, t, e, att, sj}
-  const allLessons = [];
-  TIMES.forEach((time,ti)=>{
-    wd.forEach((dt,di)=>{
-      teachers.forEach(t=>{
-        if(!(avMaps[t.id][di]&&avMaps[t.id][di][ti])) return;
-        enrollmentsAt(t.id,di,ti,dt||'').forEach(e=>{
-          const st = student(e.studentId);
-          if(!st) return;
-          const att = dt ? getAtt(e.id,dt) : null;
-          const sj  = subj(t.subjId);
-          allLessons.push({ti,di,dt,st,t,e,att,sj});
-        });
-      });
-    });
-  });
-
-  // Which time slots have at least one lesson?
-  const usedTi = [...new Set(allLessons.map(l=>l.ti))].sort((a,b)=>a-b);
-
-  if(!usedTi.length){
-    return '<div style="text-align:center;padding:40px;color:var(--t3);font-size:13px">Нет записей на эту неделю</div>';
-  }
-
-  const COL = '72px repeat(7,1fr)';
-
-  // ── Header ────────────────────────────────────────────────────
-  let html = '<div style="overflow-x:auto"><div style="min-width:660px">';
-  html += `<div style="display:grid;grid-template-columns:${COL};gap:1px;position:sticky;top:0;z-index:10;background:var(--bg2);border-bottom:2px solid var(--b2);padding-bottom:2px;margin-bottom:3px">
-    <div style="padding:7px 5px;font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em">Время</div>
-    ${DS.map((d,i)=>{
-      const isT = wd[i]===today;
-      return '<div style="padding:6px 4px;text-align:center;font-size:11px;font-weight:700;color:'+(isT?'var(--ac2)':'var(--t1)')+(isT?';background:rgba(124,92,252,.12)':'')+';border-radius:5px">'+d+' <span style="font-size:10px;font-weight:400;color:var(--t3)">'+(wd[i]?wd[i].slice(5).replace('-','.'):'')+' </span>'+(isT?'<br><span style="font-size:8px;font-weight:700;color:var(--ac2);letter-spacing:.08em">СЕГОДНЯ</span>':'')+'</div>';
-    }).join('')}
-  </div>`;
-
-  // ── One row per time slot ─────────────────────────────────────
-  usedTi.forEach(ti=>{
-    const time = TIMES[ti];
-    html += '<div style="display:grid;grid-template-columns:'+COL+';gap:1px;margin-bottom:1px;align-items:stretch">';
-
-    // Time label
-    html += '<div style="padding:5px 5px;font-size:11px;font-weight:700;color:var(--t3);background:var(--bg3);border-radius:4px 0 0 4px;display:flex;align-items:flex-start;padding-top:8px">'+time+'</div>';
-
-    // Day cells
-    wd.forEach((dt,di)=>{
-      const cell = allLessons.filter(l=>l.ti===ti&&l.di===di);
-      const isT = dt===today;
-      html += '<div style="padding:2px;min-height:34px;background:'+(isT?'rgba(124,92,252,.05)':'')+';border-radius:0 4px 4px 0">';
-      if(!cell.length){
-        html += '<div style="min-height:30px"></div>';
-      } else {
-        cell.forEach(({st,t,att,sj,e})=>{
-          const dotClr = att==='done'?'#3fd88e':att==='miss'?'#f05975':att==='vacation'?'#38bdf8':att==='makeup'?'#f5c842':sj.color||'var(--ac)';
-          const bgClr  = att==='done'?'rgba(63,216,142,.08)':att==='miss'?'rgba(240,89,117,.08)':att==='vacation'?'rgba(56,189,248,.08)':'var(--bg3)';
-          const icon   = att==='done'?'✅':att==='miss'?'❌':att==='vacation'?'🏖':att==='makeup'?'🔄':'';
-          html += '<div onclick="openCombinedStudentCard('+st.id+')" style="display:flex;align-items:flex-start;gap:4px;padding:4px 5px;border-radius:6px;background:'+bgClr+';border-left:3px solid '+dotClr+';cursor:pointer;margin-bottom:2px;transition:opacity .12s" onmouseover="this.style.opacity=\'0.8\'" onmouseout="this.style.opacity=\'1\'">'
-            +'<div style="min-width:0;flex:1">'
-            +'<div style="font-size:11px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+st.name.split(' ')[0]+(icon?' '+icon:'')+'</div>'
-            +'<div style="font-size:9px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span style="color:'+sj.color+';font-weight:600">'+t.name.split(' ')[0]+'</span></div>'
-            +'</div></div>';
-        });
-      }
-      html += '</div>';
-    });
-
-    html += '</div>';
-  });
-
-  // ── Footer: total lessons per day ─────────────────────────────
-  html += '<div style="display:grid;grid-template-columns:'+COL+';gap:1px;border-top:2px solid var(--b2);margin-top:6px;padding-top:4px">'
-    +'<div style="padding:5px 5px;font-size:10px;font-weight:700;color:var(--t3)">Итого</div>'
-    +wd.map((dt,di)=>{
-      const cnt = allLessons.filter(l=>l.di===di).length;
-      return '<div style="padding:5px 4px;text-align:center;font-size:12px;font-weight:700;color:'+(cnt?'var(--ac2)':'var(--t3)')+'">'+( cnt||'—')+'</div>';
-    }).join('')+'</div>';
-
-  html += '</div></div>';
-  return html;
-}
-
-function openCombinedStudentCard(studentId){
-  const enr = (S.enrollments||[]).find(e=>e.studentId===studentId&&!e.inactive);
-  if(enr) showDetail(enr.id);
 }
 
 function buildSchedTable(tid,wd,today,isCurWeek){
@@ -5516,11 +5632,6 @@ function renderSchedule(){
     // Hide view toggle for teacher
     const vt=document.getElementById('vt-one');
     if(vt)vt.closest('.view-toggle')?.style && (vt.closest('.view-toggle').style.display='none');
-    return;
-  }
-
-  if(schedView==='combined'){
-    wrap.innerHTML = buildCombinedView(wd, today, isCurWeek);
     return;
   }
 
@@ -6161,7 +6272,7 @@ function updateExtraTime(slotIdx, ti){
   if(_extraSlots[slotIdx])_extraSlots[slotIdx].ti=parseInt(ti);
 }
 
-function saveStudent(){
+async function saveStudent(){
   const name=document.getElementById('s-name').value.trim();if(!name){toast('Введите ФИО',true);return;}
   const days=getDays();if(!days.length){toast('Выберите дни',true);return;}
   // Support both numeric and string (uid) teacher IDs
@@ -6279,6 +6390,19 @@ function saveStudent(){
   if(!editSId && _crmLeadForStudent){
     const newEnrollId = S.enrollments[S.enrollments.length-1]?.id;
     linkStudentToLead(newEnrollId, stu.id);
+  }
+  if(!editSId){
+    const primaryEnrollment = S.enrollments.find(e=>e.studentId===stu.id && !e.inactive) || null;
+    try{
+      await runStudentCreatedTaskAutomations(stu, primaryEnrollment);
+      if(getTaskAutomationRules().some(rule=>rule.enabled && rule.eventType==='student.created')){
+        updateTasksBadge();
+        if(curPanel()==='tasks') renderTasks();
+      }
+    }catch(err){
+      console.error('student automation error:', err);
+      toast('Ученик создан, но автозадача не создалась: '+err.message, true);
+    }
   }
 }
 
@@ -9621,6 +9745,13 @@ function renderVideoReviews(){
 
 // ── TASKS ─────────────────────────────────────────────────────────
 let taskTab='all', editTaskId=null, currentTaskId=null, chatListener=null;
+let currentTaskBoardId='', editTaskBoardId=null, taskBoardsCache={};
+let taskBoardDraft=[], taskExistingAttachments=[], taskPendingFiles=[];
+let _taskDragId=null, _taskScrollTimer=null;
+let editTaskAutomationId=null, taskAutomationExistingAttachments=[], taskAutomationPendingFiles=[];
+const TASK_AUTOMATION_EVENT_LABELS = {
+  'student.created':'Когда создаётся новый ученик'
+};
 
 function getMyUid(){return fbAuth.currentUser?.uid||'';}
 function getMyName(){return fbAuth.currentUser?.email||'—';}
@@ -9762,293 +9893,1365 @@ function getMyDisplayName(){
   });
 }
 
-function updateTasksBadge(){
-  const uid=getMyUid();
-  tasksRef.once('value').then(snap=>{
-    const data=snap.val()||{};
-    const n=Object.values(data).filter(t=>
-      !t.done&&(t.assigneeUid===uid||(t.coassignees&&t.coassignees[uid]))
-    ).length;
-    const b=document.getElementById('tasks-badge');
-    if(b){b.textContent=n;b.style.display=n>0?'':'none';}
-  });
+function defaultTaskStages(){
+  return [
+    {id:'backlog',label:'Бэклог',hex:'#7c5cfc',color:'#7c5cfc',doneStage:false},
+    {id:'in_progress',label:'В работе',hex:'#f5c842',color:'#f5c842',doneStage:false},
+    {id:'review',label:'Проверка',hex:'#3fc8d8',color:'#3fc8d8',doneStage:false},
+    {id:'done',label:'Готово',hex:'#3fd88e',color:'#3fd88e',doneStage:true},
+  ];
 }
-function updateTodayBadge(){
-  const today=new Date().toISOString().slice(0,10);
-  const uid=getMyUid();
-  const todayDay=(new Date().getDay()+6)%7;
-  let n=0;
-  // Pending lessons today
-  if(currentTeacherId){
-    const enrs=S.enrollments.filter(e=>String(e.teacherId)===String(currentTeacherId)&&enrollActive(e,today)&&!e.inactive);
-    enrs.forEach(e=>{
-      if(!e.slots.some(sl=>sl.day===todayDay))return;
-      const att=(S.attendance||{})[`${e.id}_${today}`];
-      if(!att)n++;
-    });
+
+function buildTaskStage(label='Новая стадия', hex='#9896b0', doneStage=false){
+  return {
+    id:'task_stage_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
+    label,
+    hex,
+    color:hex,
+    doneStage:!!doneStage,
+  };
+}
+
+function ensureBoardStages(stages){
+  const list = Array.isArray(stages) && stages.length
+    ? stages.map((s, i)=>({
+        id:s.id||('task_stage_'+i),
+        label:s.label||('Стадия '+(i+1)),
+        hex:s.hex||s.color||'#9896b0',
+        color:s.hex||s.color||'#9896b0',
+        doneStage:!!s.doneStage
+      }))
+    : defaultTaskStages().map(s=>({...s}));
+  if(!list.some(s=>s.doneStage)) list[list.length-1].doneStage = true;
+  return list;
+}
+
+function makeDefaultTaskBoard(uid){
+  const now = new Date().toISOString();
+  return {
+    name:'Основной канбан',
+    desc:'Общий канбан команды для текущих задач.',
+    stages:ensureBoardStages(),
+    createdAt:now,
+    createdBy:uid||getMyUid(),
+    updatedAt:now
+  };
+}
+
+async function ensureTaskBoards(){
+  try{
+    const snap = await taskBoardsRef.once('value');
+    const data = snap.val()||{};
+    taskBoardsCache = data;
+    const ids = Object.keys(data);
+    if(ids.length){
+      if(!currentTaskBoardId || !data[currentTaskBoardId]) currentTaskBoardId = ids[0];
+      return;
+    }
+    const ref = taskBoardsRef.push();
+    const board = makeDefaultTaskBoard();
+    await ref.set(board);
+    taskBoardsCache[ref.key] = board;
+    if(!S.settings) S.settings = {};
+    if(!S.settings.taskBoards) S.settings.taskBoards = {};
+    S.settings.taskBoards[ref.key] = board;
+    currentTaskBoardId = ref.key;
+  }catch(e){
+    console.warn('ensureTaskBoards error:', e);
   }
-  // Pending tasks due today or overdue
-  tasksRef.once('value').then(snap=>{
-    const data=snap.val()||{};
-    Object.values(data).forEach(t=>{
-      if(t.done)return;
-      if(t.assigneeUid!==uid&&!(t.coassignees&&t.coassignees[uid]))return;
-      if(!t.deadline||t.deadline<=today)n++;
-    });
-    const b=document.getElementById('today-badge');
-    if(b){b.textContent=n;b.style.display=n>0?'':'none';}
+}
+
+function getTaskBoards(){
+  const boards = Object.entries(taskBoardsCache||{})
+    .map(([id, board])=>({id, ...board, stages:ensureBoardStages(board?.stages)}))
+    .sort((a,b)=>(a.createdAt||'').localeCompare(b.createdAt||''));
+  if(boards.length && (!currentTaskBoardId || !boards.some(b=>b.id===currentTaskBoardId))){
+    currentTaskBoardId = boards[0].id;
+  }
+  return boards;
+}
+
+function getTaskBoard(boardId){
+  const boards = getTaskBoards();
+  return boards.find(b=>b.id===boardId) || boards[0] || {id:'',name:'Основной канбан',desc:'',stages:ensureBoardStages()};
+}
+
+function getTaskBoardDoneStage(board){
+  const stages = ensureBoardStages(board?.stages);
+  return stages.find(s=>s.doneStage) || stages[stages.length-1];
+}
+
+function getTaskBoardFirstStage(board){
+  const stages = ensureBoardStages(board?.stages);
+  return stages[0] || defaultTaskStages()[0];
+}
+
+function getTaskStage(task, board){
+  const stages = ensureBoardStages(board?.stages);
+  let stageId = task?.stageId;
+  if(!stageId || !stages.some(s=>s.id===stageId)){
+    stageId = task?.done ? getTaskBoardDoneStage(board).id : getTaskBoardFirstStage(board).id;
+  }
+  return stages.find(s=>s.id===stageId) || stages[0];
+}
+
+function normalizeTaskAttachments(list){
+  return Array.isArray(list)
+    ? list.filter(Boolean).map((a, i)=>({
+        ...a,
+        id:a.id||('task_att_'+i+'_'+(a.name||'file').replace(/[^a-z0-9]+/gi,'_'))
+      }))
+    : [];
+}
+
+function normalizeTaskRecord(id, raw){
+  const board = getTaskBoard(raw?.boardId || currentTaskBoardId);
+  const stage = getTaskStage(raw||{}, board);
+  const doneStage = getTaskBoardDoneStage(board);
+  return {
+    id,
+    ...(raw||{}),
+    boardId:board.id,
+    stageId:stage.id,
+    done:!!raw?.done || stage.id===doneStage.id,
+    attachments:normalizeTaskAttachments(raw?.attachments||[])
+  };
+}
+
+function taskUserLabel(uid, fallback){
+  return S.appUsers?.[uid]?.name || S.appUsers?.[uid]?.email || fallback || '—';
+}
+
+function taskInitials(label){
+  const parts = (label||'—').trim().split(/\s+/).slice(0,2).map(p=>p[0]||'');
+  return parts.join('').toUpperCase() || '—';
+}
+
+function taskFileSize(bytes){
+  const b = Number(bytes)||0;
+  if(b < 1024) return b+' Б';
+  if(b < 1024*1024) return (b/1024).toFixed(1)+' КБ';
+  return (b/1024/1024).toFixed(1)+' МБ';
+}
+
+function getTaskVisibleUids(task){
+  const uids = new Set();
+  if(task?.createdBy) uids.add(task.createdBy);
+  if(task?.assigneeUid) uids.add(task.assigneeUid);
+  Object.keys(task?.coassignees||{}).forEach(uid=>uids.add(uid));
+  Object.keys(task?.watchers||{}).forEach(uid=>uids.add(uid));
+  return [...uids].filter(Boolean);
+}
+
+function canSeeTask(task, uid=getMyUid()){
+  return getTaskVisibleUids(task).includes(uid);
+}
+
+function isTaskAssignedToMe(task, uid=getMyUid()){
+  return !!(task?.assigneeUid===uid || task?.coassignees?.[uid]);
+}
+
+function sortTaskItems(a, b){
+  const today = new Date().toISOString().slice(0,10);
+  const aOver = !!(a.deadline && a.deadline < today && !a.done);
+  const bOver = !!(b.deadline && b.deadline < today && !b.done);
+  if(aOver !== bOver) return aOver ? -1 : 1;
+  if((a.deadline||'') !== (b.deadline||'')){
+    if(!a.deadline) return 1;
+    if(!b.deadline) return -1;
+    return a.deadline.localeCompare(b.deadline);
+  }
+  return (b.updatedAt||b.createdAt||'').localeCompare(a.updatedAt||a.createdAt||'');
+}
+
+function renderTaskBoardSwitch(){
+  const sel = document.getElementById('tasks-board-switch');
+  if(!sel) return;
+  const boards = getTaskBoards();
+  if(!boards.length){
+    sel.innerHTML = '<option value="">Нет канбанов</option>';
+    return;
+  }
+  sel.innerHTML = boards.map(b=>`<option value="${b.id}">${b.name||'Без названия'}</option>`).join('');
+  sel.value = currentTaskBoardId;
+}
+
+function renderTaskBoardInfo(board, items){
+  const el = document.getElementById('tasks-board-info');
+  if(!el) return;
+  if(!board?.id){
+    el.innerHTML = '<div class="empty"><div class="empty-icon">🗂</div><div class="empty-text">Создайте первый канбан</div></div>';
+    return;
+  }
+  const active = items.filter(t=>!t.done).length;
+  const done = items.filter(t=>t.done).length;
+  const mine = items.filter(t=>isTaskAssignedToMe(t)).length;
+  const files = items.reduce((sum, t)=>sum + (t.attachments?.length||0), 0);
+  el.innerHTML = `
+    <div class="task-board-name">${board.name||'Без названия'}</div>
+    <div class="task-board-meta">
+      ${board.desc||'Здесь отображаются задачи этой доски, стадии и карточки команды.'}
+      <br>Активных: <b style="color:var(--t1)">${active}</b> · Завершённых: <b style="color:var(--t1)">${done}</b> · Назначено мне: <b style="color:var(--t1)">${mine}</b> · Файлов: <b style="color:var(--t1)">${files}</b>
+    </div>`;
+}
+
+function makeTaskAutomationId(){
+  return 'task_auto_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
+}
+
+function findTaskBoardByName(name){
+  const needle = (name||'').trim().toLowerCase();
+  if(!needle) return null;
+  return getTaskBoards().find(b=>(b.name||'').trim().toLowerCase()===needle) || null;
+}
+
+function defaultStudentTaskAutomation(){
+  const board = findTaskBoardByName('Задачи производства');
+  const now = new Date().toISOString();
+  return {
+    id:makeTaskAutomationId(),
+    enabled:true,
+    eventType:'student.created',
+    title:'Звонок после старта',
+    desc:'Позвоните клиенту и поинтересуйтесь как прошел первый урок, все ли хорошо? Предоставьте информацию о программе обучения на 12 месяцев и расскажите про 12 аттестаций.',
+    boardId:board?.id||'',
+    boardName:board?.name||'Задачи производства',
+    stageId:'',
+    assigneeUid:'',
+    watchers:{},
+    attachments:[],
+    createdAt:now,
+    updatedAt:now
+  };
+}
+
+function normalizeTaskAutomationRule(rule={}, idx=0){
+  const now = new Date().toISOString();
+  return {
+    id:rule.id||('task_auto_'+idx),
+    enabled:rule.enabled!==false,
+    eventType:rule.eventType||'student.created',
+    title:(rule.title||'').trim()||'Звонок после старта',
+    desc:(rule.desc||'').trim()||'Позвоните клиенту и поинтересуйтесь как прошел первый урок, все ли хорошо? Предоставьте информацию о программе обучения на 12 месяцев и расскажите про 12 аттестаций.',
+    boardId:rule.boardId||'',
+    boardName:(rule.boardName||'').trim()||'Задачи производства',
+    stageId:rule.stageId||'',
+    assigneeUid:rule.assigneeUid||'',
+    watchers:{...(rule.watchers||{})},
+    attachments:normalizeTaskAttachments(rule.attachments||[]),
+    createdAt:rule.createdAt||now,
+    updatedAt:rule.updatedAt||rule.createdAt||now
+  };
+}
+
+function ensureTaskAutomationTemplates(persist=false){
+  if(!S.settings) S.settings = {};
+  const hadStoredList = Array.isArray(S.settings.taskAutomations);
+  let list = hadStoredList
+    ? S.settings.taskAutomations.filter(Boolean).map((rule, idx)=>normalizeTaskAutomationRule(rule, idx))
+    : [normalizeTaskAutomationRule(defaultStudentTaskAutomation(), 0)];
+
+  if(!hadStoredList){
+    S.settings.taskAutomations = list;
+    if(persist) save();
+  } else {
+    S.settings.taskAutomations = list;
+  }
+  return S.settings.taskAutomations;
+}
+
+function getTaskAutomationRules(){
+  return ensureTaskAutomationTemplates(false);
+}
+
+function getTaskAutomationRule(ruleId){
+  return getTaskAutomationRules().find(rule=>rule.id===ruleId) || null;
+}
+
+function upsertTaskAutomationRule(rule, persist=true){
+  const list = getTaskAutomationRules().slice();
+  const next = normalizeTaskAutomationRule(rule, list.length);
+  const idx = list.findIndex(item=>item.id===next.id);
+  if(idx>=0) list[idx] = next;
+  else list.push(next);
+  S.settings.taskAutomations = list;
+  if(persist) save();
+  return next;
+}
+
+function removeTaskAutomationRuleById(ruleId, persist=true){
+  const list = getTaskAutomationRules().filter(rule=>rule.id!==ruleId);
+  S.settings.taskAutomations = list;
+  if(persist) save();
+}
+
+function getTaskAutomationEventLabel(eventType){
+  return TASK_AUTOMATION_EVENT_LABELS[eventType] || eventType || 'Событие не выбрано';
+}
+
+function getTaskAutomationBoard(rule){
+  return (rule?.boardId && getTaskBoards().find(board=>board.id===rule.boardId))
+    || findTaskBoardByName(rule?.boardName||'')
+    || null;
+}
+
+function getTaskAutomationStageLabel(rule){
+  const board = getTaskAutomationBoard(rule);
+  if(!board?.id) return 'Первая стадия';
+  const stage = board.stages.find(item=>item.id===rule?.stageId);
+  return stage?.label || getTaskBoardFirstStage(board).label;
+}
+
+function renderTaskAutomations(){
+  const el = document.getElementById('task-automations-list');
+  if(!el) return;
+  const rules = ensureTaskAutomationTemplates(true);
+  if(!rules.length){
+    el.innerHTML = '<div class="empty"><div class="empty-icon">🤖</div><div class="empty-text">Шаблонов пока нет.<br>Добавьте первую автоматическую задачу.</div></div>';
+    return;
+  }
+  el.innerHTML = rules.map(rule=>{
+    const assignee = rule.assigneeUid ? taskUserLabel(rule.assigneeUid, rule.assigneeUid) : 'Не назначен';
+    const watchersCount = Object.keys(rule.watchers||{}).length;
+    const board = getTaskAutomationBoard(rule);
+    const boardLabel = rule.boardName || board?.name || 'Без канбана';
+    return `<div class="card" style="margin-bottom:12px;padding:16px 18px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div style="min-width:240px;flex:1">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <div style="font-size:15px;font-weight:700;color:var(--t1)">${rule.title||'Без названия'}</div>
+            <span class="badge ${rule.enabled?'b-g':'b-gr'}">${rule.enabled?'Активна':'Отключена'}</span>
+          </div>
+          <div style="font-size:11px;color:var(--t3);margin-top:5px">Сценарий: ${getTaskAutomationEventLabel(rule.eventType)}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--t2);cursor:pointer;background:var(--bg3);border:1px solid var(--b1);border-radius:999px;padding:6px 10px">
+            <input type="checkbox" ${rule.enabled?'checked':''} onchange="toggleTaskAutomationEnabled('${rule.id}',this.checked)" style="accent-color:var(--gn)"/>
+            Включена
+          </label>
+          <button class="btn btn-sm" onclick="openTaskAutomationModal('${rule.id}')">⚙ Изменить</button>
+          <button class="btn btn-r btn-sm" onclick="deleteTaskAutomation('${rule.id}')">Удалить</button>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--t2);margin:12px 0 10px;white-space:pre-wrap">${rule.desc||'Описание не заполнено'}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        <span class="task-member-chip">🗂 ${boardLabel}</span>
+        <span class="task-member-chip">📍 ${getTaskAutomationStageLabel(rule)}</span>
+        <span class="task-member-chip">👤 ${assignee}</span>
+        <span class="task-member-chip">👁 ${watchersCount}</span>
+        <span class="task-member-chip">📎 ${rule.attachments?.length||0}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleTaskAutomationEnabled(ruleId, enabled){
+  const rule = getTaskAutomationRule(ruleId);
+  if(!rule) return;
+  upsertTaskAutomationRule({
+    ...rule,
+    enabled:!!enabled,
+    updatedAt:new Date().toISOString()
+  }, true);
+  renderTaskAutomations();
+}
+
+function refreshTaskAutomationStageOptions(selectedStageId=''){
+  const stageSel = document.getElementById('task-automation-stage');
+  const hint = document.getElementById('task-automation-stage-hint');
+  if(!stageSel) return;
+  const boardName = document.getElementById('task-automation-board-name')?.value.trim() || '';
+  const board = findTaskBoardByName(boardName);
+  if(board?.id){
+    stageSel.innerHTML = '<option value="">Первая стадия канбана</option>' +
+      board.stages.map(stage=>`<option value="${stage.id}">${stage.label}</option>`).join('');
+    if(hint){
+      hint.textContent = `Если стадию не выбирать, задача попадёт в первую колонку «${getTaskBoardFirstStage(board).label}».`;
+    }
+  } else {
+    stageSel.innerHTML = '<option value="">Первая стадия нового канбана</option>';
+    if(hint){
+      hint.textContent = boardName
+        ? `Канбан «${boardName}» будет создан автоматически, задача попадёт в его первую стадию.`
+        : 'Укажите название канбана, куда должна попасть автозадача.';
+    }
+  }
+  stageSel.value = [...stageSel.options].some(option=>option.value===selectedStageId) ? selectedStageId : '';
+}
+
+async function fillTaskAutomationUserSel(rule={}){
+  let users = S.appUsers;
+  if(!users || !Object.keys(users).length){
+    const snap = await usersRef.once('value').catch(()=>null);
+    users = snap?.val()||{};
+    S.appUsers = users;
+  }
+  const assigneeSel = document.getElementById('task-automation-assignee');
+  if(assigneeSel){
+    assigneeSel.innerHTML = '<option value="">— Не назначен —</option>' +
+      Object.entries(users).map(([uid,u])=>`<option value="${uid}">${u.name||u.email||uid}</option>`).join('');
+    assigneeSel.value = rule.assigneeUid||'';
+  }
+  const wrap = document.getElementById('task-automation-watchers-wrap');
+  if(wrap){
+    wrap.innerHTML = Object.entries(users).map(([uid,u])=>`
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--t2);cursor:pointer;padding:4px 8px;background:var(--bg3);border:1px solid var(--b2);border-radius:8px">
+        <input type="checkbox" data-uid="${uid}" class="task-automation-watcher-cb" ${rule.watchers?.[uid]?'checked':''} style="accent-color:var(--ac)"/>
+        ${u.name||u.email||uid}
+      </label>`).join('');
+  }
+}
+
+function renderTaskAutomationFilesList(){
+  const el = document.getElementById('task-automation-files-list');
+  if(!el) return;
+  const existing = taskAutomationExistingAttachments.map(att=>`
+    <div class="task-upload-item">
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <span>📎 ${att.name||'Файл'}</span>
+        <span style="font-size:10px;color:var(--t3)">${att.size ? taskFileSize(att.size) : 'будет добавлен к автозадаче'}</span>
+      </div>
+      <button class="btn btn-xs btn-r" type="button" onclick="removeExistingTaskAutomationAttachment('${att.id}')">Убрать</button>
+    </div>`).join('');
+  const pending = taskAutomationPendingFiles.map((file, idx)=>`
+    <div class="task-upload-item">
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <span>🆕 ${file.name}</span>
+        <span style="font-size:10px;color:var(--t3)">${taskFileSize(file.size||0)}</span>
+      </div>
+      <button class="btn btn-xs btn-r" type="button" onclick="removePendingTaskAutomationFile(${idx})">Убрать</button>
+    </div>`).join('');
+  el.innerHTML = existing + pending || '<div style="font-size:12px;color:var(--t3)">Файлы не добавлены</div>';
+}
+
+function onTaskAutomationFilesSelected(fileList){
+  const files = Array.from(fileList||[]);
+  if(!files.length) return;
+  taskAutomationPendingFiles = taskAutomationPendingFiles.concat(files);
+  const inp = document.getElementById('task-automation-files');
+  if(inp) inp.value = '';
+  renderTaskAutomationFilesList();
+}
+
+function removePendingTaskAutomationFile(idx){
+  taskAutomationPendingFiles.splice(idx,1);
+  renderTaskAutomationFilesList();
+}
+
+function removeExistingTaskAutomationAttachment(attId){
+  taskAutomationExistingAttachments = taskAutomationExistingAttachments.filter(att=>att.id!==attId);
+  renderTaskAutomationFilesList();
+}
+
+async function openTaskAutomationModal(ruleId){
+  editTaskAutomationId = ruleId||null;
+  await ensureTaskBoards();
+  const current = ruleId ? getTaskAutomationRule(ruleId) : null;
+  const rule = current ? normalizeTaskAutomationRule(current) : defaultStudentTaskAutomation();
+  document.getElementById('m-task-automation-ttl').textContent = ruleId ? 'Редактировать автозадачу' : 'Новая автозадача';
+  document.getElementById('task-automation-event').value = rule.eventType||'student.created';
+  document.getElementById('task-automation-enabled').checked = rule.enabled!==false;
+  document.getElementById('task-automation-title').value = rule.title||'';
+  document.getElementById('task-automation-desc').value = rule.desc||'';
+  document.getElementById('task-automation-board-name').value = rule.boardName||'Задачи производства';
+  taskAutomationPendingFiles = [];
+  taskAutomationExistingAttachments = normalizeTaskAttachments(rule.attachments||[]);
+  const inp = document.getElementById('task-automation-files');
+  if(inp) inp.value = '';
+  await fillTaskAutomationUserSel(rule);
+  refreshTaskAutomationStageOptions(rule.stageId||'');
+  renderTaskAutomationFilesList();
+  const delBtn = document.getElementById('task-automation-delete-btn');
+  if(delBtn) delBtn.style.display = ruleId ? '' : 'none';
+  open1('m-task-automation');
+}
+
+async function saveTaskAutomation(){
+  const title = document.getElementById('task-automation-title').value.trim();
+  if(!title){ toast('Введите название автозадачи', true); return; }
+  const desc = document.getElementById('task-automation-desc').value.trim();
+  if(!desc){ toast('Введите описание автозадачи', true); return; }
+  const boardName = (document.getElementById('task-automation-board-name').value.trim() || 'Задачи производства');
+  const eventType = document.getElementById('task-automation-event').value || 'student.created';
+  const enabled = document.getElementById('task-automation-enabled').checked;
+  const assigneeSel = document.getElementById('task-automation-assignee');
+  const assigneeUid = assigneeSel?.value || '';
+  const watchers = {};
+  document.querySelectorAll('.task-automation-watcher-cb:checked').forEach(cb=>{
+    if(cb.dataset.uid) watchers[cb.dataset.uid] = true;
   });
+
+  const saveBtn = document.getElementById('task-automation-save-btn');
+  if(saveBtn){ saveBtn.disabled = true; saveBtn.textContent = 'Сохранение...'; }
+
+  try{
+    const now = new Date().toISOString();
+    const current = editTaskAutomationId ? getTaskAutomationRule(editTaskAutomationId) : null;
+    const selectedStageId = document.getElementById('task-automation-stage').value || '';
+    const board = findTaskBoardByName(boardName);
+    const displayName = await getMyDisplayName();
+    const uploaded = [];
+    for(const file of taskAutomationPendingFiles){
+      uploaded.push(await uploadTaskAttachment(file, displayName));
+    }
+    const nextRule = upsertTaskAutomationRule({
+      ...(current||{}),
+      id:current?.id || makeTaskAutomationId(),
+      enabled,
+      eventType,
+      title,
+      desc,
+      boardId:board?.id || '',
+      boardName,
+      stageId:(board?.stages||[]).some(stage=>stage.id===selectedStageId) ? selectedStageId : '',
+      assigneeUid,
+      watchers,
+      attachments:[...taskAutomationExistingAttachments, ...uploaded],
+      createdAt:current?.createdAt || now,
+      updatedAt:now
+    }, true);
+    editTaskAutomationId = nextRule.id;
+    close1('m-task-automation');
+    renderTaskAutomations();
+    toast(current ? 'Автозадача обновлена' : 'Автозадача создана');
+  }catch(err){
+    console.error('saveTaskAutomation error:', err);
+    toast('Ошибка: '+err.message, true);
+  } finally {
+    if(saveBtn){ saveBtn.disabled = false; saveBtn.textContent = 'Сохранить'; }
+  }
+}
+
+function deleteTaskAutomation(ruleId){
+  const id = ruleId || editTaskAutomationId;
+  if(!id) return;
+  const rule = getTaskAutomationRule(id);
+  if(!rule) return;
+  if(!confirm(`Удалить автозадачу «${rule.title||'Без названия'}»?`)) return;
+  removeTaskAutomationRuleById(id, true);
+  if(editTaskAutomationId===id) close1('m-task-automation');
+  renderTaskAutomations();
+  toast('Автозадача удалена');
+}
+
+function switchTaskBoard(boardId){
+  currentTaskBoardId = boardId;
+  renderTasks();
 }
 
 function setTaskTab(tab){
-  taskTab=tab;
+  taskTab = tab;
   ['all','mine','done'].forEach(t=>{
-    const b=document.getElementById('tk-'+t);
-    if(b)b.classList.toggle('active',t===tab);
+    const b = document.getElementById('tk-'+t);
+    if(b) b.classList.toggle('active', t===tab);
   });
   renderTasks();
 }
 
-function fillTaskUserSel(){
-  usersRef.once('value').then(snap=>{
-    const data=snap.val()||{};
-    const opts='<option value="">— Не назначен —</option>'+
-      Object.entries(data).map(([uid,u])=>`<option value="${uid}">${u.name||u.email}</option>`).join('');
-    const sel=document.getElementById('task-assignee');
-    if(sel)sel.innerHTML=opts;
-    // Co-assignees checkboxes
-    const wrap=document.getElementById('task-coassignees-wrap');
-    if(wrap){
-      wrap.innerHTML=Object.entries(data).map(([uid,u])=>`
-        <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--t2);cursor:pointer;padding:4px 8px;background:var(--bg3);border:1px solid var(--b2);border-radius:6px">
-          <input type="checkbox" data-uid="${uid}" class="coassign-cb" style="accent-color:var(--ac)"/>
-          ${u.name||u.email}
-        </label>`).join('');
-    }
-  });
-}
+function renderTaskBoardStagesEditor(){
+  const el = document.getElementById('task-board-stages');
+  if(!el) return;
+  el.innerHTML = '';
+  taskBoardDraft = ensureBoardStages(taskBoardDraft);
 
-function openTaskModal(taskId){
-  editTaskId=taskId||null;
-  document.getElementById('m-task-ttl').textContent=taskId?'Редактировать задачу':'Новая задача';
+  taskBoardDraft.forEach((stage, i)=>{
+    const row = document.createElement('div');
+    row.className = 'task-stage-row';
 
-  // Reset form
-  document.getElementById('task-title').value='';
-  document.getElementById('task-desc').value='';
-  document.getElementById('task-priority').value='medium';
-  document.getElementById('task-deadline').value='';
+    const colorInput = document.createElement('input');
+    colorInput.type = 'color';
+    colorInput.value = stage.hex||'#9896b0';
+    colorInput.addEventListener('input', ()=>{ taskBoardDraft[i].hex = colorInput.value; taskBoardDraft[i].color = colorInput.value; });
 
-  // Load users first, then fill task data
-  usersRef.once('value').then(snap=>{
-    const data=snap.val()||{};
-    const opts='<option value="">— Не назначен —</option>'+
-      Object.entries(data).map(([uid,u])=>`<option value="${uid}">${u.name||u.email}</option>`).join('');
-    const sel=document.getElementById('task-assignee');
-    if(sel)sel.innerHTML=opts;
+    const labelInput = document.createElement('input');
+    labelInput.type = 'text';
+    labelInput.value = stage.label||'';
+    labelInput.placeholder = 'Название стадии';
+    labelInput.addEventListener('input', ()=>{ taskBoardDraft[i].label = labelInput.value; });
 
-    const wrap=document.getElementById('task-coassignees-wrap');
-    if(wrap){
-      wrap.innerHTML=Object.entries(data).map(([uid,u])=>`
-        <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--t2);cursor:pointer;padding:4px 8px;background:var(--bg3);border:1px solid var(--b2);border-radius:6px">
-          <input type="checkbox" data-uid="${uid}" class="coassign-cb" style="accent-color:var(--ac)"/>
-          ${u.name||u.email}
-        </label>`).join('');
-    }
-
-    // Now fill task data if editing
-    if(taskId){
-      tasksRef.child(taskId).once('value').then(snap2=>{
-        const t=snap2.val();if(!t)return;
-        document.getElementById('task-title').value=t.title||'';
-        document.getElementById('task-desc').value=t.desc||'';
-        document.getElementById('task-priority').value=t.priority||'medium';
-        document.getElementById('task-deadline').value=t.deadline||'';
-        if(sel&&t.assigneeUid)sel.value=t.assigneeUid;
-        document.querySelectorAll('.coassign-cb').forEach(cb=>{
-          cb.checked=!!(t.coassignees&&t.coassignees[cb.dataset.uid]);
-        });
-      });
-    }
-  });
-
-  open1('m-task');
-}
-
-function saveTask(){
-  const title=document.getElementById('task-title').value.trim();
-  if(!title){toast('Введите название задачи',true);return;}
-  const desc=document.getElementById('task-desc').value.trim();
-  const priority=document.getElementById('task-priority').value;
-  const deadline=document.getElementById('task-deadline').value;
-  const assigneeSel=document.getElementById('task-assignee');
-  const assigneeUid=assigneeSel?assigneeSel.value:'';
-  const assigneeName=assigneeSel?assigneeSel.options[assigneeSel.selectedIndex]?.text.replace('— Не назначен —','').trim():'';
-
-  // Collect co-assignees from checked boxes
-  const coassignees={};
-  document.querySelectorAll('.coassign-cb:checked').forEach(cb=>{
-    if(cb.dataset.uid)coassignees[cb.dataset.uid]=true;
-  });
-
-  const uid=getMyUid();
-  const now=new Date().toISOString();
-  const task={
-    title,desc,priority,deadline,
-    assigneeUid:assigneeUid||'',
-    assigneeName:assigneeName||'',
-    coassignees,
-    createdBy:uid,
-    createdByName:getMyName(),
-    updatedAt:now,
-    done:false
-  };
-
-  const btn=document.querySelector('#m-task .btn-a');
-  if(btn){btn.disabled=true;btn.textContent='Сохранение...';}
-
-  const done=()=>{
-    if(btn){btn.disabled=false;btn.textContent='Сохранить';}
-    close1('m-task');renderTasks();updateTasksBadge();
-  };
-
-  if(editTaskId){
-    // Keep original createdAt and createdBy when editing
-    tasksRef.child(editTaskId).once('value').then(snap=>{
-      const orig=snap.val()||{};
-      task.createdAt=orig.createdAt||now;
-      task.createdBy=orig.createdBy||uid;
-      task.createdByName=orig.createdByName||getMyName();
-      task.done=orig.done||false;
-      return tasksRef.child(editTaskId).set(task);
-    }).then(()=>{done();toast('Задача обновлена');})
-    .catch(err=>{
-      if(btn){btn.disabled=false;btn.textContent='Сохранить';}
-      toast('Ошибка: '+err.message,true);
-      console.error('saveTask error:',err);
+    const doneWrap = document.createElement('label');
+    doneWrap.style.cssText = 'display:flex;align-items:center;gap:5px;font-size:11px;color:var(--t3);white-space:nowrap;cursor:pointer';
+    const doneCheckbox = document.createElement('input');
+    doneCheckbox.type = 'checkbox';
+    doneCheckbox.checked = !!stage.doneStage;
+    doneCheckbox.style.accentColor = 'var(--gn)';
+    doneCheckbox.addEventListener('change', ()=>{
+      taskBoardDraft = taskBoardDraft.map((s, idx)=>({...s, doneStage: idx===i ? doneCheckbox.checked : false}));
+      if(!taskBoardDraft.some(s=>s.doneStage)) taskBoardDraft[taskBoardDraft.length-1].doneStage = true;
+      renderTaskBoardStagesEditor();
     });
-  } else {
-    task.createdAt=now;
-    tasksRef.push(task)
-      .then(ref=>{
-      done();toast('Задача создана');
-      // Notify assignee
-      if(task.assigneeUid&&task.assigneeUid!==getMyUid()){
-        sendNotification('task_assigned',task.assigneeUid,null,{
-          taskTitle:task.title,taskDesc:task.desc,
-          createdByName:task.createdByName,deadline:task.deadline
-        });
-      }
-      // Notify co-assignees
-      Object.keys(task.coassignees||{}).forEach(cUid=>{
-        if(cUid!==getMyUid()&&cUid!==task.assigneeUid)
-          sendNotification('task_assigned',cUid,null,{
-            taskTitle:task.title,taskDesc:task.desc,
-            createdByName:task.createdByName,deadline:task.deadline
-          });
-      });
-    })
-      .catch(err=>{
-        if(btn){btn.disabled=false;btn.textContent='Сохранить';}
-        toast('Ошибка: '+err.message,true);
-        console.error('saveTask error:',err);
-      });
+    doneWrap.appendChild(doneCheckbox);
+    doneWrap.appendChild(document.createTextNode('Финал'));
+
+    const upBtn = document.createElement('button');
+    upBtn.className = 'btn btn-xs';
+    upBtn.textContent = '↑';
+    upBtn.disabled = i===0;
+    upBtn.addEventListener('click', ()=>moveTaskBoardStage(i, -1));
+
+    const downBtn = document.createElement('button');
+    downBtn.className = 'btn btn-xs';
+    downBtn.textContent = '↓';
+    downBtn.disabled = i===taskBoardDraft.length-1;
+    downBtn.addEventListener('click', ()=>moveTaskBoardStage(i, 1));
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'btn btn-xs btn-r';
+    delBtn.textContent = '✕';
+    delBtn.disabled = taskBoardDraft.length<=2;
+    delBtn.addEventListener('click', ()=>deleteTaskBoardStage(i));
+
+    row.appendChild(colorInput);
+    row.appendChild(labelInput);
+    row.appendChild(doneWrap);
+    row.appendChild(upBtn);
+    row.appendChild(downBtn);
+    row.appendChild(delBtn);
+    el.appendChild(row);
+  });
+}
+
+function addTaskBoardStage(){
+  taskBoardDraft.push(buildTaskStage());
+  renderTaskBoardStagesEditor();
+}
+
+function moveTaskBoardStage(i, dir){
+  const j = i + dir;
+  if(j < 0 || j >= taskBoardDraft.length) return;
+  [taskBoardDraft[i], taskBoardDraft[j]] = [taskBoardDraft[j], taskBoardDraft[i]];
+  renderTaskBoardStagesEditor();
+}
+
+function deleteTaskBoardStage(i){
+  if(taskBoardDraft.length<=2){ toast('Минимум 2 стадии', true); return; }
+  taskBoardDraft.splice(i,1);
+  if(!taskBoardDraft.some(s=>s.doneStage)) taskBoardDraft[taskBoardDraft.length-1].doneStage = true;
+  renderTaskBoardStagesEditor();
+}
+
+function openTaskBoardModal(boardId){
+  const isEdit = !!boardId;
+  editTaskBoardId = isEdit ? boardId : null;
+  const board = isEdit ? getTaskBoard(boardId) : makeDefaultTaskBoard();
+  document.getElementById('m-task-board-ttl').textContent = isEdit ? 'Настройка канбана' : 'Новый канбан';
+  document.getElementById('task-board-name').value = board.name||'';
+  document.getElementById('task-board-desc').value = board.desc||'';
+  taskBoardDraft = ensureBoardStages(JSON.parse(JSON.stringify(board.stages||defaultTaskStages())));
+  renderTaskBoardStagesEditor();
+  const delBtn = document.getElementById('task-board-delete-btn');
+  if(delBtn){
+    delBtn.style.display = isEdit && getTaskBoards().length>1 ? '' : 'none';
+  }
+  open1('m-task-board');
+}
+
+async function saveTaskBoard(){
+  const name = document.getElementById('task-board-name').value.trim();
+  const desc = document.getElementById('task-board-desc').value.trim();
+  if(!name){ toast('Введите название канбана', true); return; }
+  const stages = ensureBoardStages(taskBoardDraft)
+    .map((s, i)=>({
+      ...s,
+      label:(s.label||'').trim() || ('Стадия '+(i+1)),
+      hex:s.hex||'#9896b0',
+      color:s.hex||'#9896b0',
+      doneStage:!!s.doneStage
+    }));
+  if(stages.length<2){ toast('Нужно минимум 2 стадии', true); return; }
+  if(!stages.some(s=>s.doneStage)) stages[stages.length-1].doneStage = true;
+
+  const now = new Date().toISOString();
+  const payload = {name, desc, stages, updatedAt:now};
+  try{
+    if(editTaskBoardId){
+      const orig = taskBoardsCache[editTaskBoardId]||{};
+      const nextBoard = {
+        ...orig,
+        ...payload,
+        createdAt:orig.createdAt||now,
+        createdBy:orig.createdBy||getMyUid()
+      };
+      await taskBoardsRef.child(editTaskBoardId).set(nextBoard);
+      taskBoardsCache[editTaskBoardId] = nextBoard;
+      if(!S.settings) S.settings = {};
+      S.settings.taskBoards = {...taskBoardsCache};
+      currentTaskBoardId = editTaskBoardId;
+      toast('Канбан обновлён');
+    } else {
+      const ref = taskBoardsRef.push();
+      const nextBoard = {
+        ...payload,
+        createdAt:now,
+        createdBy:getMyUid()
+      };
+      await ref.set(nextBoard);
+      taskBoardsCache[ref.key] = nextBoard;
+      if(!S.settings) S.settings = {};
+      S.settings.taskBoards = {...taskBoardsCache};
+      currentTaskBoardId = ref.key;
+      toast('Канбан создан');
+    }
+    close1('m-task-board');
+    renderTasks();
+  }catch(err){
+    toast('Ошибка: '+err.message, true);
   }
 }
 
-function renderTasks(){
-  const el=document.getElementById('tasks-list');if(!el)return;
-  const uid=getMyUid();
-  el.innerHTML='<div style="text-align:center;padding:20px;color:var(--t3);font-size:12px">Загрузка...</div>';
-  tasksRef.orderByChild('createdAt').once('value').then(snap=>{
-    const data=snap.val()||{};
-    let items=Object.entries(data).map(([id,t])=>({id,...t}))
-      .sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+async function deleteTaskBoard(){
+  if(!editTaskBoardId) return;
+  const boards = getTaskBoards();
+  if(boards.length<=1){ toast('Нельзя удалить последний канбан', true); return; }
+  const tasksSnap = await tasksRef.once('value').catch(()=>null);
+  const hasTasks = Object.values(tasksSnap?.val()||{}).some(t=>t?.boardId===editTaskBoardId);
+  if(hasTasks){ toast('Сначала перенесите или удалите задачи из этого канбана', true); return; }
+  if(!confirm('Удалить этот канбан?')) return;
+  await taskBoardsRef.child(editTaskBoardId).remove();
+  delete taskBoardsCache[editTaskBoardId];
+  if(!S.settings) S.settings = {};
+  S.settings.taskBoards = {...taskBoardsCache};
+  const nextBoard = boards.find(b=>b.id!==editTaskBoardId);
+  currentTaskBoardId = nextBoard?.id || '';
+  close1('m-task-board');
+  renderTasks();
+  toast('Канбан удалён');
+}
 
-    // Always filter to only tasks relevant to this user
-    const isMine=t=>t.assigneeUid===uid||(t.coassignees&&t.coassignees[uid])||t.createdBy===uid;
+function renderTaskFilesList(){
+  const el = document.getElementById('task-files-list');
+  if(!el) return;
+  const existing = taskExistingAttachments.map(a=>`
+    <div class="task-upload-item">
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <span>📎 ${a.name||'Файл'}</span>
+        <span style="font-size:10px;color:var(--t3)">${a.size ? taskFileSize(a.size) : 'уже прикреплён'}</span>
+      </div>
+      <button class="btn btn-xs btn-r" type="button" onclick="removeExistingTaskAttachment('${a.id}')">Убрать</button>
+    </div>`).join('');
+  const pending = taskPendingFiles.map((file, idx)=>`
+    <div class="task-upload-item">
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <span>🆕 ${file.name}</span>
+        <span style="font-size:10px;color:var(--t3)">${taskFileSize(file.size||0)}</span>
+      </div>
+      <button class="btn btn-xs btn-r" type="button" onclick="removePendingTaskFile(${idx})">Убрать</button>
+    </div>`).join('');
+  el.innerHTML = existing + pending || '<div style="font-size:12px;color:var(--t3)">Файлы не добавлены</div>';
+}
 
-    if(taskTab==='done') items=items.filter(t=>t.done&&isMine(t));
-    else if(taskTab==='mine') items=items.filter(t=>!t.done&&(t.assigneeUid===uid||(t.coassignees&&t.coassignees[uid])));
-    else items=items.filter(t=>!t.done&&isMine(t)); // 'all' = all mine (active)
+function onTaskFilesSelected(fileList){
+  const files = Array.from(fileList||[]);
+  if(!files.length) return;
+  taskPendingFiles = taskPendingFiles.concat(files);
+  const inp = document.getElementById('task-files');
+  if(inp) inp.value = '';
+  renderTaskFilesList();
+}
 
-    if(!items.length){el.innerHTML='<div class="empty"><div class="empty-icon">✅</div><div class="empty-text">'+(taskTab==='done'?'Нет завершённых задач':'Нет задач')+'</div></div>';return;}
+function removePendingTaskFile(idx){
+  taskPendingFiles.splice(idx,1);
+  renderTaskFilesList();
+}
 
-    const pLabel={high:'🔴 Высокий',medium:'🟡 Средний',low:'🟢 Низкий'};
-    const pClass={high:'p-high',medium:'p-medium',low:'p-low'};
+function removeExistingTaskAttachment(attId){
+  taskExistingAttachments = taskExistingAttachments.filter(a=>a.id!==attId);
+  renderTaskFilesList();
+}
 
-    el.innerHTML=items.map(t=>{
-      const isAssigned=t.assigneeUid===uid||(t.coassignees&&t.coassignees[uid]);
-      const isCreator=t.createdBy===uid;
-      const isOverdue=t.deadline&&t.deadline<new Date().toISOString().slice(0,10)&&!t.done;
-      const roleLabel=isAssigned?'Назначена мне':isCreator?'Создал я':'';
-      return`<div class="task-card ${t.done?'done':''} priority-${t.priority||'medium'}" onclick="openTaskDetail('${t.id}')">
-        <div class="task-title ${t.done?'done-text':''}">
-          <span style="font-size:16px">${t.done?'☑':'☐'}</span>
-          ${t.title}
-          ${roleLabel?`<span style="font-size:10px;color:var(--ac2);background:var(--acbg);padding:1px 6px;border-radius:6px">${roleLabel}</span>`:''}
-        </div>
-        ${t.desc?`<div style="font-size:12px;color:var(--t3);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.desc.slice(0,80)}${t.desc.length>80?'...':''}</div>`:''}
-        <div class="task-meta">
-          <span class="priority-badge ${pClass[t.priority||'medium']}">${pLabel[t.priority||'medium']}</span>
-          ${t.deadline?`<span style="${isOverdue?'color:var(--rd);font-weight:600':''}">📅 ${fmtDate(t.deadline)}${isOverdue?' ⚠ Просрочено':''}</span>`:''}
-          ${t.assigneeName?`<span>👤 ${t.assigneeName}</span>`:''}
-          ${isCreator&&t.assigneeName?`<span style="color:var(--t3)">от меня</span>`:`<span style="color:var(--t3)">от ${t.createdByName||'—'}</span>`}
-        </div>
-      </div>`;
+function fillTaskStageSel(boardId, selectedStageId){
+  const board = getTaskBoard(boardId);
+  const stageSel = document.getElementById('task-stage');
+  if(!stageSel) return;
+  stageSel.innerHTML = board.stages.map(s=>`<option value="${s.id}">${s.label}</option>`).join('');
+  const fallback = selectedStageId && board.stages.some(s=>s.id===selectedStageId)
+    ? selectedStageId
+    : getTaskBoardFirstStage(board).id;
+  stageSel.value = fallback;
+}
+
+function fillTaskBoardSel(selectedBoardId, selectedStageId){
+  const boardSel = document.getElementById('task-board');
+  if(!boardSel) return;
+  const boards = getTaskBoards();
+  boardSel.innerHTML = boards.map(b=>`<option value="${b.id}">${b.name||'Без названия'}</option>`).join('');
+  const boardId = selectedBoardId && boards.some(b=>b.id===selectedBoardId)
+    ? selectedBoardId
+    : (currentTaskBoardId || boards[0]?.id || '');
+  boardSel.value = boardId;
+  fillTaskStageSel(boardId, selectedStageId);
+  boardSel.onchange = ()=>fillTaskStageSel(boardSel.value);
+}
+
+async function fillTaskUserSel(task={}){
+  let users = S.appUsers;
+  if(!users || !Object.keys(users).length){
+    const snap = await usersRef.once('value').catch(()=>null);
+    users = snap?.val()||{};
+    S.appUsers = users;
+  }
+  const assigneeSel = document.getElementById('task-assignee');
+  if(assigneeSel){
+    assigneeSel.innerHTML = '<option value="">— Не назначен —</option>' +
+      Object.entries(users).map(([uid,u])=>`<option value="${uid}">${u.name||u.email||uid}</option>`).join('');
+    assigneeSel.value = task.assigneeUid||'';
+  }
+
+  const renderChecks = (wrapId, cls, selectedMap)=>{
+    const wrap = document.getElementById(wrapId);
+    if(!wrap) return;
+    wrap.innerHTML = Object.entries(users).map(([uid,u])=>`
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--t2);cursor:pointer;padding:4px 8px;background:var(--bg3);border:1px solid var(--b2);border-radius:8px">
+        <input type="checkbox" data-uid="${uid}" class="${cls}" ${selectedMap?.[uid]?'checked':''} style="accent-color:var(--ac)"/>
+        ${u.name||u.email||uid}
+      </label>`).join('');
+    };
+
+  renderChecks('task-coassignees-wrap','coassign-cb',task.coassignees||{});
+  renderChecks('task-watchers-wrap','watcher-cb',task.watchers||{});
+}
+
+async function openTaskModal(taskId){
+  editTaskId = taskId||null;
+  await ensureTaskBoards();
+  const raw = taskId ? (await tasksRef.child(taskId).once('value').then(s=>s.val()).catch(()=>null)) : null;
+  const task = taskId ? normalizeTaskRecord(taskId, raw||{}) : {
+    boardId:currentTaskBoardId || getTaskBoards()[0]?.id || '',
+    stageId:'',
+    assigneeUid:'',
+    coassignees:{},
+    watchers:{},
+    attachments:[]
+  };
+
+  document.getElementById('m-task-ttl').textContent = taskId ? 'Редактировать задачу' : 'Новая задача';
+  document.getElementById('task-title').value = task.title||'';
+  document.getElementById('task-desc').value = task.desc||'';
+  document.getElementById('task-priority').value = task.priority||'medium';
+  document.getElementById('task-deadline').value = task.deadline||'';
+  taskPendingFiles = [];
+  taskExistingAttachments = normalizeTaskAttachments(task.attachments||[]);
+  const taskFileInput = document.getElementById('task-files');
+  if(taskFileInput) taskFileInput.value = '';
+  fillTaskBoardSel(task.boardId, task.stageId);
+  await fillTaskUserSel(task);
+  renderTaskFilesList();
+  open1('m-task');
+}
+
+async function uploadTaskAttachment(file, displayName){
+  const params = new URLSearchParams({
+    fileName:file.name||'file',
+    contentType:file.type||'application/octet-stream',
+    folder:'tasks'
+  });
+  const prepResp = await fetch(VIDEO_WORKER_URL + '/upload-attachment?' + params, {
+    method:'POST',
+    body:'{}'
+  });
+  const data = await prepResp.json().catch(()=>({}));
+  if(!prepResp.ok || !data.uploadUrl || !data.downloadUrl){
+    throw new Error(data.error || ('upload_prepare_'+prepResp.status));
+  }
+  await new Promise((resolve, reject)=>{
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', data.uploadUrl, true);
+    xhr.setRequestHeader('Content-Type', file.type||'application/octet-stream');
+    xhr.onload = ()=>{ xhr.status>=200 && xhr.status<300 ? resolve() : reject(new Error('upload_'+xhr.status)); };
+    xhr.onerror = ()=>reject(new Error('upload_network'));
+    xhr.send(file);
+  });
+  return {
+    id:'task_att_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
+    name:data.fileName||file.name||'file',
+    url:data.downloadUrl,
+    type:file.type||'',
+    size:file.size||0,
+    addedAt:new Date().toISOString(),
+    addedBy:getMyUid(),
+    addedByName:displayName||getMyName()
+  };
+}
+
+async function createTaskRecord(data={}, opts={}){
+  await ensureTaskBoards();
+  const board = getTaskBoard(data.boardId || currentTaskBoardId);
+  if(!board?.id) throw new Error('Канбан не найден');
+  const stageId = (board.stages||[]).some(stage=>stage.id===data.stageId)
+    ? data.stageId
+    : getTaskBoardFirstStage(board).id;
+  const doneStage = getTaskBoardDoneStage(board);
+  const uid = opts.createdBy || getMyUid();
+  const displayName = opts.createdByName || await getMyDisplayName();
+  const now = new Date().toISOString();
+  const task = {
+    title:(data.title||'').trim(),
+    desc:(data.desc||'').trim(),
+    priority:data.priority||'medium',
+    deadline:data.deadline||'',
+    boardId:board.id,
+    stageId,
+    assigneeUid:data.assigneeUid||'',
+    assigneeName:data.assigneeUid ? taskUserLabel(data.assigneeUid, data.assigneeName||data.assigneeUid) : '',
+    coassignees:{...(data.coassignees||{})},
+    watchers:{...(data.watchers||{})},
+    attachments:normalizeTaskAttachments(data.attachments||[]),
+    updatedAt:now,
+    done:stageId===doneStage.id,
+    createdAt:now,
+    createdBy:uid,
+    createdByName:displayName,
+    sourceType:data.sourceType||'',
+    sourceId:data.sourceId||'',
+    sourceName:data.sourceName||'',
+    automationRuleId:data.automationRuleId||'',
+    automationEventType:data.automationEventType||''
+  };
+  if(!task.title) throw new Error('Название задачи не заполнено');
+  const ref = tasksRef.push();
+  await ref.set(task);
+  if(opts.notify!==false){
+    const notifyUids = new Set([task.assigneeUid, ...Object.keys(task.coassignees||{}), ...Object.keys(task.watchers||{})]);
+    notifyUids.delete(uid);
+    notifyUids.forEach(nu=>sendNotification('task_assigned', nu, null, {
+      taskTitle:task.title,
+      taskDesc:task.desc,
+      createdByName:displayName,
+      deadline:task.deadline
+    }));
+  }
+  return {id:ref.key, task:{id:ref.key, ...task}};
+}
+
+async function ensureAutomationBoard(rule){
+  await ensureTaskBoards();
+  let board = getTaskAutomationBoard(rule);
+  if(board?.id) return board;
+  const now = new Date().toISOString();
+  const ref = taskBoardsRef.push();
+  const nextBoard = {
+    ...makeDefaultTaskBoard(),
+    name:(rule.boardName||'Задачи производства').trim() || 'Задачи производства',
+    desc:'Канбан для автоматических задач.',
+    createdAt:now,
+    updatedAt:now,
+    createdBy:getMyUid()
+  };
+  await ref.set(nextBoard);
+  taskBoardsCache[ref.key] = nextBoard;
+  if(!S.settings) S.settings = {};
+  if(!S.settings.taskBoards) S.settings.taskBoards = {};
+  S.settings.taskBoards[ref.key] = nextBoard;
+  const nextRule = upsertTaskAutomationRule({
+    ...rule,
+    boardId:ref.key,
+    boardName:nextBoard.name,
+    updatedAt:now
+  }, true);
+  return {id:ref.key, ...nextBoard, stages:ensureBoardStages(nextBoard.stages), _rule:nextRule};
+}
+
+async function hasAutomationTaskForSource(ruleId, sourceType, sourceId){
+  if(!ruleId || !sourceType || sourceId==null || sourceId==='') return false;
+  const snap = await tasksRef.once('value').catch(()=>null);
+  return Object.values(snap?.val()||{}).some(task=>
+    task?.automationRuleId===ruleId &&
+    task?.sourceType===sourceType &&
+    String(task?.sourceId||'')===String(sourceId)
+  );
+}
+
+function buildStudentAutomationTaskDescription(rule, payload={}){
+  const lines = [];
+  const base = (rule.desc||'').trim();
+  if(base) lines.push(base);
+  const student = payload.student||{};
+  const enrollment = payload.primaryEnrollment||null;
+  const teacherName = enrollment ? (teacher(enrollment.teacherId)?.name || '') : '';
+  const scheduleLabel = enrollment?.slots?.length
+    ? enrollment.slots.map(slot=>`${DS[slot.day]} ${TIMES[slot.ti]}`).join(', ')
+    : '';
+  const details = [
+    student.name ? `Ученик: ${student.name}` : '',
+    student.phone ? `Телефон ученика: ${student.phone}` : '',
+    student.parent ? `Родитель: ${student.parent}${student.parentPhone ? ' · '+student.parentPhone : ''}` : (student.parentPhone ? `Телефон родителя: ${student.parentPhone}` : ''),
+    teacherName ? `Преподаватель: ${teacherName}` : '',
+    scheduleLabel ? `Расписание: ${scheduleLabel}` : ''
+  ].filter(Boolean);
+  if(details.length){
+    if(lines.length) lines.push('');
+    lines.push(...details);
+  }
+  return lines.join('\n');
+}
+
+async function runTaskAutomationRule(rule, payload={}){
+  if(!rule?.enabled) return null;
+  if(await hasAutomationTaskForSource(rule.id, 'student', payload.student?.id)) return null;
+  const board = await ensureAutomationBoard(rule);
+  const stageId = (board.stages||[]).some(stage=>stage.id===rule.stageId)
+    ? rule.stageId
+    : getTaskBoardFirstStage(board).id;
+  const result = await createTaskRecord({
+    title:rule.title,
+    desc:buildStudentAutomationTaskDescription(rule, payload),
+    boardId:board.id,
+    stageId,
+    assigneeUid:rule.assigneeUid||'',
+    watchers:{...(rule.watchers||{})},
+    attachments:normalizeTaskAttachments(rule.attachments||[]),
+    sourceType:'student',
+    sourceId:String(payload.student?.id||''),
+    sourceName:payload.student?.name||'',
+    automationRuleId:rule.id,
+    automationEventType:rule.eventType||'student.created'
+  });
+  await chatRef.child(result.id).push({
+    type:'system',
+    text:`🤖 Автоматическая задача создана после добавления ученика «${payload.student?.name||'—'}».`,
+    ts:new Date().toISOString(),
+    uid:getMyUid(),
+    name:getMyName()
+  }).catch(()=>{});
+  return result;
+}
+
+async function runStudentCreatedTaskAutomations(studentRecord, primaryEnrollment){
+  const rules = ensureTaskAutomationTemplates(true)
+    .filter(rule=>rule.enabled && rule.eventType==='student.created');
+  for(const rule of rules){
+    await runTaskAutomationRule(rule, {
+      student:studentRecord,
+      primaryEnrollment
+    });
+  }
+}
+
+async function saveTask(){
+  const title = document.getElementById('task-title').value.trim();
+  if(!title){ toast('Введите название задачи', true); return; }
+  const boardId = document.getElementById('task-board').value;
+  const board = getTaskBoard(boardId);
+  const stageId = document.getElementById('task-stage').value || getTaskBoardFirstStage(board).id;
+  const desc = document.getElementById('task-desc').value.trim();
+  const priority = document.getElementById('task-priority').value;
+  const deadline = document.getElementById('task-deadline').value;
+  const assigneeSel = document.getElementById('task-assignee');
+  const assigneeUid = assigneeSel?.value||'';
+  const assigneeName = assigneeUid ? taskUserLabel(assigneeUid, assigneeSel?.options[assigneeSel.selectedIndex]?.text||'') : '';
+
+  const coassignees = {};
+  document.querySelectorAll('.coassign-cb:checked').forEach(cb=>{
+    if(cb.dataset.uid) coassignees[cb.dataset.uid] = true;
+  });
+  const watchers = {};
+  document.querySelectorAll('.watcher-cb:checked').forEach(cb=>{
+    if(cb.dataset.uid) watchers[cb.dataset.uid] = true;
+  });
+
+  const btn = document.querySelector('#m-task .btn-a');
+  if(btn){ btn.disabled = true; btn.textContent = 'Сохранение...'; }
+
+  try{
+    const uid = getMyUid();
+    const displayName = await getMyDisplayName();
+    const now = new Date().toISOString();
+    const uploaded = [];
+    for(const file of taskPendingFiles){
+      uploaded.push(await uploadTaskAttachment(file, displayName));
+    }
+
+    const doneStage = getTaskBoardDoneStage(board);
+    const task = {
+      title,
+      desc,
+      priority,
+      deadline,
+      boardId:board.id,
+      stageId,
+      assigneeUid:assigneeUid||'',
+      assigneeName:assigneeName||'',
+      coassignees,
+      watchers,
+      attachments:[...taskExistingAttachments, ...uploaded],
+      updatedAt:now,
+      done:stageId===doneStage.id
+    };
+
+    if(editTaskId){
+      const orig = await tasksRef.child(editTaskId).once('value').then(s=>s.val()||{});
+      await tasksRef.child(editTaskId).set({
+        ...orig,
+        ...task,
+        createdAt:orig.createdAt||now,
+        createdBy:orig.createdBy||uid,
+        createdByName:orig.createdByName||displayName
+      });
+      toast('Задача обновлена');
+    } else {
+      task.createdAt = now;
+      task.createdBy = uid;
+      task.createdByName = displayName;
+      const ref = taskBoardsCache[board.id] ? tasksRef.push() : null;
+      if(!ref) throw new Error('Канбан не найден');
+      await ref.set(task);
+      const notifyUids = new Set([assigneeUid, ...Object.keys(coassignees), ...Object.keys(watchers)]);
+      notifyUids.delete(uid);
+      notifyUids.forEach(nu=>sendNotification('task_assigned', nu, null, {
+        taskTitle:title,
+        taskDesc:desc,
+        createdByName:displayName,
+        deadline
+      }));
+      toast('Задача создана');
+    }
+
+    currentTaskBoardId = board.id;
+    taskPendingFiles = [];
+    taskExistingAttachments = [];
+    close1('m-task');
+    renderTasks();
+    updateTasksBadge();
+  }catch(err){
+    console.error('saveTask error:', err);
+    toast('Ошибка: '+err.message, true);
+  } finally {
+    if(btn){ btn.disabled = false; btn.textContent = 'Сохранить'; }
+  }
+}
+
+function taskMembersHtml(uids){
+  if(!uids.length) return '<span style="font-size:12px;color:var(--t3)">—</span>';
+  return [...new Set(uids)].map(uid=>{
+    const label = taskUserLabel(uid, uid);
+    return `<span class="task-member-chip"><span class="task-av">${taskInitials(label)}</span>${label}</span>`;
+  }).join('');
+}
+
+function renderTaskCard(task, board){
+  const uid = getMyUid();
+  const isCreator = task.createdBy===uid;
+  const isAssigned = isTaskAssignedToMe(task, uid);
+  const isOverdue = !!(task.deadline && task.deadline < new Date().toISOString().slice(0,10) && !task.done);
+  const pLabel = {high:'🔴 Высокий',medium:'🟡 Средний',low:'🟢 Низкий'};
+  const pClass = {high:'p-high',medium:'p-medium',low:'p-low'};
+  const roleLabel = isAssigned ? 'Назначена мне' : isCreator ? 'Создал я' : '';
+  const avatars = [task.assigneeUid, ...Object.keys(task.coassignees||{})].filter(Boolean).slice(0,4)
+    .map(uid2=>{
+      const label = taskUserLabel(uid2, uid2);
+      return `<span class="task-av" title="${label}">${taskInitials(label)}</span>`;
     }).join('');
+
+  return `<div draggable="true" class="task-card ${task.done?'done':''} priority-${task.priority||'medium'}" data-id="${task.id}">
+    <div class="task-title ${task.done?'done-text':''}">
+      <span style="font-size:16px;line-height:1">${task.done?'☑':'☐'}</span>
+      <div style="flex:1">
+        ${task.title}
+        ${roleLabel?`<div style="font-size:10px;color:var(--ac2);margin-top:4px">${roleLabel}</div>`:''}
+      </div>
+    </div>
+    ${task.desc?`<div class="task-desc-cut">${task.desc}</div>`:''}
+    <div class="task-meta">
+      <span class="priority-badge ${pClass[task.priority||'medium']}">${pLabel[task.priority||'medium']}</span>
+      ${task.deadline?`<span style="${isOverdue?'color:var(--rd);font-weight:600':''}">📅 ${fmtDate(task.deadline)}${isOverdue?' · Просрочено':''}</span>`:''}
+      ${task.attachments?.length?`<span class="task-file-count">📎 ${task.attachments.length}</span>`:''}
+      ${Object.keys(task.watchers||{}).length?`<span>👁 ${Object.keys(task.watchers||{}).length}</span>`:''}
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <div class="task-avatars">${avatars||'<span style="font-size:11px;color:var(--t3)">Без участников</span>'}</div>
+      <div style="font-size:10px;color:var(--t3);text-align:right">${task.assigneeName?('👤 '+task.assigneeName):('от '+(task.createdByName||'—'))}</div>
+    </div>
+  </div>`;
+}
+
+function initTaskDragDrop(board){
+  const wrap = document.getElementById('task-kanban-wrap');
+  document.querySelectorAll('.task-kanban-col, .task-kanban-body').forEach(col=>{
+    col.addEventListener('dragover', e=>{
+      e.preventDefault();
+      col.closest('.task-kanban-col')?.classList.add('drag-over');
+      if(wrap){
+        const rect = wrap.getBoundingClientRect();
+        const edge = 90;
+        if(e.clientX > rect.right - edge){
+          if(!_taskScrollTimer) _taskScrollTimer = setInterval(()=>{ wrap.scrollLeft += 16; }, 16);
+        } else if(e.clientX < rect.left + edge){
+          if(!_taskScrollTimer) _taskScrollTimer = setInterval(()=>{ wrap.scrollLeft -= 16; }, 16);
+        } else {
+          clearInterval(_taskScrollTimer); _taskScrollTimer = null;
+        }
+      }
+    });
+    col.addEventListener('dragleave', ()=>{ col.closest('.task-kanban-col')?.classList.remove('drag-over'); });
+    col.addEventListener('drop', e=>{
+      e.preventDefault();
+      clearInterval(_taskScrollTimer); _taskScrollTimer = null;
+      document.querySelectorAll('.task-kanban-col').forEach(c=>c.classList.remove('drag-over'));
+      const stageId = col.dataset.stage || col.closest('.task-kanban-col')?.dataset.stage;
+      if(stageId && _taskDragId) moveTaskToStage(_taskDragId, stageId);
+    });
+  });
+  document.querySelectorAll('.task-card[draggable]').forEach(card=>{
+    card.addEventListener('dragstart', e=>{
+      _taskDragId = card.dataset.id;
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    card.addEventListener('dragend', ()=>{
+      card.classList.remove('dragging');
+      document.querySelectorAll('.task-kanban-col').forEach(c=>c.classList.remove('drag-over'));
+      clearInterval(_taskScrollTimer); _taskScrollTimer = null;
+    });
+    card.addEventListener('click', ()=>openTaskDetail(card.dataset.id));
+  });
+}
+
+function moveTaskToStage(taskId, newStageId){
+  const task = window._taskRenderCache?.[taskId];
+  if(!task) return;
+  const board = getTaskBoard(task.boardId||currentTaskBoardId);
+  if(task.stageId===newStageId) return;
+  const prevStage = getTaskStage(task, board);
+  const nextStage = board.stages.find(s=>s.id===newStageId) || getTaskBoardFirstStage(board);
+  const now = new Date().toISOString();
+  tasksRef.child(taskId).update({
+    boardId:board.id,
+    stageId:newStageId,
+    done:newStageId===getTaskBoardDoneStage(board).id,
+    updatedAt:now
+  }).then(()=>{
+    chatRef.child(taskId).push({
+      type:'system',
+      text:`📌 Стадия: «${prevStage.label}» → «${nextStage.label}»`,
+      ts:now,
+      uid:getMyUid(),
+      name:getMyName()
+    });
+  }).catch(err=>toast('Ошибка: '+err.message, true));
+}
+
+function renderTasks(){
+  const el = document.getElementById('tasks-list');
+  if(!el) return;
+  renderTaskBoardSwitch();
+  const boards = getTaskBoards();
+  if(!boards.length){
+    el.innerHTML = '<div class="empty"><div class="empty-icon">🗂</div><div class="empty-text">Создаю первый канбан...</div></div>';
+    ensureTaskBoards();
+    return;
+  }
+
+  const board = getTaskBoard(currentTaskBoardId);
+  tasksRef.once('value').then(snap=>{
+    const uid = getMyUid();
+    const raw = snap.val()||{};
+    const allBoardItems = Object.entries(raw)
+      .map(([id, task])=>normalizeTaskRecord(id, task))
+      .filter(task=>task.boardId===board.id && canSeeTask(task, uid))
+      .sort(sortTaskItems);
+
+    renderTaskBoardInfo(board, allBoardItems);
+
+    let filtered = allBoardItems.slice();
+    if(taskTab==='mine') filtered = filtered.filter(task=>!task.done && isTaskAssignedToMe(task, uid));
+    else if(taskTab==='done') filtered = filtered.filter(task=>task.done);
+    else filtered = filtered.filter(task=>!task.done);
+
+    window._taskRenderCache = {};
+    allBoardItems.forEach(task=>{ window._taskRenderCache[task.id] = task; });
+
+    const html = `<div class="task-kanban-wrap" id="task-kanban-wrap">
+      ${board.stages.map(stage=>{
+        const cards = filtered.filter(task=>getTaskStage(task, board).id===stage.id).sort(sortTaskItems);
+        return `<div class="task-kanban-col" data-stage="${stage.id}">
+          <div class="task-kanban-head">
+            <div class="task-kanban-title"><span class="task-stage-dot" style="background:${stage.hex||'#9896b0'}"></span>${stage.label}</div>
+            <span class="task-stage-count">${cards.length}</span>
+          </div>
+          <div class="task-kanban-body" data-stage="${stage.id}">
+            ${cards.length ? cards.map(task=>renderTaskCard(task, board)).join('') : '<div class="task-stage-empty">Перетащите сюда карточку или создайте новую задачу.</div>'}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+    el.innerHTML = html;
+    initTaskDragDrop(board);
+  }).catch(err=>{
+    el.innerHTML = '<div class="empty"><div class="empty-icon">⚠</div><div class="empty-text">Не удалось загрузить задачи</div></div>';
+    console.error('renderTasks error:', err);
   });
 }
 
 function openTaskDetail(taskId){
-  currentTaskId=taskId;
-  // Stop previous chat listener
-  if(chatListener){chatRef.child(taskId).off('value',chatListener);chatListener=null;}
+  currentTaskId = taskId;
+  if(chatListener && window._taskChatListenerId){
+    chatRef.child(window._taskChatListenerId).off('value', chatListener);
+    chatListener = null;
+  }
 
   tasksRef.child(taskId).once('value').then(snap=>{
-    const t=snap.val();if(!t)return;
-    const pLabel={high:'🔴 Высокий',medium:'🟡 Средний',low:'🟢 Низкий'};
-    const pClass={high:'p-high',medium:'p-medium',low:'p-low'};
-    const isOverdue=t.deadline&&t.deadline<new Date().toISOString().slice(0,10)&&!t.done;
+    const task = normalizeTaskRecord(taskId, snap.val()||{});
+    const board = getTaskBoard(task.boardId);
+    const stage = getTaskStage(task, board);
+    const pLabel = {high:'🔴 Высокий',medium:'🟡 Средний',low:'🟢 Низкий'};
+    const pClass = {high:'p-high',medium:'p-medium',low:'p-low'};
+    const isOverdue = !!(task.deadline && task.deadline < new Date().toISOString().slice(0,10) && !task.done);
+    const memberUids = [task.assigneeUid, ...Object.keys(task.coassignees||{})].filter(Boolean);
+    const visibleUids = getTaskVisibleUids(task);
 
-    document.getElementById('m-td-title').textContent=t.title||'—';
-    document.getElementById('m-td-desc').textContent=t.desc||'';
-    document.getElementById('m-td-complete-btn').textContent=t.done?'↩ Возобновить':'✓ Завершить';
-    document.getElementById('m-td-complete-btn').className='btn btn-sm '+(t.done?'':'btn-g');
+    document.getElementById('m-td-title').textContent = task.title||'—';
+    document.getElementById('m-td-desc').textContent = task.desc||'Описание пока не заполнено.';
+    document.getElementById('m-td-members').innerHTML = taskMembersHtml(memberUids);
+    document.getElementById('m-td-watchers').innerHTML = taskMembersHtml(visibleUids);
+    document.getElementById('m-td-files').innerHTML = task.attachments?.length
+      ? task.attachments.map(a=>`<a class="task-file-link" href="${a.url}" target="_blank" download="${a.name||'file'}">📎 ${a.name||'Файл'}</a>`).join('')
+      : '<span style="font-size:12px;color:var(--t3)">Файлов пока нет</span>';
 
-    document.getElementById('m-td-meta').innerHTML=`
+    document.getElementById('m-td-complete-btn').textContent = task.done ? '↩ Возобновить' : '✓ Завершить';
+    document.getElementById('m-td-complete-btn').className = 'btn btn-sm ' + (task.done ? '' : 'btn-g');
+
+    document.getElementById('m-td-meta').innerHTML = `
       <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px">
-        <span class="priority-badge ${pClass[t.priority||'medium']}">${pLabel[t.priority||'medium']}</span>
-        ${t.deadline?`<span style="font-size:12px;${isOverdue?'color:var(--rd);font-weight:600':'color:var(--t3)'}">📅 ${fmtDate(t.deadline)}${isOverdue?' ⚠':''}</span>`:''}
-        ${t.done?'<span style="font-size:12px;color:var(--gn)">✅ Завершено</span>':''}
+        <span class="priority-badge ${pClass[task.priority||'medium']}">${pLabel[task.priority||'medium']}</span>
+        <span style="font-size:12px;color:var(--t2)">🗂 ${board.name||'Канбан'}</span>
+        <span style="font-size:12px;color:${stage.hex||'#9896b0'}">● ${stage.label}</span>
+        ${task.deadline?`<span style="font-size:12px;${isOverdue?'color:var(--rd);font-weight:600':'color:var(--t3)'}">📅 ${fmtDate(task.deadline)}${isOverdue?' · Просрочено':''}</span>`:''}
+        ${task.done?'<span style="font-size:12px;color:var(--gn)">✅ Завершено</span>':''}
       </div>
       <div style="font-size:12px;color:var(--t3);display:flex;flex-wrap:wrap;gap:10px">
-        ${t.assigneeName?`<span>👤 Исполнитель: <b style="color:var(--t2)">${t.assigneeName}</b></span>`:''}
-        ${t.coassignees&&Object.keys(t.coassignees).length?`<span>👥 Соисполнители</span>`:''}
-        <span>Создал: ${t.createdByName||'—'}</span>
-        <span>${t.createdAt?new Date(t.createdAt).toLocaleString('ru',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):''}</span>
+        ${task.assigneeName?`<span>👤 Исполнитель: <b style="color:var(--t2)">${task.assigneeName}</b></span>`:''}
+        <span>Создал: ${task.createdByName||'—'}</span>
+        <span>${task.createdAt?new Date(task.createdAt).toLocaleString('ru',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):''}</span>
       </div>`;
 
-    // Start chat listener
-    document.getElementById('task-chat-msgs').innerHTML='<div style="text-align:center;padding:10px;color:var(--t3);font-size:11px">Загрузка...</div>';
-    document.getElementById('task-chat-input').value='';
+    document.getElementById('task-chat-msgs').innerHTML = '<div style="text-align:center;padding:12px;color:var(--t3);font-size:11px">Загрузка...</div>';
+    document.getElementById('task-chat-input').value = '';
 
-    chatListener=chatRef.child(taskId).on('value',cSnap=>{
-      const msgs=cSnap.val()||{};
-      const myUid=getMyUid();
-      const sorted=Object.values(msgs).sort((a,b)=>a.ts.localeCompare(b.ts));
-      const msgsEl=document.getElementById('task-chat-msgs');
-      if(!msgsEl)return;
-      if(!sorted.length){msgsEl.innerHTML='<div style="text-align:center;padding:20px;color:var(--t3);font-size:12px">Начните общение...</div>';return;}
-      msgsEl.innerHTML=sorted.map(m=>{
-        const mine=m.uid===myUid;
-        const ts=new Date(m.ts).toLocaleString('ru',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-        return`<div class="chat-msg ${mine?'mine':'theirs'}">
+    window._taskChatListenerId = taskId;
+    chatListener = chatRef.child(taskId).on('value', cSnap=>{
+      const msgs = [];
+      cSnap.forEach(ch=>msgs.push(ch.val()));
+      msgs.sort((a,b)=>(a.ts||'').localeCompare(b.ts||''));
+      const myUid = getMyUid();
+      const msgsEl = document.getElementById('task-chat-msgs');
+      if(!msgsEl) return;
+      if(!msgs.length){
+        msgsEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--t3);font-size:12px">Начните переписку по задаче.</div>';
+        return;
+      }
+      msgsEl.innerHTML = msgs.map(m=>{
+        if(m.type==='system'){
+          return `<div style="text-align:center;margin:4px 0"><span style="font-size:10px;color:var(--t3);background:var(--bg3);padding:3px 9px;border-radius:999px">${m.text||''}</span></div>`;
+        }
+        const mine = m.uid===myUid;
+        const ts = new Date(m.ts).toLocaleString('ru',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+        return `<div class="chat-msg ${mine?'mine':'theirs'}">
           ${!mine?`<div class="chat-msg-meta">${m.name||'—'} · ${ts}</div>`:''}
-          ${m.text}
+          ${m.text||''}
           ${mine?`<div class="chat-msg-meta" style="text-align:right;margin-top:2px">${ts}</div>`:''}
         </div>`;
       }).join('');
-      msgsEl.scrollTop=msgsEl.scrollHeight;
+      msgsEl.scrollTop = msgsEl.scrollHeight;
     });
 
     open1('m-task-detail');
@@ -10056,54 +11259,107 @@ function openTaskDetail(taskId){
 }
 
 function toggleTaskDone(){
-  if(!currentTaskId)return;
+  if(!currentTaskId) return;
   tasksRef.child(currentTaskId).once('value').then(snap=>{
-    const t=snap.val();if(!t)return;
-    tasksRef.child(currentTaskId).update({done:!t.done,updatedAt:new Date().toISOString()}).then(()=>{
-      renderTasks();updateTasksBadge();
+    const task = normalizeTaskRecord(currentTaskId, snap.val()||{});
+    const board = getTaskBoard(task.boardId);
+    const targetStage = task.done
+      ? (board.stages.find(s=>!s.doneStage) || getTaskBoardFirstStage(board))
+      : getTaskBoardDoneStage(board);
+    return tasksRef.child(currentTaskId).update({
+      stageId:targetStage.id,
+      done:!task.done,
+      updatedAt:new Date().toISOString()
+    }).then(()=>{
+      renderTasks();
+      updateTasksBadge();
       openTaskDetail(currentTaskId);
-      toast(t.done?'Задача возобновлена':'✅ Задача завершена');
+      toast(task.done ? 'Задача возобновлена' : '✅ Задача завершена');
     });
   });
 }
 
 function editCurrentTask(){
-  if(!currentTaskId)return;
+  if(!currentTaskId) return;
   close1('m-task-detail');
   openTaskModal(currentTaskId);
 }
 
 function deleteCurrentTask(){
-  if(!currentTaskId)return;
-  if(!confirm('Удалить задачу? Чат тоже будет удалён.'))return;
+  if(!currentTaskId) return;
+  if(!confirm('Удалить задачу? Чат тоже будет удалён.')) return;
   tasksRef.child(currentTaskId).remove();
   chatRef.child(currentTaskId).remove();
   close1('m-task-detail');
-  renderTasks();updateTasksBadge();
+  renderTasks();
+  updateTasksBadge();
   toast('Задача удалена');
 }
 
 async function sendChatMsg(){
-  const inp=document.getElementById('task-chat-input');
-  const text=inp.value.trim();
-  if(!text||!currentTaskId)return;
-  inp.value='';
-  const uid=getMyUid();
-  const name=await getMyDisplayName();
-  const msgRef=chatRef.child(currentTaskId).push({
-    uid,name,text,
+  const inp = document.getElementById('task-chat-input');
+  const text = inp.value.trim();
+  if(!text || !currentTaskId) return;
+  inp.value = '';
+  const uid = getMyUid();
+  const name = await getMyDisplayName();
+  await chatRef.child(currentTaskId).push({
+    uid,
+    name,
+    text,
     ts:new Date().toISOString()
   });
-  // Notify other task participants
   tasksRef.child(currentTaskId).once('value').then(tSnap=>{
-    const td=tSnap.val();if(!td)return;
-    const notifyUids=new Set();
-    if(td.assigneeUid&&td.assigneeUid!==uid)notifyUids.add(td.assigneeUid);
-    if(td.createdBy&&td.createdBy!==uid)notifyUids.add(td.createdBy);
-    Object.keys(td.coassignees||{}).forEach(cu=>{if(cu!==uid)notifyUids.add(cu);});
-    notifyUids.forEach(nu=>sendNotification('task_chat',nu,null,{
-      taskTitle:td.title,senderName:name,message:text
+    const task = normalizeTaskRecord(currentTaskId, tSnap.val()||{});
+    const notifyUids = new Set(getTaskVisibleUids(task));
+    notifyUids.delete(uid);
+    notifyUids.forEach(nu=>sendNotification('task_chat', nu, null, {
+      taskTitle:task.title,
+      senderName:name,
+      message:text
     }));
+  });
+}
+
+function updateTasksBadge(){
+  const uid = getMyUid();
+  tasksRef.once('value').then(snap=>{
+    const data = snap.val()||{};
+    const n = Object.entries(data)
+      .map(([id, task])=>normalizeTaskRecord(id, task))
+      .filter(task=>!task.done && canSeeTask(task, uid) && (isTaskAssignedToMe(task, uid) || task.createdBy===uid))
+      .length;
+    const b = document.getElementById('tasks-badge');
+    if(b){ b.textContent = n; b.style.display = n>0 ? '' : 'none'; }
+  });
+}
+
+function updateTodayBadge(){
+  const today = new Date().toISOString().slice(0,10);
+  const uid = getMyUid();
+  const todayDay = (new Date().getDay()+6)%7;
+  let n = 0;
+
+  if(currentTeacherId){
+    const enrs = S.enrollments.filter(e=>String(e.teacherId)===String(currentTeacherId)&&enrollActive(e,today)&&!e.inactive);
+    enrs.forEach(e=>{
+      if(!e.slots.some(sl=>sl.day===todayDay)) return;
+      const att = (S.attendance||{})[`${e.id}_${today}`];
+      if(!att) n++;
+    });
+  }
+
+  tasksRef.once('value').then(snap=>{
+    const data = snap.val()||{};
+    Object.entries(data)
+      .map(([id, task])=>normalizeTaskRecord(id, task))
+      .forEach(task=>{
+        if(task.done) return;
+        if(!(isTaskAssignedToMe(task, uid) || task.createdBy===uid || task.watchers?.[uid])) return;
+        if(!task.deadline || task.deadline<=today) n++;
+      });
+    const b = document.getElementById('today-badge');
+    if(b){ b.textContent = n; b.style.display = n>0 ? '' : 'none'; }
   });
 }
 
@@ -10176,9 +11432,9 @@ function renderToday(){
   tasksRef.once('value').then(snap=>{
     const data=snap.val()||{};
     const myTasks=Object.entries(data)
-      .map(([id,t])=>({id,...t}))
-      .filter(t=>!t.done&&(t.assigneeUid===uid||(t.coassignees&&t.coassignees[uid])||t.createdBy===uid))
-      .sort((a,b)=>(a.deadline||'9999').localeCompare(b.deadline||'9999'));
+      .map(([id,t])=>normalizeTaskRecord(id,t))
+      .filter(t=>!t.done&&(isTaskAssignedToMe(t,uid)||t.createdBy===uid||t.watchers?.[uid]))
+      .sort(sortTaskItems);
 
     const overdue=myTasks.filter(t=>t.deadline&&t.deadline<today);
     const dueToday=myTasks.filter(t=>t.deadline===today);
@@ -10187,11 +11443,14 @@ function renderToday(){
     let tasksHtml='';
     if(overdue.length||dueToday.length||upcoming.length){
       tasksHtml+=`<div class="sec-title" style="margin-bottom:10px">✅ Мои задачи</div>`;
-      const renderT=(t,badge)=>`<div class="today-item" onclick="openTaskDetail('${t.id}')" style="cursor:pointer">
+      const renderT=(t,badge)=>`<div class="today-item" onclick="currentTaskBoardId='${t.boardId||''}';openTaskDetail('${t.id}')" style="cursor:pointer">
         <div style="font-size:16px">${t.done?'☑':'☐'}</div>
         <div style="flex:1">
           <div style="font-size:13px;font-weight:500">${t.title}</div>
-          ${t.deadline?`<div style="font-size:11px;color:var(--t3)">📅 ${fmtDate(t.deadline)}</div>`:''}
+          <div style="font-size:11px;color:var(--t3)">
+            ${t.deadline?`📅 ${fmtDate(t.deadline)}`:'Без дедлайна'}
+            ${t.boardId?` · 🗂 ${getTaskBoard(t.boardId).name||'Канбан'}`:''}
+          </div>
         </div>
         ${badge}
       </div>`;
@@ -10290,18 +11549,18 @@ function startLessonReminders(){
 }
 
 function checkLessonReminders(){
-  const now = new Date();
+  const now=new Date();
   // Используем настроенный часовой пояс (по умолчанию UTC+5 Алматы)
-  const ALMATY_OFFSET = getTZOffset(); // из настроек (или 5 по умолчанию)
-  const nowAlmaty = new Date(now.getTime() + ALMATY_OFFSET * 3600000);
-  const today = nowAlmaty.toISOString().slice(0, 10);
-  const nowMinutes = nowAlmaty.getUTCHours() * 60 + nowAlmaty.getUTCMinutes();
+  const tz = getTZOffset();
+  const nowKZDate = new Date(now.getTime() + tz*3600000);
+  const today=nowKZDate.toISOString().slice(0,10);
+  const nowMinutes=nowKZDate.getUTCHours()*60+nowKZDate.getUTCMinutes();
 
-  // Напоминание преподавателям за 15 мин
-  checkTeacherBeforeLesson(now, today, nowMinutes, nowAlmaty);
+  // Напоминание преподавателям за 15 мин (отдельная настройка)
+  checkTeacherBeforeLesson(now, today, nowMinutes);
   // Напоминание если не отмечено посещение через 1 час после урока
-  checkUnmarkedAttendanceReminders(now, today, nowMinutes, nowAlmaty);
-  // Итог дня
+  checkUnmarkedAttendanceReminders(now, today, nowMinutes);
+  // Итог дня (в eodRemindHour:00)
   checkEndOfDayReminders(now, today);
 
   // Проверяем настройку 5-мин напоминаний
@@ -10310,48 +11569,45 @@ function checkLessonReminders(){
   S.enrollments.forEach(e=>{
     if(e.inactive)return;
     if(!enrollActive(e,today))return;
-    // ВАЖНО: dow всегда по Алматинскому времени, не браузерному
-    const dow=(nowAlmaty.getUTCDay()+6)%7;
+    const dow=(nowKZDate.getUTCDay()+6)%7;
     const sl=e.slots.find(s=>s.day===dow);
     if(!sl)return;
 
-    const lessonTime=TIMES[sl.ti];
+    const lessonTime=TIMES[sl.ti]; // "13:00"
     const [lh,lm]=lessonTime.split(':').map(Number);
     const lessonMinutes=lh*60+lm;
     const diff=lessonMinutes-nowMinutes;
 
-    // Окно 4–8 минут до урока (шире = не пропустим при любом таймере)
-    if(diff<4||diff>8)return;
+    // Отправляем за 5-6 минут (окно 1 мин чтобы не пропустить)
+    if(diff<5||diff>6)return;
 
     const key=`${e.id}_${today}_${lessonTime}`;
+    // Сессионная проверка — быстрый выход если уже отправляли в этой вкладке
     if(_reminderSentKeys.has(key))return;
-    // localStorage — переживает обновление вкладки
-    const lsKey='rs_'+key;
-    try{ if(localStorage.getItem(lsKey)){ _reminderSentKeys.add(key); return; } }catch(_){}
 
     // Атомарная кросс-вкладочная блокировка через Firebase transaction
     const fbKey=`remindersSent/${today}_${String(e.id)}_${lessonTime.replace(':','-')}`;
     fbDb.ref(fbKey).transaction(current=>{
-      if(current!==null) return; // уже занято — отменяем
-      return Date.now();
+      if(current!==null) return; // уже занято — отменяем транзакцию (undefined = abort)
+      return Date.now();         // занимаем слот атомарно
     }).then(result=>{
-      if(!result.committed) return;
+      if(!result.committed) return; // другая вкладка успела первой
 
-      _reminderSentKeys.add(key);
-      try{ localStorage.setItem(lsKey,'1'); }catch(_){}
+      _reminderSentKeys.add(key); // помечаем локально
 
       const st=student(e.studentId);
       const t=teacher(e.teacherId);
       if(!st)return;
 
+      // Проверяем персональные настройки ученика
       const stuNotify=st.notify||{};
-      const remindStudent = stuNotify.remindStudent!==false;
-      const remindParent  = stuNotify.remindParent!==false;
-      if(!remindStudent && !remindParent) return;
+      const remindStudent = stuNotify.remindStudent!==false; // по умолчанию вкл
+      const remindParent  = stuNotify.remindParent!==false;  // по умолчанию вкл
 
-      // Дата — всегда по Алматинскому времени
+      if(!remindStudent && !remindParent) return; // оба выключены
+
       const months=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
-      const d=nowAlmaty.getUTCDate(), mo=nowAlmaty.getUTCMonth();
+      const d=now.getDate(),mo=now.getMonth();
       const dateRu=`${d} ${months[mo]}`;
 
       const msg=`⏰ Напоминание об уроке!\n\n👤 Ученик: ${st.name}\n👩‍🏫 Преподаватель: ${t?.name||'—'}\n🕐 Время: ${lessonTime}\n📅 ${dateRu}\n📖 ${e.topic||'Английский'}\n\nУрок начнётся через 5 минут!`;
@@ -10857,10 +12113,11 @@ let _teacherBeforeKeys = new Set(); // дедупликация за 15 мин
 let _eodSentKeys = new Set();       // дедупликация итога дня
 
 // Вызывается из checkLessonReminders каждую минуту
-function checkTeacherBeforeLesson(now, today, nowMinutes, nowAlmaty){
+function checkTeacherBeforeLesson(now, today, nowMinutes){
   if((S.settings||{}).teacherBeforeRemind === false) return;
-  // dow по Алматинскому времени
-  const dow = (nowAlmaty.getUTCDay()+6)%7;
+  // dow считаем по KZ дате
+  const nowKZDate = new Date(now.getTime() + 5*3600000);
+  const dow = (nowKZDate.getUTCDay()+6)%7;
 
   // Группируем уроки по преподавателю — в одно сообщение все уроки через 15 мин
   const byTeacher = {}; // teacherId → [{st, e, time}]
@@ -10905,11 +12162,12 @@ function checkTeacherBeforeLesson(now, today, nowMinutes, nowAlmaty){
 let _attReminderKeys = new Set(); // дедупликация напоминаний о незаполненной посещаемости
 
 // Напоминание через 2 часа после урока если нет отметки
-function checkUnmarkedAttendanceReminders(now, today, nowMinutes, nowAlmaty){
+function checkUnmarkedAttendanceReminders(now, today, nowMinutes){
   if((S.settings||{}).attRemindEnabled === false) return;
   const att = S.attendance || {};
-  const dow = (nowAlmaty.getUTCDay()+6)%7;
-  const kzNowMin = nowAlmaty.getUTCHours()*60 + nowAlmaty.getUTCMinutes();
+  const nowKZDate = new Date(now.getTime() + 5*3600000);
+  const dow = (nowKZDate.getUTCDay()+6)%7;
+  const kzNowMin = nowKZDate.getUTCHours()*60 + nowKZDate.getUTCMinutes();
 
   const byTeacher = {}; // teacherId → [lessons]
   S.enrollments.forEach(e=>{
@@ -10962,11 +12220,11 @@ function checkUnmarkedAttendanceReminders(now, today, nowMinutes, nowAlmaty){
 function checkEndOfDayReminders(now, today){
   if((S.settings||{}).eodRemindEnabled === false) return;
   const eodHour = (S.settings||{}).eodRemindHour || 21;
-  // Алматинское время UTC+5 фиксировано
-  const nowAlmatyEod = new Date(Date.now() + 5*3600000);
-  const kzHour = nowAlmatyEod.getUTCHours();
-  const kzMin  = nowAlmatyEod.getUTCMinutes();
-  if(kzHour !== eodHour || kzMin > 5) return;
+  // Используем KZ время
+  const nowKZDate = new Date(now.getTime() + 5*3600000);
+  const kzHour = nowKZDate.getUTCHours();
+  const kzMin = nowKZDate.getUTCMinutes();
+  if(kzHour !== eodHour || kzMin > 5) return; // только в HH:00–HH:05
 
   const eodKey = `eod_${today}`;
   if(_eodSentKeys.has(eodKey)) return;
@@ -12616,7 +13874,7 @@ const HINTS = {
   '[data-p="freeSlots"]':    {t:'✦ Свободные слоты', h:'Поиск места для нового ученика. Используй фильтры: дни недели, возраст (до/после 7 лет), уровень (начальный/продолжающий). Бейдж «До 7 · Начальный» = там уже есть ученик, нужна совместимая пара. «Свободный» = пустое место. Нажми «Записать» — откроется форма с уже заполненным преподавателем и временем.'},
   '[data-p="students"]':     {t:'🎓 Ученики', h:'База всех учеников. Вкладки: 📋 Все, ✅ Активные, 🚀 Старты (новые за месяц), 🔄 Перестарты (продлившиеся), ⏳ Оплата задерживается, 💔 Потерянные (завершили). В каждой карточке: статус, расписание, кнопки управления и настройки уведомлений WhatsApp.'},
   '[data-p="teamchat"]':     {t:'💬 Командный чат', h:'Общий чат для всей команды. Видят все пользователи портала (администраторы и преподаватели). Точка в значке = есть непрочитанные сообщения. Используй для оперативных вопросов: замена урока, уточнение расписания, общие объявления.'},
-  '[data-p="tasks"]':        {t:'✅ Задачи', h:'Система задач команды. Создавай задачи с дедлайнами и назначай конкретному преподавателю или администратору. 🔴 Красная рамка = просрочено, 🟡 Жёлтая = дедлайн сегодня. У каждой задачи есть внутренний чат для обсуждения. Бейдж на иконке = число просроченных задач.'},
+  '[data-p="tasks"]':        {t:'✅ Задачи', h:'Канбан задач команды. Можно создавать несколько досок, вручную настраивать стадии, перетаскивать карточки между колонками, открывать чат внутри задачи, управлять доступом и прикреплять файлы. Бейдж на иконке показывает активные задачи, которые требуют внимания.'},
   '[data-p="users"]':        {t:'👤 Пользователи', h:'Управление аккаунтами портала. Здесь создаёшь логины для новых преподавателей — они получат данные для входа в WhatsApp. Роли: «Администратор» видит всё, «Преподаватель» — только своё расписание и учеников. Также здесь меняется телефон и имя пользователя.'},
   '[data-p="reports"]':      {t:'📊 Отчёты', h:'Детальная статистика по каждому преподавателю. Переключай период кнопками: 7/30/90 дней или Чт→Чт (рабочая неделя). Столбцы: Уроков = всего по расписанию; ✓ Провёл = отмечено как проведён; ✗ Пропуск = ученик не пришёл без отработки; ↩ Отработка = пропуск компенсирован; % не отраб. = доля невосстановленных пропусков; ↻ Продлений = сколько учеников перезаписались; ⏱ Часов = реально отработанное время (каждый слот = 30 мин); 🎥 Видео = сколько отчётов загружено. Скачать в Excel — кнопка ⬇ Excel вверху.'},
   '[data-p="videoreviews"]': {t:'🎥 Видео уроков', h:'Видео-отчёты загруженные преподавателями. Жёлтый бейдж = число ожидающих проверки. Нажми «Проверить» → откроется видео, комментарий преподавателя и поле для твоего комментария родителям. «✅ Одобрить» → видео уйдёт родителям через WhatsApp. «❌ Отклонить» → преподаватель получит уведомление с причиной.'},
@@ -14865,15 +16123,12 @@ function resolveCallType(callType, rawCallType){
 async function renderCallsLog(){
   const body = document.getElementById('callslog-body');
   if(!body) return;
-  body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--t3)">Загрузка звонков...</div>';
-
-  // Таймаут на весь запрос — не висим бесконечно
-  const timeout = ms => new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')), ms));
+  body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--t3)">Загрузка...</div>';
 
   const [binotelSnap, leadsSnap, chatsSnap] = await Promise.all([
-    Promise.race([fbDb.ref('binotelCalls').orderByChild('ts').limitToLast(2000).once('value'), timeout(8000)]).catch(()=>null),
-    Promise.race([crmRef.once('value'), timeout(5000)]).catch(()=>null),
-    Promise.race([fbDb.ref('crmChats').once('value'), timeout(5000)]).catch(()=>null),
+    fbDb.ref('binotelCalls').orderByChild('ts').limitToLast(2000).once('value').catch(()=>null),
+    crmRef.once('value').catch(()=>null),
+    fbDb.ref('crmChats').once('value').catch(()=>null),
   ]);
 
   const calls = [];
@@ -15004,8 +16259,11 @@ async function renderCallsLog(){
 
   const byDir = calls.reduce((acc,c)=>{ acc[c.callType]=(acc[c.callType]||0)+1; return acc; }, {});
   const byStatus = { answered: calls.filter(c=>c.answered).length, missed: calls.filter(c=>c.isMissed).length, rec: calls.filter(c=>c.recordingLink).length };
+  const latestCallTs = calls.reduce((max, c) => (!max || (c.ts||'') > max ? (c.ts||'') : max), '');
+  const latestRecTs  = calls.reduce((max, c) => (c.recordingLink && (!max || (c.ts||'') > max) ? (c.ts||'') : max), '');
   console.log('По направлению — callType=0(входящий):', byDir['0']||0, '| callType=1(исходящий):', byDir['1']||0, '| остальные:', JSON.stringify(byDir));
   console.log('По статусу — отвечено:', byStatus.answered, '| пропущено:', byStatus.missed, '| с записью:', byStatus.rec);
+  console.log('Последний звонок:', latestCallTs || '—', '| Последняя запись:', latestRecTs || '—');
   console.groupEnd();
 
   const missed = calls.filter(c => c.isMissed).length;
@@ -15022,6 +16280,17 @@ async function renderCallsLog(){
   const inCount  = calls.filter(c=>String(c.callType)==='0' && !c.isMissed).length;
   const outCount = calls.filter(c=>String(c.callType)==='1' && !c.isMissed).length;
   const recCount = calls.filter(c=>c.recordingLink).length;
+  const fmtDiagTs = ts => ts ? new Date(ts).toLocaleString('ru', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'}) : '—';
+  let recDiagHtml = '';
+  if(latestCallTs || latestRecTs){
+    const gapWarn = latestCallTs && latestRecTs && latestRecTs < latestCallTs;
+    recDiagHtml = `
+      <div style="margin-bottom:12px;padding:10px 12px;border-radius:10px;border:1px solid ${gapWarn?'rgba(245,200,66,.35)':'var(--b1)'};background:${gapWarn?'rgba(245,200,66,.08)':'var(--bg3)'};font-size:11px;line-height:1.6;color:var(--t2)">
+        <div><b>Последний звонок:</b> ${fmtDiagTs(latestCallTs)}</div>
+        <div><b>Последняя запись разговора:</b> ${fmtDiagTs(latestRecTs)}</div>
+        ${gapWarn?`<div style="color:var(--am)">После ${fmtDiagTs(latestRecTs)} записи в этот экран больше не попадают. Значит проблема уже в Binotel/Worker/Firebase-данных, а не в фильтре списка.</div>`:''}
+      </div>`;
+  }
 
   const tabs = [
     {k:'all',   l:`Все (${calls.length})`},
@@ -15037,7 +16306,7 @@ async function renderCallsLog(){
       ${t.l}</button>`).join('');
 
   if(!filtered.length){
-    body.innerHTML=`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">${tabBar}</div>
+    body.innerHTML=`${recDiagHtml}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">${tabBar}</div>
       <div style="text-align:center;padding:40px;color:var(--t3)">
         ${calls.length?'Нет по фильтру':'Звонков пока нет — появятся после первого звонка через Binotel'}
       </div>`;
@@ -15098,20 +16367,13 @@ async function renderCallsLog(){
     ? `<div style="text-align:center;padding:12px"><button onclick="window._callsShown+=${PAGE};renderCallsLog()" style="background:var(--bg3);border:1px solid var(--b1);border-radius:6px;padding:8px 20px;cursor:pointer;color:var(--t2);font-family:var(--fb);font-size:12px">Показать ещё (${filtered.length - window._callsShown} из ${filtered.length})</button></div>`
     : '';
 
-  body.innerHTML=`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">${tabBar}</div>
+  body.innerHTML=`${recDiagHtml}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">${tabBar}</div>
     <div style="background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden">${visRows}${moreBtn}</div>`;
 }
 
 async function showBinotelDebug(){
   const el = document.getElementById('callslog-body');
   if(el) el.innerHTML += '<div id="dbg-load" style="text-align:center;padding:16px;color:var(--t3)">Загрузка...</div>';
-
-  // Пингуем воркер
-  let workerStatus = '?';
-  try{
-    const r = await fetch('https://flat-pond-6e68.uurraa.workers.dev/ping', {method:'GET'}).catch(()=>null);
-    workerStatus = r?.ok ? `✅ Онлайн (${r.status})` : `⚠️ ${r?.status||'offline'}`;
-  }catch(e){ workerStatus = '❌ Недоступен'; }
 
   const [dbgSnap, callsSnap] = await Promise.all([
     fbDb.ref('binotelDebug').limitToLast(30).once('value').catch(()=>null),
@@ -15121,29 +16383,6 @@ async function showBinotelDebug(){
 
   const dbgList = Object.values(dbgSnap?.val()||{}).sort((a,b)=>(b.ts||'').localeCompare(a.ts||''));
   const callsList = Object.values(callsSnap?.val()||{}).sort((a,b)=>(b.ts||'').localeCompare(a.ts||''));
-
-  // Показываем статус воркера
-  const statusDiv = document.createElement('div');
-  statusDiv.style.cssText = 'padding:10px 16px;background:var(--bg3);border-radius:8px;margin-bottom:12px;font-size:12px;color:var(--t1)';
-  const lastDbg = dbgList[0];
-  const lastCall = callsList[0];
-  // Проверяем — все ли debug-ивенты являются apiCallSettings (не CALL_COMPLETED)
-  const allApiSettings = dbgList.length > 0 && dbgList.every(e=>{
-    try{ const p=JSON.parse(e.raw||'{}'); return p.event==='CALL_SETTINGS' || (p.body?.requestType==='apiCallSettings'); }catch{ return false; }
-  });
-  const workerUrl = 'https://flat-pond-6e68.uurraa.workers.dev';
-  statusDiv.innerHTML = `
-    <b>Воркер:</b> ${workerStatus}&nbsp;&nbsp;
-    <b>Последний debug-ивент:</b> ${lastDbg ? (lastDbg.ts||'').slice(0,16) : 'нет'}&nbsp;&nbsp;
-    <b>Последний звонок в Firebase:</b> ${lastCall ? (lastCall.ts||'').slice(0,16) : 'нет'}
-    ${!lastDbg ? '<br><span style="color:var(--am)">⚠️ В binotelDebug нет данных — возможно Binotel не отправляет webhook</span>' : ''}
-    ${allApiSettings ? `<br><span style="color:var(--rd)">⚠️ Binotel шлёт только события начала звонка (apiCallSettings), но не завершения.<br>
-    В настройках Binotel добавьте URL для завершённых звонков:<br>
-    <code style="background:var(--bg4);padding:2px 6px;border-radius:3px;font-size:11px;user-select:all">${workerUrl}/binotel-completed</code><br>
-    Раздел: Настройки → Интеграции → Webhook → «URL для окончания звонка» (или CALL_COMPLETED)</span>` : ''}
-    ${!allApiSettings && lastDbg && lastCall && lastCall.ts < lastDbg.ts ? '<br><span style="color:var(--am)">⚠️ Есть debug-ивенты, но записи не создаются — проверь обработку CALL_COMPLETED в воркере</span>' : ''}
-  `;
-  el.appendChild(statusDiv);
 
   // ── Console debug output ──────────────────────────────────────
   console.group('%c🔍 Binotel Debug', 'color:#a87fff;font-weight:bold;font-size:14px');
@@ -15796,9 +17035,6 @@ function openWAChat(leadId, _fromRender){
       <div id="wachat-msgs" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px"></div>
       <div style="padding:10px 12px;border-top:1px solid var(--b1);flex-shrink:0;background:var(--bg3)">
         <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:4px">
-          <label title="Отправить файл" style="background:var(--bg4);border:1px solid var(--b2);border-radius:8px;color:var(--t3);cursor:pointer;padding:7px 10px;font-size:15px;flex-shrink:0;display:flex;align-items:center">
-            📎<input id="wachat-file-inp" type="file" style="display:none" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.mp3,.mp4,.txt">
-          </label>
           <textarea id="wachat-inp" placeholder="${isStaff?'Сообщение сотруднику (внутри портала)...':'Сообщение клиенту в WhatsApp...'}" rows="2"
             style="flex:1;background:var(--bg4);border:1px solid var(--b2);border-radius:8px;color:var(--t1);font-family:var(--fb);font-size:13px;padding:7px 10px;resize:none"></textarea>
           <button id="wachat-send-btn" style="${sendBtnStyle}">${sendBtnLabel}</button>
@@ -15817,13 +17053,6 @@ function openWAChat(leadId, _fromRender){
     const inp = document.getElementById('wachat-inp');
     inp?.addEventListener('keydown', e=>{
       if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); doSend(); }
-    });
-    // Файловый инпут
-    document.getElementById('wachat-file-inp')?.addEventListener('change', async function(){
-      const file = this.files?.[0];
-      if(!file) return;
-      this.value = ''; // сбрасываем для повторного выбора
-      await sendWAFile(leadId, file);
     });
     // Авто-фокус при открытии
     setTimeout(()=>inp?.focus(), 50);
@@ -16017,79 +17246,6 @@ function normalizePhone(raw){
   // Если 10 цифр — добавляем 7 (KZ/RU)
   if(d.length===10) d = '7'+d;
   return d;
-}
-
-async function sendWAFile(leadId, file){
-  const l = window._crmLeadsCache?.[leadId];
-  if(!l) return;
-  const phone = (l.phone||'').replace(/\D/g,'');
-  if(!phone){ toast('Нет номера телефона', true); return; }
-
-  // Показываем превью в чате
-  const now = new Date().toISOString();
-  const uid = fbAuth.currentUser?.uid||'';
-  const userName = S.appUsers?.[uid]?.name || fbAuth.currentUser?.email || '—';
-
-  // Читаем файл в base64
-  const toBase64 = f => new Promise((res, rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(f); });
-
-  toast('📎 Отправка файла...');
-  try{
-    const b64 = await toBase64(file);
-    const base64data = b64.split(',')[1];
-    const mimeType = file.type || 'application/octet-stream';
-
-    // Определяем тип для Green API
-    let waType = 'document';
-    if(mimeType.startsWith('image/')) waType = 'image';
-    else if(mimeType.startsWith('audio/')) waType = 'audio';
-    else if(mimeType.startsWith('video/')) waType = 'video';
-
-    // Отправляем через Green API (uploadFile + sendFile)
-    const apiUrl = S.settings?.greenApiUrl || 'https://api.green-api.com';
-    const instId  = S.settings?.greenApiId  || '';
-    const apiKey  = S.settings?.greenApiKey || '';
-    if(!instId || !apiKey){ toast('Green API не настроен', true); return; }
-
-    // 1. Upload file
-    const upResp = await fetch(`${apiUrl}/waInstance${instId}/uploadFile/${apiKey}`, {
-      method: 'POST',
-      headers: {'Content-Type': mimeType},
-      body: Uint8Array.from(atob(base64data), c=>c.charCodeAt(0))
-    });
-    const upData = await upResp.json();
-    const fileUrl = upData.urlFile;
-    if(!fileUrl){ toast('Ошибка загрузки файла', true); return; }
-
-    // 2. Send file
-    const sendResp = await fetch(`${apiUrl}/waInstance${instId}/sendFileByUrl/${apiKey}`, {
-      method: 'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        chatId: `${phone}@c.us`,
-        urlFile: fileUrl,
-        fileName: file.name,
-        caption: ''
-      })
-    });
-    const sendData = await sendResp.json();
-    if(sendData.idMessage){
-      // Логируем в чат Firebase
-      crmChatRef.child(leadId).push({
-        type:'out', text:`📎 ${file.name}`, ts:now,
-        uid, name:userName, file:{name:file.name,url:fileUrl,mime:mimeType}
-      });
-      crmRef.child(leadId+'/msgCount').transaction(v=>(v||0)+1);
-      crmRef.child(leadId+'/lastMsg').set(`📎 ${file.name}`);
-      crmRef.child(leadId+'/lastContact').set(now);
-      toast('✓ Файл отправлен');
-    } else {
-      toast('Ошибка отправки файла', true);
-    }
-  } catch(err){
-    console.error('sendWAFile error:', err);
-    toast('Ошибка: ' + (err.message||err), true);
-  }
 }
 
 async function sendWAMessage(leadId, toWA){
@@ -17250,8 +18406,17 @@ const SIP_CFG = {
 
 let _sipUA = null, _sipSession = null, _sipTimer = null, _sipSec = 0;
 
+function sipIsLocalFileMode() {
+  return window.location.protocol === 'file:';
+}
+
 function sipInit() {
   if(_sipUA) return;
+  if(sipIsLocalFileMode()){
+    console.warn('[SIP] Disabled on file:// origin; use HTTPS-hosted CRM for Binotel WebSocket');
+    sipSetStatus('', '1906 · HTTPS');
+    return;
+  }
   if(typeof JsSIP === 'undefined'){ console.warn('JsSIP not loaded'); return; }
   console.log('[SIP] Initializing UA, ws=', SIP_CFG.ws);
   JsSIP.debug.disable('JsSIP:*');
@@ -17399,6 +18564,10 @@ function sipHangup() {
 
 function sipTogglePanel() {
   // Показываем мини-статус
+  if(sipIsLocalFileMode()){
+    toast('📞 SIP отключён на локальном file://. Для линии Binotel откройте CRM по HTTPS.');
+    return;
+  }
   const lbl = document.getElementById('sip-label').textContent;
   toast('📞 SIP: ' + lbl);
 }
@@ -17406,7 +18575,10 @@ function sipTogglePanel() {
 // Запускаем SIP только на десктопе
 if(typeof fbAuth !== 'undefined' && window.innerWidth > 768) {
   fbAuth.onAuthStateChanged(u => {
-    if(u) setTimeout(sipInit, 2000);
+    if(u) {
+      if(sipIsLocalFileMode()) setTimeout(()=>sipSetStatus('', '1906 · HTTPS'), 500);
+      else setTimeout(sipInit, 2000);
+    }
   });
 }
 
