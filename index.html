@@ -11546,6 +11546,16 @@ function startLessonReminders(){
   _reminderIntervalStarted = true;
   setInterval(checkLessonReminders, 60*1000);
   checkLessonReminders();
+
+  // Опрашиваем Binotel API для записей завершённых звонков каждые 2 мин
+  function pollBinotelRecordings(){
+    fetch('https://flat-pond-6e68.uurraa.workers.dev/binotel-poll', { method: 'GET' })
+      .then(r => r.json())
+      .then(d => { if(d.saved > 0) console.log('[Binotel poll] сохранено:', d.saved); })
+      .catch(() => {});
+  }
+  setTimeout(pollBinotelRecordings, 30*1000);
+  setInterval(pollBinotelRecordings, 2*60*1000);
 }
 
 function checkLessonReminders(){
