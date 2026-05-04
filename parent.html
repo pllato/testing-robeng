@@ -3,15 +3,19 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1"/>
-<meta name="theme-color" content="#0f0e1a"/>
+<meta name="theme-color" content="#F7941D"/>
 <title>RobEng · Кабинет родителя</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23F7941D'/%3E%3Ctext x='50' y='65' font-size='50' font-family='sans-serif' font-weight='800' text-anchor='middle' fill='%23fff'%3ERE%3C/text%3E%3C/svg%3E"/>
 <style>
   :root {
-    --bg:#0f0e1a; --bg2:#1a1830; --bg3:#231f38;
-    --t1:#f0eefc; --t2:#b8b4d4; --t3:#6e6a8a;
-    --ac:#F7941D; --ac2:#6DC21B; --gn:#22c55e; --tl:#38bdf8; --rd:#f05975; --am:#f5c842;
+    --bg:#f7f6fb; --bg2:#ffffff; --bg3:#f0eef6;
+    --t1:#1a1830; --t2:#5a5778; --t3:#9c98b4;
+    --b1:#e8e6f0; --b2:#dad7e6;
+    --ac:#F7941D; --ac2:#6DC21B; --gn:#22c55e; --tl:#0ea5e9; --rd:#ef4365; --am:#eab308;
     --r:14px; --r-lg:20px;
+    --sh-sm:0 1px 2px rgba(26,24,48,.04);
+    --sh-md:0 2px 8px rgba(26,24,48,.06);
+    --sh-lg:0 4px 16px rgba(26,24,48,.08);
   }
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html, body { background:var(--bg); color:var(--t1); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; min-height:100vh; }
@@ -19,65 +23,69 @@
   button { font-family:inherit; cursor:pointer; }
   a { color:inherit; text-decoration:none; }
 
-  .wrap { max-width:600px; margin:0 auto; min-height:100vh; }
+  .wrap { max-width:600px; margin:0 auto; min-height:100vh; background:var(--bg); }
 
-  /* Header */
-  .hd { background:linear-gradient(135deg,#1a1830,#231f38); border-bottom:1px solid rgba(124,92,252,.15); padding:24px 18px 18px; }
+  .hd { background:linear-gradient(135deg,#fff8ee 0%,#ffffff 60%,#f4f9ec 100%); border-bottom:1px solid var(--b1); padding:24px 18px 18px; }
   .hd-row { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
-  .logo { width:38px; height:38px; background:linear-gradient(135deg,var(--ac),var(--ac2)); border-radius:9px; display:flex; align-items:center; justify-content:center; font-weight:800; color:#fff; font-size:14px; flex-shrink:0; }
+  .logo { width:38px; height:38px; background:linear-gradient(135deg,var(--ac),var(--ac2)); border-radius:9px; display:flex; align-items:center; justify-content:center; font-weight:800; color:#fff; font-size:14px; flex-shrink:0; box-shadow:var(--sh-sm); }
   .logo-tx { flex:1; min-width:0; }
-  .logo-t1 { font-weight:700; font-size:15px; }
-  .logo-t2 { font-size:11px; color:rgba(255,255,255,.5); margin-top:1px; }
-  .greet { font-size:14px; color:rgba(255,255,255,.6); }
-  .pname { font-size:20px; font-weight:800; margin-top:2px; }
+  .logo-t1 { font-weight:700; font-size:15px; color:var(--t1); }
+  .logo-t2 { font-size:11px; color:var(--t3); margin-top:1px; }
+  .greet { font-size:14px; color:var(--t2); }
+  .pname { font-size:20px; font-weight:800; margin-top:2px; color:var(--t1); }
 
-  /* Tabs */
   .tabs { display:flex; gap:6px; padding:14px 16px 0; overflow-x:auto; }
-  .tab { flex:1 0 auto; min-width:120px; padding:10px 14px; border:0; background:rgba(255,255,255,.04); color:rgba(255,255,255,.5); border-radius:10px; font-size:13px; font-weight:700; text-align:left; transition:all .15s; }
-  .tab.act { background:rgba(247,148,29,.15); color:var(--ac); }
+  .tab { flex:1 0 auto; min-width:120px; padding:10px 14px; border:1px solid var(--b1); background:var(--bg2); color:var(--t2); border-radius:10px; font-size:13px; font-weight:700; text-align:left; transition:all .15s; }
+  .tab.act { background:#fff4e3; color:var(--ac); border-color:#fbd9aa; }
   .tab-sub { font-size:10px; font-weight:500; opacity:.7; margin-top:1px; }
 
-  /* Content */
   .ct { padding:14px 16px 24px; }
   .sec-h { font-size:12px; font-weight:700; color:var(--t2); text-transform:uppercase; letter-spacing:.5px; margin:18px 0 10px; }
-  .card { background:var(--bg2); border-radius:var(--r); padding:14px; margin-bottom:8px; }
+  .card { background:var(--bg2); border:1px solid var(--b1); border-radius:var(--r); padding:14px; margin-bottom:8px; box-shadow:var(--sh-sm); }
   .card.acc { border-left:3px solid var(--ac); }
 
-  /* Teacher card */
   .tc-row { display:flex; align-items:center; gap:12px; }
   .av { width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:16px; color:#fff; flex-shrink:0; background:linear-gradient(135deg,var(--ac2),var(--tl)); }
   .tc-mid { flex:1; min-width:0; }
   .tc-lbl { font-size:11px; color:var(--t3); text-transform:uppercase; letter-spacing:.5px; }
-  .tc-name { font-size:15px; font-weight:700; margin-top:2px; }
-  .wa-btn { background:#25D366; border:0; color:#fff; width:38px; height:38px; border-radius:10px; font-size:18px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .tc-name { font-size:15px; font-weight:700; margin-top:2px; color:var(--t1); }
+  .wa-btn { background:#25D366; border:0; color:#fff; width:38px; height:38px; border-radius:10px; font-size:18px; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:var(--sh-sm); }
   .wa-btn:active { transform:scale(.96); }
 
-  /* Lesson card */
-  .ls-head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; gap:8px; }
-  .ls-when { font-size:15px; font-weight:700; }
+  .ls-head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; gap:8px; }
+  .ls-when { font-size:15px; font-weight:700; color:var(--t1); }
   .ls-sub { font-size:12px; color:var(--t2); margin-top:2px; }
-  .ls-pill { font-size:11px; background:rgba(247,148,29,.15); color:var(--ac); padding:4px 8px; border-radius:6px; font-weight:700; flex-shrink:0; white-space:nowrap; }
-  .ls-actions { display:flex; gap:6px; }
-  .ls-btn { flex:1; padding:9px 10px; border:0; border-radius:8px; font-size:12px; font-weight:600; }
-  .ls-btn.ne { background:rgba(255,255,255,.06); color:var(--t1); }
-  .ls-btn.dn { background:rgba(240,89,117,.12); color:var(--rd); }
-  .ls-btn:active { transform:scale(.97); }
-  .ls-mini { padding:11px 14px; opacity:.85; }
+  .ls-pill { font-size:11px; background:#fff4e3; color:var(--ac); padding:4px 8px; border-radius:6px; font-weight:700; flex-shrink:0; white-space:nowrap; }
+  .ls-actions { display:flex; flex-direction:column; gap:6px; }
+  .ls-actions-row { display:flex; gap:6px; }
+  .ls-btn { flex:1; padding:11px 10px; border:1px solid transparent; border-radius:10px; font-size:13px; font-weight:700; transition:all .15s; }
+  .ls-btn-cf { background:linear-gradient(135deg,#22c55e,#16a34a); color:#fff; border:0; box-shadow:0 2px 6px rgba(34,197,94,.25); padding:13px 10px; font-size:14px; }
+  .ls-btn-cf:active { transform:scale(.98); box-shadow:0 1px 3px rgba(34,197,94,.2); }
+  .ls-btn.ne { background:var(--bg3); color:var(--t1); border-color:var(--b1); }
+  .ls-btn.ne:active { background:var(--b1); }
+  .ls-btn.dn { background:#fef2f4; color:var(--rd); border-color:#fbd5dc; }
+  .ls-btn.dn:active { background:#fde0e6; }
+  .ls-confirmed { display:flex; align-items:center; gap:10px; background:linear-gradient(135deg,#dcfce7,#bbf7d0); border:1px solid #86efac; border-radius:10px; padding:12px 14px; }
+  .ls-confirmed-ico { width:32px; height:32px; background:#22c55e; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:16px; font-weight:800; flex-shrink:0; }
+  .ls-confirmed-tx { flex:1; font-size:13px; color:#166534; }
+  .ls-confirmed-tx b { display:block; font-weight:800; font-size:14px; margin-bottom:2px; color:#14532d; }
+  .ls-mini { padding:11px 14px; }
   .ls-mini-row { display:flex; justify-content:space-between; align-items:center; gap:8px; }
-  .ls-mini-when { font-size:14px; font-weight:600; }
+  .ls-mini-when { font-size:14px; font-weight:600; color:var(--t1); }
   .ls-mini-sub { font-size:11px; color:var(--t3); margin-top:2px; }
   .ls-arr { font-size:18px; color:var(--t3); }
+  .ls-mini.cf { background:#f0fdf4; border-color:#bbf7d0; }
+  .ls-mini-cf-tag { font-size:10px; background:#22c55e; color:#fff; padding:2px 6px; border-radius:4px; font-weight:700; margin-top:4px; display:inline-block; }
 
-  /* Attendance */
   .at-grid { display:flex; gap:8px; margin-bottom:12px; }
   .at-box { flex:1; border-radius:10px; padding:10px 6px; text-align:center; }
-  .at-box.gn { background:rgba(34,197,94,.1); }
-  .at-box.rd { background:rgba(240,89,117,.1); }
-  .at-box.tl { background:rgba(56,189,248,.1); }
+  .at-box.gn { background:#dcfce7; }
+  .at-box.rd { background:#fee2e7; }
+  .at-box.tl { background:#e0f2fe; }
   .at-num { font-size:20px; font-weight:800; }
-  .at-num.gn { color:var(--gn); }
-  .at-num.rd { color:var(--rd); }
-  .at-num.tl { color:var(--tl); }
+  .at-num.gn { color:#15803d; }
+  .at-num.rd { color:#be123c; }
+  .at-num.tl { color:#0369a1; }
   .at-lbl { font-size:10px; color:var(--t2); margin-top:2px; }
   .at-ribbon { display:flex; gap:4px; flex-wrap:wrap; }
   .at-cell { width:22px; height:22px; border-radius:5px; flex-shrink:0; }
@@ -86,58 +94,56 @@
   .at-cell.makeup { background:var(--tl); }
   .at-cell.vacation { background:var(--am); }
 
-  /* Video */
-  .vd-card { background:var(--bg2); border-radius:var(--r); overflow:hidden; margin-bottom:8px; }
-  .vd-hero { height:120px; background:linear-gradient(135deg,var(--bg3),#2d2848); display:flex; align-items:center; justify-content:center; position:relative; cursor:pointer; }
+  .vd-card { background:var(--bg2); border:1px solid var(--b1); border-radius:var(--r); overflow:hidden; margin-bottom:8px; box-shadow:var(--sh-sm); }
+  .vd-hero { height:120px; background:linear-gradient(135deg,#fef3e6,#f4f9ec); display:flex; align-items:center; justify-content:center; position:relative; cursor:pointer; }
   .vd-hero:active { opacity:.85; }
-  .vd-play { width:48px; height:48px; background:rgba(247,148,29,.95); border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:18px; padding-left:4px; }
+  .vd-play { width:48px; height:48px; background:var(--ac); border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:18px; padding-left:4px; box-shadow:0 4px 12px rgba(247,148,29,.3); }
   .vd-meta { padding:11px 14px; }
-  .vd-tt { font-size:13px; font-weight:700; }
+  .vd-tt { font-size:13px; font-weight:700; color:var(--t1); }
   .vd-dt { font-size:11px; color:var(--t3); margin-top:2px; }
-  .vd-mini { display:flex; align-items:center; gap:10px; padding:11px 14px; background:var(--bg2); border-radius:var(--r); margin-bottom:8px; cursor:pointer; }
+  .vd-mini { display:flex; align-items:center; gap:10px; padding:11px 14px; background:var(--bg2); border:1px solid var(--b1); border-radius:var(--r); margin-bottom:8px; cursor:pointer; box-shadow:var(--sh-sm); }
   .vd-mini:active { opacity:.85; }
-  .vd-mini-ico { width:32px; height:32px; background:rgba(247,148,29,.15); border-radius:8px; display:flex; align-items:center; justify-content:center; color:var(--ac); font-size:14px; flex-shrink:0; }
+  .vd-mini-ico { width:32px; height:32px; background:#fff4e3; border-radius:8px; display:flex; align-items:center; justify-content:center; color:var(--ac); font-size:14px; flex-shrink:0; }
 
-  /* Progress */
   .pr-row { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px; }
   .pr-lbl { font-size:13px; color:var(--t2); }
   .pr-num { font-size:20px; font-weight:800; color:var(--ac2); }
   .pr-num-tot { font-size:13px; color:var(--t3); font-weight:500; }
-  .pr-bar { height:8px; background:rgba(255,255,255,.06); border-radius:4px; overflow:hidden; }
+  .pr-bar { height:10px; background:var(--bg3); border-radius:5px; overflow:hidden; }
   .pr-fill { height:100%; background:linear-gradient(90deg,var(--ac),var(--ac2)); transition:width .4s; }
   .pr-cap { font-size:11px; color:var(--t3); margin-top:8px; }
 
-  /* CTA */
-  .cta { width:100%; padding:15px; background:#25D366; border:0; color:#fff; border-radius:var(--r); font-size:15px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:8px; margin-top:8px; }
+  .cta { width:100%; padding:15px; background:#25D366; border:0; color:#fff; border-radius:var(--r); font-size:15px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:8px; margin-top:8px; box-shadow:0 2px 8px rgba(37,211,102,.25); }
   .cta:active { transform:scale(.98); }
-  .ftr { text-align:center; font-size:11px; color:var(--t3); margin-top:18px; padding:0 16px; }
+  .ftr { text-align:center; font-size:11px; color:var(--t3); margin-top:18px; padding:0 16px 12px; }
 
-  /* States */
   .loader { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:60vh; padding:30px; text-align:center; }
-  .spin { width:36px; height:36px; border:3px solid rgba(255,255,255,.1); border-top-color:var(--ac); border-radius:50%; animation:s 1s linear infinite; margin-bottom:14px; }
+  .spin { width:36px; height:36px; border:3px solid var(--b1); border-top-color:var(--ac); border-radius:50%; animation:s 1s linear infinite; margin-bottom:14px; }
   @keyframes s { to{transform:rotate(360deg)} }
-  .err { color:var(--rd); }
-  .empty { padding:14px; text-align:center; color:var(--t3); font-size:13px; background:var(--bg2); border-radius:var(--r); }
+  .err { color:var(--rd); font-weight:600; }
+  .empty { padding:14px; text-align:center; color:var(--t3); font-size:13px; background:var(--bg2); border:1px dashed var(--b1); border-radius:var(--r); }
 
-  /* Modal */
-  .mdb { position:fixed; inset:0; background:rgba(0,0,0,.65); display:none; align-items:flex-end; justify-content:center; z-index:100; }
+  .mdb { position:fixed; inset:0; background:rgba(26,24,48,.5); display:none; align-items:flex-end; justify-content:center; z-index:100; backdrop-filter:blur(4px); }
   .mdb.show { display:flex; }
-  .md { background:var(--bg2); width:100%; max-width:600px; border-radius:20px 20px 0 0; padding:20px 18px 24px; max-height:85vh; overflow-y:auto; }
-  .md-tt { font-size:18px; font-weight:800; margin-bottom:6px; }
+  .md { background:var(--bg2); width:100%; max-width:600px; border-radius:20px 20px 0 0; padding:20px 18px 24px; max-height:85vh; overflow-y:auto; box-shadow:0 -8px 32px rgba(0,0,0,.15); }
+  .md-tt { font-size:18px; font-weight:800; margin-bottom:6px; color:var(--t1); }
   .md-sub { font-size:13px; color:var(--t2); margin-bottom:16px; }
-  .md textarea { width:100%; background:var(--bg3); border:1px solid rgba(255,255,255,.08); color:var(--t1); border-radius:10px; padding:12px; font-family:inherit; font-size:14px; resize:vertical; min-height:80px; }
-  .md textarea:focus { outline:none; border-color:var(--ac); }
+  .md textarea { width:100%; background:var(--bg3); border:1px solid var(--b1); color:var(--t1); border-radius:10px; padding:12px; font-family:inherit; font-size:14px; resize:vertical; min-height:80px; }
+  .md textarea:focus { outline:none; border-color:var(--ac); background:#fff; }
   .md-actions { display:flex; gap:8px; margin-top:14px; }
   .md-btn { flex:1; padding:13px; border:0; border-radius:10px; font-size:14px; font-weight:700; }
-  .md-btn.cn { background:rgba(255,255,255,.06); color:var(--t1); }
+  .md-btn.cn { background:var(--bg3); color:var(--t1); border:1px solid var(--b1); }
   .md-btn.ok { background:var(--ac); color:#fff; }
   .md-btn:active { transform:scale(.98); }
 
-  /* Toast */
-  .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--bg3); color:var(--t1); padding:12px 20px; border-radius:10px; font-size:14px; box-shadow:0 4px 20px rgba(0,0,0,.5); z-index:200; opacity:0; transition:opacity .25s; max-width:90vw; text-align:center; }
+  .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--t1); color:#fff; padding:12px 20px; border-radius:10px; font-size:14px; box-shadow:0 4px 20px rgba(0,0,0,.2); z-index:200; opacity:0; transition:opacity .25s; max-width:90vw; text-align:center; }
   .toast.show { opacity:1; }
+  .toast.ok { background:#15803d; }
+  .toast.err { background:var(--rd); }
 
   @media (min-width:600px){
+    body { background:#eeebf5; }
+    .wrap { box-shadow:var(--sh-lg); border-radius:0 0 var(--r-lg) var(--r-lg); }
     .ct { padding:18px 24px 28px; }
     .hd { padding:28px 24px 22px; }
     .tabs { padding:18px 22px 0; }
@@ -175,7 +181,7 @@ const TOKEN = new URLSearchParams(location.search).get('t') || '';
 
 let DATA = null;
 let activeKid = 0;
-let pendingReq = null; // {type, enrollId, date}
+let pendingReq = null;
 
 const E = id => document.getElementById(id);
 const fmt = (d) => {
@@ -191,12 +197,11 @@ const fmtFull = (d) => {
 };
 const esc = s => String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-function toast(msg, isErr) {
+function toast(msg, kind) {
   const t = E('toast');
   t.textContent = msg;
-  t.style.color = isErr ? 'var(--rd)' : 'var(--t1)';
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2500);
+  t.className = 'toast show' + (kind ? ' ' + kind : '');
+  setTimeout(() => t.classList.remove('show'), 2800);
 }
 
 async function loadData() {
@@ -293,7 +298,6 @@ function renderKid(kid) {
     return `<div class="empty" style="margin-top:14px">Нет активных записей у ${esc(kid.name)}</div>${renderCTA()}`;
   }
 
-  // Объединяем все уроки и видео из всех courses ребёнка
   const allUpcoming = [];
   const allVideos = [];
   let attCounts = { done:0, miss:0, makeup:0, vacation:0 };
@@ -347,6 +351,12 @@ function renderTeacher(t) {
   `;
 }
 
+function lessonKey(u){ return String(u.enrollId) + '_' + u.date; }
+function isConfirmed(u){
+  if (u.confirmed) return true;
+  try { return localStorage.getItem('robeng_cf_'+lessonKey(u)) === '1'; } catch{ return false; }
+}
+
 function renderUpcoming(list) {
   if (!list.length) {
     return `
@@ -358,6 +368,7 @@ function renderUpcoming(list) {
   const rest = list.slice(1, 4);
   const hoursLeft = Math.round((new Date(first.date + 'T' + (first.time || '12:00') + ':00') - Date.now()) / 3600000);
   const pillTxt = hoursLeft < 0 ? 'сегодня' : hoursLeft < 1 ? 'скоро' : hoursLeft < 24 ? `через ${hoursLeft} ч` : `через ${Math.round(hoursLeft/24)} дн`;
+  const firstConfirmed = isConfirmed(first);
 
   return `
     <div class="sec-h">Ближайшие занятия</div>
@@ -369,23 +380,78 @@ function renderUpcoming(list) {
         </div>
         <div class="ls-pill">${pillTxt}</div>
       </div>
-      <div class="ls-actions">
-        <button class="ls-btn ne" onclick='openReq("reschedule", ${JSON.stringify(first.enrollId)}, ${JSON.stringify(first.date)})'>↻ Перенести</button>
-        <button class="ls-btn dn" onclick='openReq("cancel", ${JSON.stringify(first.enrollId)}, ${JSON.stringify(first.date)})'>✕ Отменить</button>
+      <div id="lesson-actions-${esc(lessonKey(first))}">
+        ${firstConfirmed ? renderConfirmedBlock() : renderActions(first)}
       </div>
     </div>
-    ${rest.map(u => `
-      <div class="card ls-mini">
-        <div class="ls-mini-row">
-          <div>
-            <div class="ls-mini-when">${esc(u.dayName || '')}, ${esc(fmtFull(u.date))} · ${esc(u.time || '')}</div>
-            <div class="ls-mini-sub">${esc(u.topic || u.subject || 'Занятие')}</div>
+    ${rest.map(u => {
+      const cf = isConfirmed(u);
+      return `
+        <div class="card ls-mini${cf ? ' cf' : ''}">
+          <div class="ls-mini-row">
+            <div>
+              <div class="ls-mini-when">${esc(u.dayName || '')}, ${esc(fmtFull(u.date))} · ${esc(u.time || '')}</div>
+              <div class="ls-mini-sub">${esc(u.topic || u.subject || 'Занятие')}</div>
+              ${cf ? '<span class="ls-mini-cf-tag">✓ ПОДТВЕРЖДЕНО</span>' : ''}
+            </div>
+            <div class="ls-arr">›</div>
           </div>
-          <div class="ls-arr">›</div>
         </div>
-      </div>
-    `).join('')}
+      `;
+    }).join('')}
   `;
+}
+
+function renderActions(lesson) {
+  const eid = JSON.stringify(lesson.enrollId).replace(/"/g,'&quot;');
+  const dt = JSON.stringify(lesson.date).replace(/"/g,'&quot;');
+  return `
+    <div class="ls-actions">
+      <button class="ls-btn ls-btn-cf" onclick='confirmLesson(${eid}, ${dt})'>✓ Я буду на занятии</button>
+      <div class="ls-actions-row">
+        <button class="ls-btn ne" onclick='openReq("reschedule", ${eid}, ${dt})'>↻ Перенести</button>
+        <button class="ls-btn dn" onclick='openReq("cancel", ${eid}, ${dt})'>✕ Отменить</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderConfirmedBlock() {
+  return `
+    <div class="ls-confirmed">
+      <div class="ls-confirmed-ico">✓</div>
+      <div class="ls-confirmed-tx">
+        <b>Спасибо, ждём на занятии!</b>
+        Вы подтвердили присутствие. Преподаватель и школа в курсе.
+      </div>
+    </div>
+  `;
+}
+
+async function confirmLesson(enrollId, date) {
+  const key = String(enrollId) + '_' + date;
+  const block = document.getElementById('lesson-actions-' + key);
+  if (!block) return;
+  const prevHTML = block.innerHTML;
+  block.innerHTML = renderConfirmedBlock();
+  try {
+    const r = await fetch(`${WORKER}/parent-request`, {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ token: TOKEN, type:'confirm', enrollId, date }),
+    });
+    const d = await r.json();
+    if (d.ok) {
+      try { localStorage.setItem('robeng_cf_' + key, '1'); } catch{}
+      toast('✓ Спасибо! Подтверждение записано', 'ok');
+    } else {
+      block.innerHTML = prevHTML;
+      toast('Не удалось сохранить: ' + (d.error || 'ошибка'), 'err');
+    }
+  } catch(e) {
+    block.innerHTML = prevHTML;
+    toast('Ошибка сети', 'err');
+  }
 }
 
 function renderAttendance(counts, recent) {
@@ -492,12 +558,12 @@ async function submitRequest() {
     const d = await r.json();
     if (d.ok) {
       closeModal();
-      toast('✓ Запрос отправлен — школа свяжется с вами');
+      toast('✓ Запрос отправлен — школа свяжется с вами', 'ok');
     } else {
-      toast('Ошибка: ' + (d.error || 'unknown'), true);
+      toast('Ошибка: ' + (d.error || 'unknown'), 'err');
     }
   } catch(e) {
-    toast('Ошибка сети', true);
+    toast('Ошибка сети', 'err');
   } finally {
     btn.disabled = false;
     btn.textContent = 'Отправить';
