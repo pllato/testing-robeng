@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1"/>
+<meta name="theme-color" content="#0f0e1a"/>
+<title>RobEng · Кабинет родителя</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23F7941D'/%3E%3Ctext x='50' y='65' font-size='50' font-family='sans-serif' font-weight='800' text-anchor='middle' fill='%23fff'%3ERE%3C/text%3E%3C/svg%3E"/>
+<style>
+  :root {
+    --bg:#0f0e1a; --bg2:#1a1830; --bg3:#231f38;
+    --t1:#f0eefc; --t2:#b8b4d4; --t3:#6e6a8a;
+    --ac:#F7941D; --ac2:#6DC21B; --gn:#22c55e; --tl:#38bdf8; --rd:#f05975; --am:#f5c842;
+    --r:14px; --r-lg:20px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { background:var(--bg); color:var(--t1); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; min-height:100vh; }
+  body { font-size:15px; line-height:1.4; }
+  button { font-family:inherit; cursor:pointer; }
+  a { color:inherit; text-decoration:none; }
+
+  .wrap { max-width:600px; margin:0 auto; min-height:100vh; }
+
+  /* Header */
+  .hd { background:linear-gradient(135deg,#1a1830,#231f38); border-bottom:1px solid rgba(124,92,252,.15); padding:24px 18px 18px; }
+  .hd-row { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .logo { width:38px; height:38px; background:linear-gradient(135deg,var(--ac),var(--ac2)); border-radius:9px; display:flex; align-items:center; justify-content:center; font-weight:800; color:#fff; font-size:14px; flex-shrink:0; }
+  .logo-tx { flex:1; min-width:0; }
+  .logo-t1 { font-weight:700; font-size:15px; }
+  .logo-t2 { font-size:11px; color:rgba(255,255,255,.5); margin-top:1px; }
+  .greet { font-size:14px; color:rgba(255,255,255,.6); }
+  .pname { font-size:20px; font-weight:800; margin-top:2px; }
+
+  /* Tabs */
+  .tabs { display:flex; gap:6px; padding:14px 16px 0; overflow-x:auto; }
+  .tab { flex:1 0 auto; min-width:120px; padding:10px 14px; border:0; background:rgba(255,255,255,.04); color:rgba(255,255,255,.5); border-radius:10px; font-size:13px; font-weight:700; text-align:left; transition:all .15s; }
+  .tab.act { background:rgba(247,148,29,.15); color:var(--ac); }
+  .tab-sub { font-size:10px; font-weight:500; opacity:.7; margin-top:1px; }
+
+  /* Content */
+  .ct { padding:14px 16px 24px; }
+  .sec-h { font-size:12px; font-weight:700; color:var(--t2); text-transform:uppercase; letter-spacing:.5px; margin:18px 0 10px; }
+  .card { background:var(--bg2); border-radius:var(--r); padding:14px; margin-bottom:8px; }
+  .card.acc { border-left:3px solid var(--ac); }
+
+  /* Teacher card */
+  .tc-row { display:flex; align-items:center; gap:12px; }
+  .av { width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:16px; color:#fff; flex-shrink:0; background:linear-gradient(135deg,var(--ac2),var(--tl)); }
+  .tc-mid { flex:1; min-width:0; }
+  .tc-lbl { font-size:11px; color:var(--t3); text-transform:uppercase; letter-spacing:.5px; }
+  .tc-name { font-size:15px; font-weight:700; margin-top:2px; }
+  .wa-btn { background:#25D366; border:0; color:#fff; width:38px; height:38px; border-radius:10px; font-size:18px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .wa-btn:active { transform:scale(.96); }
+
+  /* Lesson card */
+  .ls-head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; gap:8px; }
+  .ls-when { font-size:15px; font-weight:700; }
+  .ls-sub { font-size:12px; color:var(--t2); margin-top:2px; }
+  .ls-pill { font-size:11px; background:rgba(247,148,29,.15); color:var(--ac); padding:4px 8px; border-radius:6px; font-weight:700; flex-shrink:0; white-space:nowrap; }
+  .ls-actions { display:flex; gap:6px; }
+  .ls-btn { flex:1; padding:9px 10px; border:0; border-radius:8px; font-size:12px; font-weight:600; }
+  .ls-btn.ne { background:rgba(255,255,255,.06); color:var(--t1); }
+  .ls-btn.dn { background:rgba(240,89,117,.12); color:var(--rd); }
+  .ls-btn:active { transform:scale(.97); }
+  .ls-mini { padding:11px 14px; opacity:.85; }
+  .ls-mini-row { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .ls-mini-when { font-size:14px; font-weight:600; }
+  .ls-mini-sub { font-size:11px; color:var(--t3); margin-top:2px; }
+  .ls-arr { font-size:18px; color:var(--t3); }
+
+  /* Attendance */
+  .at-grid { display:flex; gap:8px; margin-bottom:12px; }
+  .at-box { flex:1; border-radius:10px; padding:10px 6px; text-align:center; }
+  .at-box.gn { background:rgba(34,197,94,.1); }
+  .at-box.rd { background:rgba(240,89,117,.1); }
+  .at-box.tl { background:rgba(56,189,248,.1); }
+  .at-num { font-size:20px; font-weight:800; }
+  .at-num.gn { color:var(--gn); }
+  .at-num.rd { color:var(--rd); }
+  .at-num.tl { color:var(--tl); }
+  .at-lbl { font-size:10px; color:var(--t2); margin-top:2px; }
+  .at-ribbon { display:flex; gap:4px; flex-wrap:wrap; }
+  .at-cell { width:22px; height:22px; border-radius:5px; flex-shrink:0; }
+  .at-cell.done { background:var(--gn); }
+  .at-cell.miss { background:var(--rd); }
+  .at-cell.makeup { background:var(--tl); }
+  .at-cell.vacation { background:var(--am); }
+
+  /* Video */
+  .vd-card { background:var(--bg2); border-radius:var(--r); overflow:hidden; margin-bottom:8px; }
+  .vd-hero { height:120px; background:linear-gradient(135deg,var(--bg3),#2d2848); display:flex; align-items:center; justify-content:center; position:relative; cursor:pointer; }
+  .vd-hero:active { opacity:.85; }
+  .vd-play { width:48px; height:48px; background:rgba(247,148,29,.95); border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:18px; padding-left:4px; }
+  .vd-meta { padding:11px 14px; }
+  .vd-tt { font-size:13px; font-weight:700; }
+  .vd-dt { font-size:11px; color:var(--t3); margin-top:2px; }
+  .vd-mini { display:flex; align-items:center; gap:10px; padding:11px 14px; background:var(--bg2); border-radius:var(--r); margin-bottom:8px; cursor:pointer; }
+  .vd-mini:active { opacity:.85; }
+  .vd-mini-ico { width:32px; height:32px; background:rgba(247,148,29,.15); border-radius:8px; display:flex; align-items:center; justify-content:center; color:var(--ac); font-size:14px; flex-shrink:0; }
+
+  /* Progress */
+  .pr-row { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px; }
+  .pr-lbl { font-size:13px; color:var(--t2); }
+  .pr-num { font-size:20px; font-weight:800; color:var(--ac2); }
+  .pr-num-tot { font-size:13px; color:var(--t3); font-weight:500; }
+  .pr-bar { height:8px; background:rgba(255,255,255,.06); border-radius:4px; overflow:hidden; }
+  .pr-fill { height:100%; background:linear-gradient(90deg,var(--ac),var(--ac2)); transition:width .4s; }
+  .pr-cap { font-size:11px; color:var(--t3); margin-top:8px; }
+
+  /* CTA */
+  .cta { width:100%; padding:15px; background:#25D366; border:0; color:#fff; border-radius:var(--r); font-size:15px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:8px; margin-top:8px; }
+  .cta:active { transform:scale(.98); }
+  .ftr { text-align:center; font-size:11px; color:var(--t3); margin-top:18px; padding:0 16px; }
+
+  /* States */
+  .loader { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:60vh; padding:30px; text-align:center; }
+  .spin { width:36px; height:36px; border:3px solid rgba(255,255,255,.1); border-top-color:var(--ac); border-radius:50%; animation:s 1s linear infinite; margin-bottom:14px; }
+  @keyframes s { to{transform:rotate(360deg)} }
+  .err { color:var(--rd); }
+  .empty { padding:14px; text-align:center; color:var(--t3); font-size:13px; background:var(--bg2); border-radius:var(--r); }
+
+  /* Modal */
+  .mdb { position:fixed; inset:0; background:rgba(0,0,0,.65); display:none; align-items:flex-end; justify-content:center; z-index:100; }
+  .mdb.show { display:flex; }
+  .md { background:var(--bg2); width:100%; max-width:600px; border-radius:20px 20px 0 0; padding:20px 18px 24px; max-height:85vh; overflow-y:auto; }
+  .md-tt { font-size:18px; font-weight:800; margin-bottom:6px; }
+  .md-sub { font-size:13px; color:var(--t2); margin-bottom:16px; }
+  .md textarea { width:100%; background:var(--bg3); border:1px solid rgba(255,255,255,.08); color:var(--t1); border-radius:10px; padding:12px; font-family:inherit; font-size:14px; resize:vertical; min-height:80px; }
+  .md textarea:focus { outline:none; border-color:var(--ac); }
+  .md-actions { display:flex; gap:8px; margin-top:14px; }
+  .md-btn { flex:1; padding:13px; border:0; border-radius:10px; font-size:14px; font-weight:700; }
+  .md-btn.cn { background:rgba(255,255,255,.06); color:var(--t1); }
+  .md-btn.ok { background:var(--ac); color:#fff; }
+  .md-btn:active { transform:scale(.98); }
+
+  /* Toast */
+  .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--bg3); color:var(--t1); padding:12px 20px; border-radius:10px; font-size:14px; box-shadow:0 4px 20px rgba(0,0,0,.5); z-index:200; opacity:0; transition:opacity .25s; max-width:90vw; text-align:center; }
+  .toast.show { opacity:1; }
+
+  @media (min-width:600px){
+    .ct { padding:18px 24px 28px; }
+    .hd { padding:28px 24px 22px; }
+    .tabs { padding:18px 22px 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div id="root">
+    <div class="loader">
+      <div class="spin"></div>
+      <div style="color:var(--t2)">Загружаем данные...</div>
+    </div>
+  </div>
+</div>
+
+<div class="mdb" id="modal">
+  <div class="md">
+    <div class="md-tt" id="md-title">Запросить перенос</div>
+    <div class="md-sub" id="md-subtitle">Школа свяжется с вами для согласования</div>
+    <textarea id="md-reason" placeholder="Причина (по желанию)"></textarea>
+    <div class="md-actions">
+      <button class="md-btn cn" onclick="closeModal()">Отмена</button>
+      <button class="md-btn ok" id="md-submit" onclick="submitRequest()">Отправить</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const WORKER = 'https://flat-pond-6e68.uurraa.workers.dev';
+const TOKEN = new URLSearchParams(location.search).get('t') || '';
+
+let DATA = null;
+let activeKid = 0;
+let pendingReq = null; // {type, enrollId, date}
+
+const E = id => document.getElementById(id);
+const fmt = (d) => {
+  if (!d) return '';
+  const [y, m, day] = d.split('-');
+  return `${day}.${m}`;
+};
+const fmtFull = (d) => {
+  if (!d) return '';
+  const dt = new Date(d + 'T00:00:00');
+  const months = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
+  return `${dt.getDate()} ${months[dt.getMonth()]}`;
+};
+const esc = s => String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function toast(msg, isErr) {
+  const t = E('toast');
+  t.textContent = msg;
+  t.style.color = isErr ? 'var(--rd)' : 'var(--t1)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+async function loadData() {
+  if (!TOKEN) {
+    E('root').innerHTML = `<div class="loader"><div class="err">⚠ Ссылка недействительна</div><div style="margin-top:8px;color:var(--t3);font-size:13px">Запросите новую ссылку у администратора</div></div>`;
+    return;
+  }
+  try {
+    const r = await fetch(`${WORKER}/parent-progress?t=${encodeURIComponent(TOKEN)}`);
+    const d = await r.json();
+    if (!d.ok) {
+      const msg = d.error === 'invalid_token' ? 'Ссылка устарела или недействительна'
+                : d.error === 'no_token' ? 'Нет токена в ссылке'
+                : 'Ошибка: ' + (d.error || 'unknown');
+      E('root').innerHTML = `<div class="loader"><div class="err">${esc(msg)}</div><div style="margin-top:8px;color:var(--t3);font-size:13px">Запросите новую ссылку у администратора</div></div>`;
+      return;
+    }
+    DATA = d;
+    render();
+  } catch(e) {
+    E('root').innerHTML = `<div class="loader"><div class="err">Не удалось загрузить</div><div style="margin-top:8px;color:var(--t3);font-size:13px">${esc(e.message)}</div></div>`;
+  }
+}
+
+function render() {
+  const parent = DATA.parent || {};
+  const kids = DATA.students || [];
+
+  if (!kids.length) {
+    E('root').innerHTML = `
+      <div class="hd">
+        <div class="hd-row">
+          <div class="logo">RE</div>
+          <div class="logo-tx">
+            <div class="logo-t1">RobEng · ELC Kids</div>
+            <div class="logo-t2">Кабинет родителя</div>
+          </div>
+        </div>
+        <div class="greet">Здравствуйте</div>
+      </div>
+      <div class="ct">
+        <div class="empty">У вас пока нет активных записей. Свяжитесь со школой.</div>
+        ${renderCTA()}
+      </div>
+    `;
+    return;
+  }
+
+  const kid = kids[activeKid] || kids[0];
+  const tabs = kids.length > 1 ? renderTabs(kids) : '';
+
+  E('root').innerHTML = `
+    <div class="hd">
+      <div class="hd-row">
+        <div class="logo">RE</div>
+        <div class="logo-tx">
+          <div class="logo-t1">RobEng · ELC Kids</div>
+          <div class="logo-t2">Кабинет родителя</div>
+        </div>
+      </div>
+      <div class="greet">Здравствуйте,</div>
+      <div class="pname">${esc(parent.name || 'дорогой родитель')}</div>
+    </div>
+    ${tabs}
+    <div class="ct" id="kid-content">${renderKid(kid)}</div>
+  `;
+}
+
+function renderTabs(kids) {
+  return `
+    <div class="tabs">
+      ${kids.map((k, i) => `
+        <button class="tab ${i === activeKid ? 'act' : ''}" onclick="switchKid(${i})">
+          <div>${esc(k.name || 'Ребёнок ' + (i + 1))}</div>
+          <div class="tab-sub">${k.age ? k.age + ' лет' : ''}${k.age && k.level ? ' · ' : ''}${esc(levelRu(k.level))}</div>
+        </button>
+      `).join('')}
+    </div>
+  `;
+}
+
+function levelRu(lv) {
+  return ({ beginner:'Beginner', elementary:'Elementary', intermediate:'Intermediate', advanced:'Advanced' }[lv] || lv || '');
+}
+
+function switchKid(i) {
+  activeKid = i;
+  render();
+}
+
+function renderKid(kid) {
+  const courses = kid.courses || [];
+  if (!courses.length) {
+    return `<div class="empty" style="margin-top:14px">Нет активных записей у ${esc(kid.name)}</div>${renderCTA()}`;
+  }
+
+  // Объединяем все уроки и видео из всех courses ребёнка
+  const allUpcoming = [];
+  const allVideos = [];
+  let attCounts = { done:0, miss:0, makeup:0, vacation:0 };
+  let attRecent = [];
+  let teacher = null, progress = { passed:0, total:12 };
+
+  courses.forEach(c => {
+    (c.upcoming || []).forEach(u => allUpcoming.push({ ...u, enrollId:c.enrollId, topic:c.topic, subject:c.subject }));
+    (c.videos || []).forEach(v => allVideos.push({ ...v, subject:c.subject }));
+    if (c.attendance) {
+      attCounts.done    += c.attendance.counts?.done || 0;
+      attCounts.miss    += c.attendance.counts?.miss || 0;
+      attCounts.makeup  += c.attendance.counts?.makeup || 0;
+      attCounts.vacation += c.attendance.counts?.vacation || 0;
+      (c.attendance.recent || []).forEach(r => attRecent.push(r));
+    }
+    if (!teacher && c.teacher) teacher = c.teacher;
+    if ((c.progress?.passed || 0) > progress.passed) progress = c.progress;
+  });
+
+  allUpcoming.sort((a,b) => (a.date+'T'+a.time).localeCompare(b.date+'T'+b.time));
+  allVideos.sort((a,b) => (b.date||'').localeCompare(a.date||''));
+  attRecent.sort((a,b) => (b.date||'').localeCompare(a.date||''));
+  attRecent = attRecent.slice(0, 13).reverse();
+
+  return `
+    ${teacher ? renderTeacher(teacher) : ''}
+    ${renderUpcoming(allUpcoming)}
+    ${renderAttendance(attCounts, attRecent)}
+    ${renderVideos(allVideos)}
+    ${progress.total ? renderProgress(progress, kid.level) : ''}
+    ${renderCTA()}
+    <div class="ftr">RobEng · ELC Kids · elc-kids.kz</div>
+  `;
+}
+
+function renderTeacher(t) {
+  const initials = (t.name || '?').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+  const waLink = t.phone ? `https://wa.me/${t.phone}` : '';
+  return `
+    <div class="card">
+      <div class="tc-row">
+        <div class="av">${esc(initials)}</div>
+        <div class="tc-mid">
+          <div class="tc-lbl">Преподаватель</div>
+          <div class="tc-name">${esc(t.name)}</div>
+        </div>
+        ${waLink ? `<a href="${waLink}" target="_blank" class="wa-btn" title="Написать преподавателю">✉</a>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function renderUpcoming(list) {
+  if (!list.length) {
+    return `
+      <div class="sec-h">Ближайшие занятия</div>
+      <div class="empty">Расписания на ближайшие 90 дней нет</div>
+    `;
+  }
+  const first = list[0];
+  const rest = list.slice(1, 4);
+  const hoursLeft = Math.round((new Date(first.date + 'T' + (first.time || '12:00') + ':00') - Date.now()) / 3600000);
+  const pillTxt = hoursLeft < 0 ? 'сегодня' : hoursLeft < 1 ? 'скоро' : hoursLeft < 24 ? `через ${hoursLeft} ч` : `через ${Math.round(hoursLeft/24)} дн`;
+
+  return `
+    <div class="sec-h">Ближайшие занятия</div>
+    <div class="card acc">
+      <div class="ls-head">
+        <div>
+          <div class="ls-when">${esc(first.dayName || '')}, ${esc(fmtFull(first.date))} · ${esc(first.time || '')}</div>
+          <div class="ls-sub">${esc(first.topic || first.subject || 'Занятие')}</div>
+        </div>
+        <div class="ls-pill">${pillTxt}</div>
+      </div>
+      <div class="ls-actions">
+        <button class="ls-btn ne" onclick='openReq("reschedule", ${JSON.stringify(first.enrollId)}, ${JSON.stringify(first.date)})'>↻ Перенести</button>
+        <button class="ls-btn dn" onclick='openReq("cancel", ${JSON.stringify(first.enrollId)}, ${JSON.stringify(first.date)})'>✕ Отменить</button>
+      </div>
+    </div>
+    ${rest.map(u => `
+      <div class="card ls-mini">
+        <div class="ls-mini-row">
+          <div>
+            <div class="ls-mini-when">${esc(u.dayName || '')}, ${esc(fmtFull(u.date))} · ${esc(u.time || '')}</div>
+            <div class="ls-mini-sub">${esc(u.topic || u.subject || 'Занятие')}</div>
+          </div>
+          <div class="ls-arr">›</div>
+        </div>
+      </div>
+    `).join('')}
+  `;
+}
+
+function renderAttendance(counts, recent) {
+  if (!counts.done && !counts.miss && !counts.makeup) {
+    return `
+      <div class="sec-h">Посещаемость</div>
+      <div class="empty">Пока нет отметок посещаемости</div>
+    `;
+  }
+  return `
+    <div class="sec-h">Посещаемость</div>
+    <div class="card">
+      <div class="at-grid">
+        <div class="at-box gn"><div class="at-num gn">${counts.done}</div><div class="at-lbl">Было</div></div>
+        <div class="at-box rd"><div class="at-num rd">${counts.miss}</div><div class="at-lbl">Пропуск</div></div>
+        ${counts.makeup ? `<div class="at-box tl"><div class="at-num tl">${counts.makeup}</div><div class="at-lbl">Отработка</div></div>` : ''}
+      </div>
+      ${recent.length ? `<div class="at-ribbon">${recent.map(r => `<span class="at-cell ${esc(r.status)}" title="${esc(fmt(r.date))}"></span>`).join('')}</div>` : ''}
+    </div>
+  `;
+}
+
+function renderVideos(list) {
+  if (!list.length) {
+    return `
+      <div class="sec-h">Видео-уроки</div>
+      <div class="empty">Видео-уроки появятся после первого занятия</div>
+    `;
+  }
+  const first = list[0];
+  const rest = list.slice(1, 5);
+  return `
+    <div class="sec-h">Видео-уроки</div>
+    <div class="vd-card" onclick="openVideo(${JSON.stringify(first.url).replace(/"/g, '&quot;')})">
+      <div class="vd-hero"><div class="vd-play">▶</div></div>
+      <div class="vd-meta">
+        <div class="vd-tt">Урок · ${esc(fmtFull(first.date))}</div>
+        <div class="vd-dt">${esc(first.subject || 'Английский')}${first.comment ? ' · ' + esc(first.comment).slice(0, 50) : ''}</div>
+      </div>
+    </div>
+    ${rest.map(v => `
+      <div class="vd-mini" onclick="openVideo(${JSON.stringify(v.url).replace(/"/g, '&quot;')})">
+        <div class="vd-mini-ico">▶</div>
+        <div style="flex:1;min-width:0">
+          <div class="vd-tt">Урок · ${esc(fmtFull(v.date))}</div>
+          <div class="vd-dt">${esc(v.subject || 'Английский')}</div>
+        </div>
+      </div>
+    `).join('')}
+  `;
+}
+
+function renderProgress(p, level) {
+  const pct = Math.min(100, Math.round((p.passed / p.total) * 100));
+  return `
+    <div class="sec-h">Прогресс программы</div>
+    <div class="card">
+      <div class="pr-row">
+        <div class="pr-lbl">Аттестации пройдено</div>
+        <div class="pr-num">${p.passed} <span class="pr-num-tot">/ ${p.total}</span></div>
+      </div>
+      <div class="pr-bar"><div class="pr-fill" style="width:${pct}%"></div></div>
+      ${level ? `<div class="pr-cap">Уровень: ${esc(levelRu(level))}</div>` : ''}
+    </div>
+  `;
+}
+
+function renderCTA() {
+  const wa = (DATA && DATA.schoolWA) || '';
+  if (!wa) return '';
+  return `<a href="https://wa.me/${esc(wa)}" target="_blank" class="cta"><span>✉</span><span>Написать в школу</span></a>`;
+}
+
+function openVideo(url) {
+  if (url) window.open(url, '_blank');
+}
+
+function openReq(type, enrollId, date) {
+  pendingReq = { type, enrollId, date };
+  E('md-title').textContent = type === 'reschedule' ? 'Запросить перенос занятия' : 'Запросить отмену занятия';
+  E('md-subtitle').textContent = `${fmtFull(date)} — школа свяжется с вами для согласования`;
+  E('md-reason').value = '';
+  E('modal').classList.add('show');
+  setTimeout(() => E('md-reason').focus(), 200);
+}
+
+function closeModal() {
+  E('modal').classList.remove('show');
+  pendingReq = null;
+}
+
+async function submitRequest() {
+  if (!pendingReq) return;
+  const reason = E('md-reason').value.trim();
+  const btn = E('md-submit');
+  btn.disabled = true;
+  btn.textContent = 'Отправляем...';
+  try {
+    const r = await fetch(`${WORKER}/parent-request`, {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ token: TOKEN, ...pendingReq, reason }),
+    });
+    const d = await r.json();
+    if (d.ok) {
+      closeModal();
+      toast('✓ Запрос отправлен — школа свяжется с вами');
+    } else {
+      toast('Ошибка: ' + (d.error || 'unknown'), true);
+    }
+  } catch(e) {
+    toast('Ошибка сети', true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Отправить';
+  }
+}
+
+E('modal').addEventListener('click', e => { if (e.target === E('modal')) closeModal(); });
+
+loadData();
+</script>
+</body>
+</html>

@@ -551,6 +551,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
     <div class="ni admin-only" data-p="crm" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">💼</span>CRM <span id="crm-badge" style="display:none;background:var(--ac);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
     <div class="ni admin-only" data-p="wachats" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">💬</span>Чаты <span id="wachats-badge" style="display:none;background:var(--gn);color:var(--bg);font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
     <div class="ni admin-only" data-p="callslog" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">📞</span>Звонки <span id="missed-badge" style="display:none;background:var(--rd);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
+    <div class="ni admin-only" data-p="parentreq" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">📩</span>Запросы родителей <span id="parentreq-badge" style="display:none;background:var(--rd);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
     <div class="ni" data-p="teamchat" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">💬</span>Командный чат <span id="chat-badge" style="display:none;background:var(--gn);color:var(--bg);font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
     <div class="ni" data-p="tasks" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">✅</span>Задачи <span id="tasks-badge" style="display:none;background:var(--rd);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
     <div class="ni admin-only" data-p="taskautomations" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">🤖</span>Автоматические задачи</div>
@@ -956,6 +957,10 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
     <div class="panel" id="panel-callslog">
       <div id="callslog-body" style="padding:16px"></div>
     </div>
+    <!-- PARENT REQUESTS -->
+    <div class="panel" id="panel-parentreq">
+      <div id="parentreq-body" style="padding:16px"></div>
+    </div>
     <!-- TRIAL CALENDAR -->
     <div class="panel" id="panel-trialcal">
       <div id="trialcal-body"></div>
@@ -1102,6 +1107,16 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
           </div>
           <button class="btn btn-sm btn-a" onclick="saveTZOffset()" style="margin-top:8px;font-size:11px">💾 Сохранить часовой пояс</button>
           <div id="tz-saved" style="display:none;font-size:11px;color:var(--gn);margin-top:6px">✓ Сохранено</div>
+
+          <!-- Parent portal settings -->
+          <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:8px;margin-top:20px">📱 Кабинет родителя</div>
+          <div style="font-size:11px;color:var(--t3);margin-bottom:8px">Номер WhatsApp, на который ведёт кнопка «Написать в школу» в кабинете родителя.</div>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <input id="set-school-wa" type="text" placeholder="+7 700 000 00 00"
+              style="flex:1;min-width:180px;background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);padding:6px 10px;font-family:var(--fb);font-size:13px"/>
+            <button class="btn btn-sm btn-a" onclick="saveSchoolWA()" style="font-size:11px">💾 Сохранить</button>
+          </div>
+          <div id="school-wa-saved" style="display:none;font-size:11px;color:var(--gn);margin-top:6px">✓ Сохранено</div>
 
           <!-- Stage editor -->
           <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:8px;margin-top:12px">Стадии канбана</div>
@@ -1662,6 +1677,10 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
       <div class="fr"><label>ФИО родителя</label><input id="s-parent" placeholder="Петрова Ирина Владимировна"/></div>
     </div>
     <div class="fr"><label>Телефон родителя</label><input id="s-parent-phone" placeholder="+7 700 000 00 00"/></div>
+    <div class="fr" style="margin-top:-6px">
+      <button type="button" class="btn btn-sm" onclick="copyParentLink()" style="width:100%;background:rgba(247,148,29,.12);color:var(--ac);border:1px solid rgba(247,148,29,.3)">🔗 Скопировать ссылку для родителя</button>
+      <div id="s-parent-link-hint" style="font-size:11px;color:var(--t3);margin-top:6px;line-height:1.4;display:none"></div>
+    </div>
     <div class="fr"><label>💳 Телефон для выставления счёта (Kaspi)</label><input id="s-kaspi-phone" placeholder="+7 700 000 00 00 (если отличается от телефона родителя)"/></div>
     <div class="fr-row">
       <div class="fr">
@@ -2370,6 +2389,7 @@ fbAuth.onAuthStateChanged(user=>{
         });
         usersRef.on('value', uSnap=>{ S.appUsers = uSnap.val()||{}; renderUsers && document.getElementById('panel-users')?.classList.contains('active') && renderUsers(); const b=document.getElementById('current-role-badge'); if(b&&currentRole==='admin'){const uid=fbAuth.currentUser?.uid;const isCRMReg=uid&&S.appUsers?.[uid]?.crmRole==='registrar';b.textContent=isCRMReg?'🗂 Регистратор CRM':'👑 Администратор';} });
         startTeamChatBadgeListener();
+        startParentRequestsListener();
         ensureTaskBoards();
         taskBoardsRef.on('value', snap=>{
           taskBoardsCache = snap.val()||{};
@@ -2529,8 +2549,8 @@ function countFree(){
 }
 
 // ── NAVIGATION ───────────────────────────────────────────────────
-const TITLES={today:'Сегодня ☀️',tasks:'Задачи',taskautomations:'Автоматические задачи',teamchat:'Командный чат',dashboard:'Главная',subjects:'Предметы',teachers:'Преподаватели',availability:'Время работы',schedule:'Расписание',freeSlots:'Свободные слоты',students:'Ученики',reports:'Отчёты по преподавателям',journal:'Журнал действий',notifylog:'📨 Журнал уведомлений',analytics:'🧠 Аналитика',trash:'Корзина',backups:'Резервные копии',users:'Пользователи',videoreviews:'Видео уроков',surveys:'Опросы',crm:'CRM — Клиенты',wachats:'Чаты',callslog:'Журнал звонков'};
-const ACTS={today:'',tasks:'',taskautomations:'+ Автозадача',teamchat:'',dashboard:'+',subjects:'',teachers:'+ Преподаватель',availability:'',schedule:'',freeSlots:'',students:'+ Ученик',reports:'',journal:'',notifylog:'',analytics:'',trash:'',backups:'',users:'',videoreviews:'',surveys:'',crm:'',wachats:'',callslog:'📞 Позвонить'};
+const TITLES={today:'Сегодня ☀️',tasks:'Задачи',taskautomations:'Автоматические задачи',teamchat:'Командный чат',dashboard:'Главная',subjects:'Предметы',teachers:'Преподаватели',availability:'Время работы',schedule:'Расписание',freeSlots:'Свободные слоты',students:'Ученики',reports:'Отчёты по преподавателям',journal:'Журнал действий',notifylog:'📨 Журнал уведомлений',analytics:'🧠 Аналитика',trash:'Корзина',backups:'Резервные копии',users:'Пользователи',videoreviews:'Видео уроков',surveys:'Опросы',crm:'CRM — Клиенты',wachats:'Чаты',callslog:'Журнал звонков',parentreq:'Запросы родителей'};
+const ACTS={today:'',tasks:'',taskautomations:'+ Автозадача',teamchat:'',dashboard:'+',subjects:'',teachers:'+ Преподаватель',availability:'',schedule:'',freeSlots:'',students:'+ Ученик',reports:'',journal:'',notifylog:'',analytics:'',trash:'',backups:'',users:'',videoreviews:'',surveys:'',crm:'',wachats:'',callslog:'📞 Позвонить',parentreq:''};
 function curPanel(){return document.querySelector('.ni.active')?.dataset.p||'dashboard';}
 function nav(el){
   // Close more menu on nav
@@ -2622,6 +2642,7 @@ function renderPanel(p){
   else if(p==='crm'){renderCRM();}
   else if(p==='wachats'){renderWAChats();}
   else if(p==='callslog'){renderCallsLog();}
+  else if(p==='parentreq'){renderParentRequests();}
   else if(p==='trialcal'){renderTrialCalendar();}
   // При уходе с CRM — отписываемся от real-time
   if(p!=='crm' && _crmRealtimeListener){
@@ -6287,7 +6308,43 @@ function updateExtraTime(slotIdx, ti){
   if(_extraSlots[slotIdx])_extraSlots[slotIdx].ti=parseInt(ti);
 }
 
-async function saveStudent(){
+async function copyParentLink(){
+  const phone = document.getElementById('s-parent-phone').value.trim();
+  const hint = document.getElementById('s-parent-link-hint');
+  if(!phone){
+    hint.style.display='block';
+    hint.style.color='var(--rd)';
+    hint.textContent='⚠ Сначала введите телефон родителя';
+    return;
+  }
+  hint.style.display='block';
+  hint.style.color='var(--t3)';
+  hint.textContent='Получаем ссылку…';
+  try{
+    const r = await fetch(VIDEO_WORKER_URL + '/gen-parent-token', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ phone }),
+    });
+    const d = await r.json();
+    if(!d.ok) throw new Error(d.error || 'unknown');
+    // Копируем в буфер
+    try{
+      await navigator.clipboard.writeText(d.link);
+      hint.style.color='var(--gn)';
+      hint.innerHTML = `✓ Скопировано: <span style="color:var(--t2);word-break:break-all">${d.link}</span>${d.reused?' <span style="color:var(--t3)">(существующая ссылка)</span>':' <span style="color:var(--ac)">(новая)</span>'}`;
+    }catch{
+      // Fallback если clipboard недоступен (например HTTP)
+      hint.style.color='var(--am)';
+      hint.innerHTML = `Ссылка: <a href="${d.link}" target="_blank" style="color:var(--ac);word-break:break-all">${d.link}</a> <button class="btn btn-xs" onclick="navigator.clipboard.writeText('${d.link}').then(()=>this.textContent='✓')">копировать</button>`;
+    }
+  }catch(e){
+    hint.style.color='var(--rd)';
+    hint.textContent='Ошибка: '+e.message;
+  }
+}
+
+
   const name=document.getElementById('s-name').value.trim();if(!name){toast('Введите ФИО',true);return;}
   const days=getDays();if(!days.length){toast('Выберите дни',true);return;}
   // Support both numeric and string (uid) teacher IDs
@@ -12864,6 +12921,9 @@ function renderAppSettings(){
   // Load TZ offset
   const tzEl = document.getElementById('set-tz-offset');
   if(tzEl) tzEl.value = S.settings?.tzOffset ?? 5;
+  // School WhatsApp (для кабинета родителя)
+  const swaEl = document.getElementById('set-school-wa');
+  if(swaEl) swaEl.value = S.settings?.schoolWhatsApp || '';
   // Renewal WA template
   const tmplEl=document.getElementById("set-renewal-template");
   if(tmplEl) tmplEl.value=S.settings.renewalWaTemplate||"Здравствуйте! 👋\n\nНапоминаем, что абонемент ученика *{name}* заканчивается {dateEnd}.\n\nПреподаватель: {teacher}\n\nДля продления свяжитесь с нами — мы будем рады продолжить занятия! 🎓";
@@ -13443,6 +13503,17 @@ function saveTZOffset(){
 
 // Хелпер для получения актуального смещения
 function getTZOffset(){ return window._TZ_OFFSET_HOURS_OVERRIDE ?? TZ_OFFSET_HOURS; }
+
+// ── School WhatsApp (для кабинета родителя) ──────────────────────────────────
+function saveSchoolWA(){
+  const raw = (document.getElementById('set-school-wa')?.value || '').trim();
+  if(!S.settings) S.settings={};
+  S.settings.schoolWhatsApp = raw;
+  save();
+  const saved = document.getElementById('school-wa-saved');
+  if(saved){ saved.style.display='block'; setTimeout(()=>saved.style.display='none',2000); }
+  toast('✓ WhatsApp школы сохранён');
+}
 
 function populateCRMSourceSelect(){
   const sel = document.getElementById('crm-f-source');
@@ -16295,7 +16366,122 @@ function resolveCallType(callType, rawCallType){
   return check(callType) || check(rawCallType) || '0'; // по умолчанию входящий
 }
 
-async function renderCallsLog(){
+// ── Запросы родителей (из parent.html) ───────────────────────────────────────
+let _parentReqCache = {};
+// Локальный HTML-escape для безопасной вставки текста (имена, причины от родителей)
+function _escPR(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function startParentRequestsListener(){
+  if(window._parentReqStarted) return;
+  window._parentReqStarted = true;
+  fbDb.ref('studentRequests').on('value', snap=>{
+    _parentReqCache = snap.val() || {};
+    // Обновляем бейдж
+    const pending = Object.values(_parentReqCache).filter(r => r?.status==='pending').length;
+    const badge = document.getElementById('parentreq-badge');
+    if(badge){
+      badge.textContent = pending || '';
+      badge.style.display = pending ? '' : 'none';
+    }
+    // Если открыта панель — перерисовываем
+    if(document.getElementById('panel-parentreq')?.classList.contains('active')){
+      renderParentRequests();
+    }
+  });
+}
+
+function renderParentRequests(){
+  const body = document.getElementById('parentreq-body');
+  if(!body) return;
+  const all = Object.entries(_parentReqCache || {})
+    .map(([id,r])=>({id, ...r}))
+    .sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+
+  if(!all.length){
+    body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--t3)">Запросов от родителей пока нет</div>';
+    return;
+  }
+
+  const pending = all.filter(r=>r.status==='pending');
+  const handled = all.filter(r=>r.status!=='pending').slice(0, 30);
+
+  // Резолвим имена учеников
+  const enrolls = S.enrollments||[];
+  const stus = S.students||[];
+  function resolve(r){
+    const en = enrolls.find(e=>String(e.id)===String(r.enrollId));
+    const stu = en ? stus.find(s=>String(s.id)===String(en.studentId)) : null;
+    const t = en ? (S.teachers||[]).find(tt=>String(tt.id)===String(en.teacherId)) : null;
+    return { studentName: stu?.name || '(не найден)', teacherName: t?.name || '' };
+  }
+
+  function fmtDate(d){
+    if(!d) return '';
+    try{
+      const dt = new Date(d);
+      return dt.toLocaleString('ru-RU', { dateStyle:'short', timeStyle:'short' });
+    }catch{ return d; }
+  }
+
+  function card(r, isPending){
+    const meta = resolve(r);
+    const typeBadge = r.type==='cancel'
+      ? '<span style="background:rgba(240,89,117,.15);color:var(--rd);padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700">✕ ОТМЕНА</span>'
+      : '<span style="background:rgba(247,148,29,.15);color:var(--ac);padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700">↻ ПЕРЕНОС</span>';
+    const statusBadge = r.status==='done'
+      ? '<span style="background:rgba(34,197,94,.15);color:var(--gn);padding:3px 8px;border-radius:6px;font-size:11px;font-weight:600">✓ выполнено</span>'
+      : r.status==='declined'
+        ? '<span style="background:rgba(110,106,138,.2);color:var(--t3);padding:3px 8px;border-radius:6px;font-size:11px;font-weight:600">отклонено</span>'
+        : '';
+
+    return `
+      <div style="background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);padding:14px;margin-bottom:10px${r.status==='pending'?';border-left:3px solid var(--ac)':''}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;gap:10px;flex-wrap:wrap">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            ${typeBadge}
+            <div style="font-weight:700;font-size:14px">${_escPR(meta.studentName)}</div>
+            <div style="font-size:12px;color:var(--t3)">${_escPR(meta.teacherName)}</div>
+          </div>
+          ${statusBadge}
+        </div>
+        <div style="font-size:13px;color:var(--t2);margin-bottom:6px">📅 Дата занятия: <b style="color:var(--t1)">${_escPR(r.date)}</b></div>
+        <div style="font-size:12px;color:var(--t3);margin-bottom:6px">📞 +${_escPR(String(r.parentPhone||''))} · ${fmtDate(r.createdAt)}</div>
+        ${r.reason ? `<div style="font-size:13px;color:var(--t1);background:var(--bg3);padding:8px 10px;border-radius:8px;margin-top:8px">${_escPR(r.reason)}</div>`:''}
+        ${isPending ? `
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button class="btn btn-sm" onclick="resolveParentRequest('${_escPR(r.id)}','done')" style="flex:1;background:rgba(34,197,94,.15);color:var(--gn);border:1px solid rgba(34,197,94,.3)">✓ Выполнено</button>
+            <button class="btn btn-sm" onclick="resolveParentRequest('${_escPR(r.id)}','declined')" style="flex:1;background:rgba(255,255,255,.04);color:var(--t2)">Отклонить</button>
+            ${(r.parentPhone) ? `<a class="btn btn-sm" href="https://wa.me/${_escPR(String(r.parentPhone))}" target="_blank" style="background:#25D366;color:#fff;display:inline-flex;align-items:center;gap:4px;text-decoration:none">✉ WA</a>`:''}
+          </div>
+        `:''}
+      </div>
+    `;
+  }
+
+  body.innerHTML = `
+    ${pending.length ? `<div style="font-size:13px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Активные (${pending.length})</div>` : ''}
+    ${pending.map(r=>card(r,true)).join('')}
+    ${handled.length ? `<div style="font-size:13px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;margin:20px 0 10px">Обработанные</div>` : ''}
+    ${handled.map(r=>card(r,false)).join('')}
+  `;
+}
+
+async function resolveParentRequest(id, status){
+  if(!id) return;
+  const ok = confirm(status==='done' ? 'Отметить запрос как выполненный?' : 'Отклонить запрос?');
+  if(!ok) return;
+  try{
+    await fbDb.ref('studentRequests/'+id).update({
+      status,
+      resolvedAt: new Date().toISOString(),
+      resolvedBy: fbAuth.currentUser?.email || ''
+    });
+    toast('✓ Обновлено');
+  }catch(e){
+    toast('Ошибка: '+e.message, true);
+  }
+}
+
+
   const body = document.getElementById('callslog-body');
   if(!body) return;
   body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--t3)">Загрузка...</div>';
