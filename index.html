@@ -6344,7 +6344,7 @@ async function copyParentLink(){
   }
 }
 
-
+async function saveStudent(){
   const name=document.getElementById('s-name').value.trim();if(!name){toast('Введите ФИО',true);return;}
   const days=getDays();if(!days.length){toast('Выберите дни',true);return;}
   // Support both numeric and string (uid) teacher IDs
@@ -16481,7 +16481,7 @@ async function resolveParentRequest(id, status){
   }
 }
 
-
+async function renderCallsLog(){
   const body = document.getElementById('callslog-body');
   if(!body) return;
   body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--t3)">Загрузка...</div>';
