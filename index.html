@@ -2296,6 +2296,19 @@ function applyRole(role, teacherId){
 
   // Update pending requests badge
   if(role==='admin') updateAvailReqBadge();
+
+  // Восстанавливаем последний открытый раздел (если был)
+  try {
+    const last = localStorage.getItem('robeng_lastPanel');
+    if (last && last !== curPanel()) {
+      const teacherAllowed = ['today','dashboard','schedule','availability','students','reports','videoreviews','tasks','teamchat','surveys'];
+      const isAllowed = role !== 'teacher' || teacherAllowed.includes(last);
+      if (isAllowed) {
+        const targetNi = document.querySelector(`.ni[data-p="${last}"]`);
+        if (targetNi) nav(targetNi);
+      }
+    }
+  } catch {}
 }
 
 // ── AUTH STATE OBSERVER ───────────────────────────────────────────
@@ -2528,6 +2541,8 @@ function nav(el){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   el.classList.add('active');
   const p=el.dataset.p;
+  // Запоминаем последний раздел чтобы восстановить его после reload
+  try { localStorage.setItem('robeng_lastPanel', p); } catch{}
   document.getElementById('panel-'+p).classList.add('active');
   document.getElementById('ttl').textContent=TITLES[p];
   document.getElementById('act-btn').textContent=ACTS[p]||'+ Новый';
@@ -11547,9 +11562,11 @@ function startLessonReminders(){
   setInterval(checkLessonReminders, 60*1000);
   checkLessonReminders();
 
-  // Опрашиваем Binotel API для записей завершённых звонков каждые 2 мин.
-  // Lock через Firebase: только одна вкладка/сотрудник опрашивает за раз
-  // (экономит запросы Workers и трафик Firebase на больших командах)
+  // Опрашивает Binotel API для записей завершённых звонков.
+  // ⚠ ОТКЛЮЧЕНО: poll теперь работает на Cloudflare Cron (Worker scheduled handler,
+  //   каждые 2 минуты). Преимущества: работает 24/7 даже когда никто не открыл
+  //   портал, не нужен Firebase-lock, нет лишних запросов с фронта.
+  //   Если cron перестанет работать — раскомментируй блок ниже как fallback.
   async function pollBinotelRecordings(){
     try {
       const lockRef = fbDb.ref('binotelPollLock');
@@ -11570,8 +11587,8 @@ function startLessonReminders(){
       // Тихо игнорируем — следующая вкладка попробует
     }
   }
-  setTimeout(pollBinotelRecordings, 30*1000);
-  setInterval(pollBinotelRecordings, 2*60*1000);
+  // setTimeout(pollBinotelRecordings, 30*1000);     // ← отключено, см. Worker scheduled
+  // setInterval(pollBinotelRecordings, 2*60*1000);  // ← отключено, см. Worker scheduled
 }
 
 function checkLessonReminders(){
