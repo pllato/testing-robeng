@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -11612,40 +11613,49 @@ function updateChatBadge(n){
 // ── WhatsApp уведомления за 5 минут до урока ─────────────────────
 let _reminderSentKeys = new Set(); // локальная сессионная дедупликация
 let _reminderIntervalStarted = false; // защита от двойного интервала
+let _binotelPollFallbackStarted = false;
+
+async function pollBinotelRecordingsNow(showToast){
+  try {
+    const lockRef = fbDb.ref('binotelPollLock');
+    const myId = (fbAuth.currentUser?.uid || 'anon') + '_' + Math.random().toString(36).slice(2,8);
+    const now = Date.now();
+    const result = await lockRef.transaction(current => {
+      if (current && current.expiresAt > now) return;
+      return { holderId: myId, acquiredAt: now, expiresAt: now + 90*1000 };
+    });
+    if (!result.committed || result.snapshot.val()?.holderId !== myId) return null;
+
+    const r = await fetch('https://flat-pond-6e68.uurraa.workers.dev/binotel-poll', { method: 'GET' });
+    const d = await r.json().catch(()=>({ ok:false, error:'bad_json' }));
+    await lockRef.remove().catch(()=>{});
+    if(showToast){
+      if(d.ok) toast(`Binotel: сохранено ${d.saved||0}, пропущено ${d.skipped||0}, отфильтровано ${d.filteredOut||0}`);
+      else toast('Binotel poll: '+(d.error||'ошибка'), true);
+    }
+    if (d.saved > 0) console.log('[Binotel poll] сохранено:', d.saved, d);
+    return d;
+  } catch (e) {
+    if(showToast) toast('Binotel poll: '+e.message, true);
+    return { ok:false, error:e.message };
+  }
+}
+
+function startBinotelPollFallback(){
+  if(_binotelPollFallbackStarted || currentRole !== 'admin') return;
+  _binotelPollFallbackStarted = true;
+  setTimeout(()=>pollBinotelRecordingsNow(false), 30*1000);
+  setInterval(()=>pollBinotelRecordingsNow(false), 5*60*1000);
+}
 
 function startLessonReminders(){
   if(_reminderIntervalStarted) return; // уже запущен — не создаём второй интервал
   _reminderIntervalStarted = true;
   setInterval(checkLessonReminders, 60*1000);
   checkLessonReminders();
-
-  // Опрашивает Binotel API для записей завершённых звонков.
-  // ⚠ ОТКЛЮЧЕНО: poll теперь работает на Cloudflare Cron (Worker scheduled handler,
-  //   каждые 2 минуты). Преимущества: работает 24/7 даже когда никто не открыл
-  //   портал, не нужен Firebase-lock, нет лишних запросов с фронта.
-  //   Если cron перестанет работать — раскомментируй блок ниже как fallback.
-  async function pollBinotelRecordings(){
-    try {
-      const lockRef = fbDb.ref('binotelPollLock');
-      const myId = (fbAuth.currentUser?.uid || 'anon') + '_' + Math.random().toString(36).slice(2,8);
-      const now = Date.now();
-      // Транзакция: захватываем lock если он истёк (старше 90 сек) или пустой
-      const result = await lockRef.transaction(current => {
-        if (current && current.expiresAt > now) return; // занят кем-то ещё, прерываем
-        return { holderId: myId, acquiredAt: now, expiresAt: now + 90*1000 };
-      });
-      if (!result.committed || result.snapshot.val()?.holderId !== myId) return; // не смогли захватить
-
-      // Захватили — опрашиваем
-      const r = await fetch('https://flat-pond-6e68.uurraa.workers.dev/binotel-poll', { method: 'GET' });
-      const d = await r.json().catch(()=>({}));
-      if (d.saved > 0) console.log('[Binotel poll] сохранено:', d.saved);
-    } catch (e) {
-      // Тихо игнорируем — следующая вкладка попробует
-    }
-  }
-  // setTimeout(pollBinotelRecordings, 30*1000);     // ← отключено, см. Worker scheduled
-  // setInterval(pollBinotelRecordings, 2*60*1000);  // ← отключено, см. Worker scheduled
+  // Safety-net для Binotel: Cron в Cloudflare должен работать 24/7, но открытая
+  // админская вкладка тоже периодически пинает poll, чтобы записи не зависали.
+  startBinotelPollFallback();
 }
 
 function checkLessonReminders(){
@@ -16487,7 +16497,7 @@ async function renderCallsLog(){
   body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--t3)">Загрузка...</div>';
 
   const [binotelSnap, leadsSnap] = await Promise.all([
-    fbDb.ref('binotelCalls').orderByChild('ts').limitToLast(500).once('value').catch(()=>null),
+    fbDb.ref('binotelCalls').orderByChild('ts').limitToLast(2000).once('value').catch(()=>null),
     crmRef.once('value').catch(()=>null),
   ]);
   // crmChats не загружаем целиком — слишком дорого. Записи разговоров уже в binotelCalls.recordingLink
@@ -16645,7 +16655,8 @@ async function renderCallsLog(){
   const fmtDiagTs = ts => ts ? new Date(ts).toLocaleString('ru', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'}) : '—';
   let recDiagHtml = '';
   if(latestCallTs || latestRecTs){
-    const gapWarn = latestCallTs && latestRecTs && latestRecTs < latestCallTs;
+    const latestCallAgeMs = latestCallTs ? Date.now() - new Date(latestCallTs).getTime() : 0;
+    const gapWarn = latestCallTs && latestRecTs && latestRecTs < latestCallTs && latestCallAgeMs > 15*60*1000;
     recDiagHtml = `
       <div style="margin-bottom:12px;padding:10px 12px;border-radius:10px;border:1px solid ${gapWarn?'rgba(245,200,66,.35)':'var(--b1)'};background:${gapWarn?'rgba(245,200,66,.08)':'var(--bg3)'};font-size:11px;line-height:1.6;color:var(--t2)">
         <div><b>Последний звонок:</b> ${fmtDiagTs(latestCallTs)}</div>
@@ -16665,7 +16676,10 @@ async function renderCallsLog(){
   const tabBar = tabs.map(t=>`
     <button onclick="_callsFilter='${t.k}';renderCallsLog()"
       style="padding:5px 12px;font-size:12px;border-radius:6px;border:1px solid;cursor:pointer;font-family:var(--fb);${_callsFilter===t.k?'background:var(--ac);border-color:var(--ac);color:#fff':'background:var(--bg3);border-color:var(--b2);color:var(--t2)'}">
-      ${t.l}</button>`).join('');
+      ${t.l}</button>`).join('') + `
+    <button onclick="pollBinotelRecordingsNow(true).then(()=>renderCallsLog())"
+      style="padding:5px 12px;font-size:12px;border-radius:6px;border:1px solid var(--b2);cursor:pointer;font-family:var(--fb);background:var(--bg3);color:var(--t2)">
+      🔄 Обновить записи</button>`;
 
   if(!filtered.length){
     body.innerHTML=`${recDiagHtml}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">${tabBar}</div>
@@ -19311,3 +19325,4 @@ function initAdminPushListeners() {
 
 </body>
 </html>
+
