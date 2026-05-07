@@ -89,6 +89,12 @@
   .reveal.hidden{display:none}
   .reveal small{display:block;font-weight:500;color:var(--ink);margin-top:4px;font-size:13px;opacity:.7}
 
+  .ru-hint{display:inline-block;font-size:13px;font-weight:500;color:var(--mute);margin-top:8px;padding:4px 10px;background:#f6f5fb;border-radius:8px}
+  .ru-hint::before{content:"🇷🇺 ";opacity:.7}
+  .ru-prompt{display:inline-block;font-size:13px;font-weight:600;color:var(--ac);margin-bottom:8px;padding:5px 12px;background:var(--acbg);border-radius:99px}
+  .ru-prompt::before{content:"🇷🇺 ";font-size:14px}
+  .ru-block{text-align:center;margin:0 0 8px}
+
   /* finish */
   .finish{text-align:center;padding:30px 16px}
   .finish .emoji{font-size:64px;margin:0 0 12px}
@@ -120,6 +126,7 @@
 <script>
 const BASE = "https://pub-4a4bf55405d74fe58e817b5fb86955d4.r2.dev";
 const CURRICULUM_URL = BASE + "/curriculum.json";
+const TRANSLATIONS_URL = "translations.json"; // локальный файл рядом с play.html
 
 const params = new URLSearchParams(location.search);
 const lessonNum = parseInt(params.get("n") || "1", 10);
@@ -141,18 +148,28 @@ function playAudio(url){
 
 let lesson = null;        // current lesson object
 let allWordAssets = [];   // word_assets pool from this lesson
+let translations = {};    // { "hello": "привет", ... }
 let questions = [];       // built question queue
 let qi = 0;
 let score = { ok:0, bad:0 };
 let answered = false;     // for self mode — block double-clicks
 let revealed = false;     // for parent mode
 
+const tr = w => translations[(w||'').toLowerCase().trim()] || '';
+
 async function init(){
   let data;
   try{
-    const r = await fetch(CURRICULUM_URL, { cache: "no-cache" });
-    if (!r.ok) throw new Error("HTTP " + r.status);
-    data = await r.json();
+    const [cR, tR] = await Promise.all([
+      fetch(CURRICULUM_URL, { cache: "no-cache" }),
+      fetch(TRANSLATIONS_URL, { cache: "no-cache" }).catch(()=>null)
+    ]);
+    if (!cR.ok) throw new Error("HTTP " + cR.status);
+    data = await cR.json();
+    if (tR && tR.ok){
+      const tj = await tR.json();
+      translations = (tj && tj.translations) ? tj.translations : {};
+    }
   }catch(e){
     root.innerHTML = `<div class="loading err">Не удалось загрузить программу: ${esc(e.message)}</div>`;
     return;
@@ -175,7 +192,8 @@ async function init(){
    kinds:
      - "audio2img"   : проиграть аудио → выбрать картинку
      - "img2word"    : показать картинку → выбрать слово
-     - "word2audio"  : показать слово → выбрать аудио (играем все 4 поочерёдно)  -- skip if too few audios
+     - "ru2en"       : показать перевод → выбрать слово
+     - "ru2img"      : показать перевод → выбрать картинку
      - "gap"         : паттерн с пропуском → выбрать слово
      - "convo"       : показать строку диалога → попросить повторить (parent only)
 */
@@ -184,12 +202,18 @@ function buildQuestions(L){
   const wa = allWordAssets;
   const hasAssets = wa.length >= 2;
 
-  // 1) for each word, generate one mini-game (alternating audio2img / img2word)
+  // 1) для каждого слова — одна мини-игра, тип крутится по кругу
+  // приоритет: больше переводных, если перевод есть
   if (hasAssets){
+    const KINDS = ["audio2img", "ru2img", "img2word", "ru2en"];
     shuffle(wa).forEach((w, i) => {
       const distractors = sample(wa.filter(x => x.word !== w.word), Math.min(3, wa.length-1));
       const opts = shuffle([w, ...distractors]);
-      const kind = (i % 2 === 0) ? "audio2img" : "img2word";
+      let kind = KINDS[i % KINDS.length];
+      // если для целевого слова нет перевода — откатываемся к не-переводным
+      if ((kind === "ru2en" || kind === "ru2img") && !tr(w.word)) {
+        kind = (i % 2 === 0) ? "audio2img" : "img2word";
+      }
       qs.push({ kind, target: w, options: opts });
     });
   } else {
@@ -243,6 +267,8 @@ function render(){
   let body = "";
   if (q.kind === "audio2img")   body = renderAudio2Img(q);
   else if (q.kind === "img2word") body = renderImg2Word(q);
+  else if (q.kind === "ru2en")    body = renderRu2En(q);
+  else if (q.kind === "ru2img")   body = renderRu2Img(q);
   else if (q.kind === "gap")      body = renderGap(q);
   else if (q.kind === "convo")    body = renderConvo(q);
   else if (q.kind === "text-recall") body = renderTextRecall(q);
@@ -287,7 +313,9 @@ function render(){
 
 function isQuestionForMode(q, m){
   if (m === "self"){
-    return q.kind === "audio2img" || q.kind === "img2word" || q.kind === "gap";
+    return q.kind === "audio2img" || q.kind === "img2word"
+        || q.kind === "ru2en"    || q.kind === "ru2img"
+        || q.kind === "gap";
   }
   // parent — все вопросы
   return true;
@@ -303,6 +331,28 @@ function currentAnsweredCount(){
   return n;
 }
 
+/* helpers — общие блоки */
+function parentBlock(targetWord, hintText){
+  if (mode !== "parent") return "";
+  const ru = tr(targetWord);
+  return `
+    <div class="reveal hidden" id="reveal">
+      <div>${esc(targetWord)}</div>
+      ${ru ? `<small>🇷🇺 ${esc(ru)}</small>` : ""}
+      ${hintText ? `<small>${esc(hintText)}</small>` : ""}
+    </div>
+    <div class="parent-actions">
+      <button class="pbtn show" id="pShow">Показать ответ</button>
+      <button class="pbtn ok"   id="pOk">✓ Знает</button>
+      <button class="pbtn bad"  id="pBad">✗ Не знает</button>
+      <button class="pbtn skip" id="pSkip">Пропустить</button>
+    </div>`;
+}
+function ruHint(word){
+  const ru = tr(word);
+  return ru ? `<div class="ru-block"><span class="ru-hint">${esc(ru)}</span></div>` : "";
+}
+
 /* ── kinds ── */
 function renderAudio2Img(q){
   const opts = q.options.map((o,i) => `
@@ -311,24 +361,13 @@ function renderAudio2Img(q){
       <span class="badge">✓</span>
     </div>
   `).join("");
-  const parentBlock = mode === "parent" ? `
-    <div class="reveal hidden" id="reveal">
-      <div>${esc(q.target.word)}</div>
-      <small>правильная картинка обведена зелёным</small>
-    </div>
-    <div class="parent-actions">
-      <button class="pbtn show" id="pShow">Показать ответ</button>
-      <button class="pbtn ok"   id="pOk">✓ Знает</button>
-      <button class="pbtn bad"  id="pBad">✗ Не знает</button>
-      <button class="pbtn skip" id="pSkip">Пропустить</button>
-    </div>` : "";
   return `
     <div class="qkind">Послушай и выбери картинку</div>
     <div class="audio-row">
       <button class="audio-btn" id="play"><span class="ico">▶</span> Слушать</button>
     </div>
     <div class="opts-img">${opts}</div>
-    ${parentBlock}
+    ${parentBlock(q.target.word, "правильная картинка обведена зелёным")}
   `;
 }
 
@@ -336,23 +375,42 @@ function renderImg2Word(q){
   const opts = q.options.map((o,i) => `
     <div class="opt" data-i="${i}" data-correct="${o.word === q.target.word ? '1':'0'}">${esc(o.word)}</div>
   `).join("");
-  const parentBlock = mode === "parent" ? `
-    <div class="reveal hidden" id="reveal">
-      <div>${esc(q.target.word)}</div>
-      <small>попроси ребёнка произнести вслух</small>
-    </div>
-    <div class="audio-row" style="margin-top:8px"><button class="audio-btn" id="play"><span class="ico">▶</span> Произношение</button></div>
-    <div class="parent-actions">
-      <button class="pbtn show" id="pShow">Показать ответ</button>
-      <button class="pbtn ok"   id="pOk">✓ Знает</button>
-      <button class="pbtn bad"  id="pBad">✗ Не знает</button>
-      <button class="pbtn skip" id="pSkip">Пропустить</button>
-    </div>` : "";
+  const parentExtra = mode === "parent" ? `<div class="audio-row" style="margin:8px 0"><button class="audio-btn" id="play"><span class="ico">▶</span> Произношение</button></div>` : "";
   return `
     <div class="qkind">Что на картинке?</div>
     <img class="big-img" src="${BASE}/${esc(q.target.image)}" alt=""/>
     <div class="opts">${opts}</div>
-    ${parentBlock}
+    ${parentExtra}
+    ${parentBlock(q.target.word, "попроси ребёнка произнести вслух")}
+  `;
+}
+
+function renderRu2En(q){
+  const opts = q.options.map((o,i) => `
+    <div class="opt" data-i="${i}" data-correct="${o.word === q.target.word ? '1':'0'}">${esc(o.word)}</div>
+  `).join("");
+  const ruWord = tr(q.target.word);
+  return `
+    <div class="qkind">Как сказать по-английски?</div>
+    <div class="ru-block"><span class="ru-prompt">${esc(ruWord)}</span></div>
+    <div class="opts">${opts}</div>
+    ${parentBlock(q.target.word, "попроси ребёнка перевести и сказать вслух")}
+  `;
+}
+
+function renderRu2Img(q){
+  const opts = q.options.map((o,i) => `
+    <div class="opt-img" data-i="${i}" data-correct="${o.word === q.target.word ? '1':'0'}">
+      <img src="${BASE}/${esc(o.image)}" alt="" loading="lazy"/>
+      <span class="badge">✓</span>
+    </div>
+  `).join("");
+  const ruWord = tr(q.target.word);
+  return `
+    <div class="qkind">Найди картинку</div>
+    <div class="ru-block"><span class="ru-prompt">${esc(ruWord)}</span></div>
+    <div class="opts-img">${opts}</div>
+    ${parentBlock(q.target.word, "правильная картинка обведена зелёным")}
   `;
 }
 
@@ -361,22 +419,11 @@ function renderGap(q){
   const opts = q.options.map((o,i) => `
     <div class="opt" data-i="${i}" data-correct="${o === q.correct ? '1':'0'}">${esc(o)}</div>
   `).join("");
-  const parentBlock = mode === "parent" ? `
-    <div class="reveal hidden" id="reveal">
-      <div>${esc(q.correct)}</div>
-      <small>в пропуск подходит это слово</small>
-    </div>
-    <div class="parent-actions">
-      <button class="pbtn show" id="pShow">Показать ответ</button>
-      <button class="pbtn ok"   id="pOk">✓ Знает</button>
-      <button class="pbtn bad"  id="pBad">✗ Не знает</button>
-      <button class="pbtn skip" id="pSkip">Пропустить</button>
-    </div>` : "";
   return `
     <div class="qkind">Заполни пропуск</div>
     <div class="prompt">${promptHtml}</div>
     <div class="opts">${opts}</div>
-    ${parentBlock}
+    ${parentBlock(q.correct, "в пропуск подходит это слово")}
   `;
 }
 
@@ -397,6 +444,7 @@ function renderTextRecall(q){
   return `
     <div class="qkind">Слово</div>
     <div class="prompt big">${esc(q.word)}</div>
+    ${ruHint(q.word)}
     <div class="parent-actions">
       <button class="pbtn ok"   id="pOk">✓ Знает</button>
       <button class="pbtn bad"  id="pBad">✗ Не знает</button>
@@ -449,6 +497,7 @@ function bindHandlers(q){
 function onPick(el){
   if (mode !== "self" || answered) return;
   answered = true;
+  const q = questions[qi];
   const ok = el.dataset.correct === "1";
   if (ok){
     el.classList.add("ok");
@@ -462,7 +511,19 @@ function onPick(el){
   document.querySelectorAll(".opt, .opt-img").forEach(e => {
     if (e !== el && !e.classList.contains("ok")) e.classList.add("dim");
   });
-  setTimeout(() => nextQ(), ok ? 700 : 1400);
+  // show translation hint after answer (для слов)
+  const targetWord = q && q.target ? q.target.word : null;
+  const ruText = targetWord ? tr(targetWord) : "";
+  if (ruText && !document.querySelector(".answer-hint")){
+    const hint = document.createElement("div");
+    hint.className = "ru-block answer-hint";
+    hint.style.marginTop = "14px";
+    hint.innerHTML = `<span class="ru-hint"><b>${esc(targetWord)}</b> — ${esc(ruText)}</span>`;
+    document.querySelector(".card").appendChild(hint);
+  }
+  // play audio of the correct word so the child hears it
+  if (q && q.target && q.target.audio) playAudio(`${BASE}/${q.target.audio}`);
+  setTimeout(() => nextQ(), ok ? 1100 : 1900);
 }
 
 function nextQ(){
