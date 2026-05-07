@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ELC Kids — игра</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#fafaf7;--card:#fff;--ink:#1a1828;--mute:#6b6985;--line:#ececf2;
+    --ac:#7c5cfc;--acbg:rgba(124,92,252,.08);
+    --ok:#1db870;--okbg:rgba(29,184,112,.10);
+    --bad:#e0394e;--badbg:rgba(224,57,78,.10);
+    --warm:#ff9b3d;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Manrope,system-ui,sans-serif}
+  .wrap{max-width:880px;margin:0 auto;padding:20px 18px 80px}
+
+  /* top bar */
+  .top{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+  .back{color:var(--mute);text-decoration:none;font-size:13px;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:#fff}
+  .back:hover{color:var(--ac);border-color:var(--ac)}
+  .num{font-size:11px;font-weight:600;color:var(--ac);background:var(--acbg);padding:4px 10px;border-radius:6px;letter-spacing:.04em;text-transform:uppercase}
+  .mode-pick{margin-left:auto;display:inline-flex;background:#fff;border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
+  .mode-pick button{border:0;background:transparent;color:var(--mute);font:600 12px Manrope,sans-serif;padding:7px 12px;border-radius:8px;cursor:pointer}
+  .mode-pick button.on{background:var(--ac);color:#fff}
+
+  h1{font-size:22px;margin:0 0 18px;letter-spacing:-.01em;line-height:1.25}
+  h1 small{display:block;font-size:13px;color:var(--mute);font-weight:500;margin-top:4px}
+
+  /* progress + score */
+  .hud{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 16px;margin-bottom:16px}
+  .hud .bar{flex:1;height:8px;background:#f0eff5;border-radius:99px;overflow:hidden}
+  .hud .bar > i{display:block;height:100%;background:var(--ac);width:0;transition:.3s}
+  .hud .score{font-weight:700;font-size:14px;white-space:nowrap}
+  .hud .score .ok{color:var(--ok)}
+  .hud .score .bad{color:var(--bad)}
+
+  /* card */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px;margin:0 0 16px}
+  .qkind{font-size:11px;font-weight:600;color:var(--mute);text-transform:uppercase;letter-spacing:.06em;margin:0 0 14px}
+  .prompt{font-size:24px;font-weight:700;line-height:1.3;margin:0 0 16px}
+  .prompt.big{font-size:32px}
+  .prompt .blank{display:inline-block;min-width:90px;border-bottom:3px dashed var(--ac);margin:0 6px;color:var(--ac)}
+
+  /* big image */
+  .big-img{display:block;margin:0 auto 16px;width:240px;max-width:80vw;aspect-ratio:1/1;object-fit:cover;background:#f0eff5;border-radius:18px}
+
+  /* play audio button */
+  .audio-btn{display:inline-flex;align-items:center;gap:8px;background:var(--acbg);color:var(--ac);border:0;border-radius:99px;padding:10px 18px;font:700 14px Manrope,sans-serif;cursor:pointer}
+  .audio-btn:hover{background:var(--ac);color:#fff}
+  .audio-btn .ico{width:22px;height:22px;border-radius:50%;background:var(--ac);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px}
+  .audio-btn:hover .ico{background:#fff;color:var(--ac)}
+  .audio-row{text-align:center;margin:0 0 18px}
+
+  /* options grid (text) */
+  .opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .opt{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;cursor:pointer;font:600 16px Manrope,sans-serif;color:var(--ink);text-align:center;transition:.12s;user-select:none}
+  .opt:hover{border-color:var(--ac);transform:translateY(-1px)}
+  .opt.ok{background:var(--okbg);border-color:var(--ok);color:var(--ok)}
+  .opt.bad{background:var(--badbg);border-color:var(--bad);color:var(--bad)}
+  .opt.dim{opacity:.45;pointer-events:none}
+
+  /* options grid (image) */
+  .opts-img{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .opt-img{position:relative;background:#fff;border:2px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;transition:.12s}
+  .opt-img:hover{border-color:var(--ac);transform:translateY(-1px)}
+  .opt-img img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;background:#f0eff5}
+  .opt-img.ok{border-color:var(--ok)}
+  .opt-img.bad{border-color:var(--bad)}
+  .opt-img.dim{opacity:.4;pointer-events:none}
+  .opt-img .badge{position:absolute;top:8px;right:8px;width:26px;height:26px;border-radius:50%;display:none;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px}
+  .opt-img.ok .badge{display:flex;background:var(--ok)}
+  .opt-img.bad .badge{display:flex;background:var(--bad)}
+
+  /* parent controls */
+  .parent-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+  .pbtn{flex:1;min-width:120px;border:0;border-radius:12px;padding:14px 18px;font:700 15px Manrope,sans-serif;cursor:pointer;transition:.12s}
+  .pbtn:hover{transform:translateY(-1px)}
+  .pbtn.show{background:var(--acbg);color:var(--ac)}
+  .pbtn.ok{background:var(--ok);color:#fff}
+  .pbtn.bad{background:var(--bad);color:#fff}
+  .pbtn.skip{background:#f0eff5;color:var(--mute)}
+
+  .reveal{margin:14px 0;padding:14px 16px;background:var(--okbg);border:1px solid rgba(29,184,112,.25);border-radius:12px;font-size:18px;font-weight:700;color:var(--ok);text-align:center}
+  .reveal.hidden{display:none}
+  .reveal small{display:block;font-weight:500;color:var(--ink);margin-top:4px;font-size:13px;opacity:.7}
+
+  /* finish */
+  .finish{text-align:center;padding:30px 16px}
+  .finish .emoji{font-size:64px;margin:0 0 12px}
+  .finish h2{margin:0 0 8px;font-size:26px}
+  .finish .stat{display:inline-flex;gap:24px;margin:18px 0 24px;padding:14px 22px;background:#fff;border:1px solid var(--line);border-radius:14px}
+  .finish .stat b{display:block;font-size:24px;color:var(--ink)}
+  .finish .stat span{font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.06em}
+  .finish .stat .ok b{color:var(--ok)}
+  .finish .stat .bad b{color:var(--bad)}
+  .finish-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  .finish-actions a, .finish-actions button{border:0;background:var(--ac);color:#fff;padding:12px 22px;border-radius:12px;font:700 14px Manrope,sans-serif;cursor:pointer;text-decoration:none;display:inline-block}
+  .finish-actions .alt{background:#fff;color:var(--ink);border:1px solid var(--line)}
+
+  .loading{color:var(--mute);padding:60px 0;text-align:center}
+  .err{color:var(--bad)}
+
+  @media(max-width:540px){
+    .prompt{font-size:20px}
+    .prompt.big{font-size:26px}
+    .big-img{width:200px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap" id="root">
+  <div class="loading">Загружаем урок…</div>
+</div>
+
+<script>
+const BASE = "https://pub-4a4bf55405d74fe58e817b5fb86955d4.r2.dev";
+const CURRICULUM_URL = BASE + "/curriculum.json";
+
+const params = new URLSearchParams(location.search);
+const lessonNum = parseInt(params.get("n") || "1", 10);
+let mode = params.get("mode") === "parent" ? "parent" : "self";
+
+const root = document.getElementById("root");
+
+const esc = s => (s||"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const shuffle = a => { a = a.slice(); for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+const sample = (a,n) => shuffle(a).slice(0,n);
+
+let currentAudio = null;
+function playAudio(url){
+  if (currentAudio){ try{ currentAudio.pause(); }catch{} }
+  if (!url) return;
+  currentAudio = new Audio(url);
+  currentAudio.play().catch(()=>{});
+}
+
+let lesson = null;        // current lesson object
+let allWordAssets = [];   // word_assets pool from this lesson
+let questions = [];       // built question queue
+let qi = 0;
+let score = { ok:0, bad:0 };
+let answered = false;     // for self mode — block double-clicks
+let revealed = false;     // for parent mode
+
+async function init(){
+  let data;
+  try{
+    const r = await fetch(CURRICULUM_URL, { cache: "no-cache" });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    data = await r.json();
+  }catch(e){
+    root.innerHTML = `<div class="loading err">Не удалось загрузить программу: ${esc(e.message)}</div>`;
+    return;
+  }
+  lesson = data.lessons.find(x => x.lesson === lessonNum);
+  if (!lesson){
+    root.innerHTML = `<div class="loading err">Урок ${lessonNum} не найден</div>`;
+    return;
+  }
+  document.title = `Урок ${lesson.lesson}. Игра — ELC Kids`;
+  allWordAssets = (lesson.media && lesson.media.word_assets) || [];
+  questions = buildQuestions(lesson);
+  qi = 0;
+  score = { ok:0, bad:0 };
+  render();
+}
+
+/* ──────────── Question builders ────────────
+   Каждый вопрос = объект {kind, ...}
+   kinds:
+     - "audio2img"   : проиграть аудио → выбрать картинку
+     - "img2word"    : показать картинку → выбрать слово
+     - "word2audio"  : показать слово → выбрать аудио (играем все 4 поочерёдно)  -- skip if too few audios
+     - "gap"         : паттерн с пропуском → выбрать слово
+     - "convo"       : показать строку диалога → попросить повторить (parent only)
+*/
+function buildQuestions(L){
+  const qs = [];
+  const wa = allWordAssets;
+  const hasAssets = wa.length >= 2;
+
+  // 1) for each word, generate one mini-game (alternating audio2img / img2word)
+  if (hasAssets){
+    shuffle(wa).forEach((w, i) => {
+      const distractors = sample(wa.filter(x => x.word !== w.word), Math.min(3, wa.length-1));
+      const opts = shuffle([w, ...distractors]);
+      const kind = (i % 2 === 0) ? "audio2img" : "img2word";
+      qs.push({ kind, target: w, options: opts });
+    });
+  } else {
+    // fallback — text-only word recall
+    shuffle(L.words || []).forEach(w => {
+      qs.push({ kind:"text-recall", word:w });
+    });
+  }
+
+  // 2) grammar gap-fill — для каждого паттерна с ____
+  (L.grammar_patterns || []).forEach(p => {
+    if (!/_/.test(p)) return;
+    // выбираем слово-кандидат: возьмём из L.words какое-нибудь имя/слово
+    const pool = (L.words || []).slice();
+    if (!pool.length) return;
+    const correct = pool[Math.floor(Math.random()*pool.length)];
+    const distractors = sample(pool.filter(x => x !== correct), Math.min(3, pool.length-1));
+    const opts = shuffle([correct, ...distractors]);
+    qs.push({ kind:"gap", pattern:p, correct, options:opts });
+  });
+
+  // 3) conversation lines — только для parent-режима как «попроси повторить»
+  // (для self-режима пропустим — там нет однозначного правильного ответа)
+  // Добавим всегда, но фильтр применим в render()
+  (L.conversation || []).forEach(line => {
+    qs.push({ kind:"convo", line });
+  });
+
+  return qs;
+}
+
+/* ──────────── Render ──────────── */
+function render(){
+  if (qi >= questions.length || (mode === "self" && currentQuestionsForMode().length === 0)){
+    return renderFinish();
+  }
+  // skip questions not applicable to current mode
+  while (qi < questions.length && !isQuestionForMode(questions[qi], mode)){
+    qi++;
+  }
+  if (qi >= questions.length) return renderFinish();
+
+  const q = questions[qi];
+  answered = false;
+  revealed = false;
+
+  const total = currentQuestionsForMode().length + currentAnsweredCount();
+  const done = currentAnsweredCount();
+  const pct = Math.round((done / Math.max(total,1)) * 100);
+
+  let body = "";
+  if (q.kind === "audio2img")   body = renderAudio2Img(q);
+  else if (q.kind === "img2word") body = renderImg2Word(q);
+  else if (q.kind === "gap")      body = renderGap(q);
+  else if (q.kind === "convo")    body = renderConvo(q);
+  else if (q.kind === "text-recall") body = renderTextRecall(q);
+
+  root.innerHTML = `
+    <div class="top">
+      <a class="back" href="lesson.html?n=${lesson.lesson}">← Урок</a>
+      <span class="num">Урок ${lesson.lesson} · ${esc(lesson.topic||"")}</span>
+      <div class="mode-pick" id="modePick">
+        <button data-m="self"   class="${mode==='self'?'on':''}">🎯 Сам</button>
+        <button data-m="parent" class="${mode==='parent'?'on':''}">👨‍👧 С родителем</button>
+      </div>
+    </div>
+
+    <div class="hud">
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      <div class="score">
+        <span class="ok">✓ ${score.ok}</span> · <span class="bad">✗ ${score.bad}</span>
+      </div>
+    </div>
+
+    <div class="card">${body}</div>
+  `;
+
+  // mode toggle
+  document.getElementById("modePick").addEventListener("click", e => {
+    const b = e.target.closest("button[data-m]");
+    if (!b) return;
+    const m = b.dataset.m;
+    if (m !== mode){
+      mode = m;
+      // restart for clean state
+      qi = 0; score = { ok:0, bad:0 };
+      const u = new URL(location.href); u.searchParams.set("mode", mode);
+      history.replaceState(null,"",u);
+      render();
+    }
+  });
+
+  bindHandlers(q);
+}
+
+function isQuestionForMode(q, m){
+  if (m === "self"){
+    return q.kind === "audio2img" || q.kind === "img2word" || q.kind === "gap";
+  }
+  // parent — все вопросы
+  return true;
+}
+function currentQuestionsForMode(){
+  let n = 0;
+  for (let i=qi+1;i<questions.length;i++) if (isQuestionForMode(questions[i], mode)) n++;
+  return Array(n).fill(0); // length-only
+}
+function currentAnsweredCount(){
+  let n = 0;
+  for (let i=0;i<qi;i++) if (isQuestionForMode(questions[i], mode)) n++;
+  return n;
+}
+
+/* ── kinds ── */
+function renderAudio2Img(q){
+  const opts = q.options.map((o,i) => `
+    <div class="opt-img" data-i="${i}" data-correct="${o.word === q.target.word ? '1':'0'}">
+      <img src="${BASE}/${esc(o.image)}" alt="" loading="lazy"/>
+      <span class="badge">✓</span>
+    </div>
+  `).join("");
+  const parentBlock = mode === "parent" ? `
+    <div class="reveal hidden" id="reveal">
+      <div>${esc(q.target.word)}</div>
+      <small>правильная картинка обведена зелёным</small>
+    </div>
+    <div class="parent-actions">
+      <button class="pbtn show" id="pShow">Показать ответ</button>
+      <button class="pbtn ok"   id="pOk">✓ Знает</button>
+      <button class="pbtn bad"  id="pBad">✗ Не знает</button>
+      <button class="pbtn skip" id="pSkip">Пропустить</button>
+    </div>` : "";
+  return `
+    <div class="qkind">Послушай и выбери картинку</div>
+    <div class="audio-row">
+      <button class="audio-btn" id="play"><span class="ico">▶</span> Слушать</button>
+    </div>
+    <div class="opts-img">${opts}</div>
+    ${parentBlock}
+  `;
+}
+
+function renderImg2Word(q){
+  const opts = q.options.map((o,i) => `
+    <div class="opt" data-i="${i}" data-correct="${o.word === q.target.word ? '1':'0'}">${esc(o.word)}</div>
+  `).join("");
+  const parentBlock = mode === "parent" ? `
+    <div class="reveal hidden" id="reveal">
+      <div>${esc(q.target.word)}</div>
+      <small>попроси ребёнка произнести вслух</small>
+    </div>
+    <div class="audio-row" style="margin-top:8px"><button class="audio-btn" id="play"><span class="ico">▶</span> Произношение</button></div>
+    <div class="parent-actions">
+      <button class="pbtn show" id="pShow">Показать ответ</button>
+      <button class="pbtn ok"   id="pOk">✓ Знает</button>
+      <button class="pbtn bad"  id="pBad">✗ Не знает</button>
+      <button class="pbtn skip" id="pSkip">Пропустить</button>
+    </div>` : "";
+  return `
+    <div class="qkind">Что на картинке?</div>
+    <img class="big-img" src="${BASE}/${esc(q.target.image)}" alt=""/>
+    <div class="opts">${opts}</div>
+    ${parentBlock}
+  `;
+}
+
+function renderGap(q){
+  const promptHtml = esc(q.pattern).replace(/_+/g, '<span class="blank">?</span>');
+  const opts = q.options.map((o,i) => `
+    <div class="opt" data-i="${i}" data-correct="${o === q.correct ? '1':'0'}">${esc(o)}</div>
+  `).join("");
+  const parentBlock = mode === "parent" ? `
+    <div class="reveal hidden" id="reveal">
+      <div>${esc(q.correct)}</div>
+      <small>в пропуск подходит это слово</small>
+    </div>
+    <div class="parent-actions">
+      <button class="pbtn show" id="pShow">Показать ответ</button>
+      <button class="pbtn ok"   id="pOk">✓ Знает</button>
+      <button class="pbtn bad"  id="pBad">✗ Не знает</button>
+      <button class="pbtn skip" id="pSkip">Пропустить</button>
+    </div>` : "";
+  return `
+    <div class="qkind">Заполни пропуск</div>
+    <div class="prompt">${promptHtml}</div>
+    <div class="opts">${opts}</div>
+    ${parentBlock}
+  `;
+}
+
+function renderConvo(q){
+  // только для parent
+  return `
+    <div class="qkind">Диалог — попроси повторить</div>
+    <div class="prompt big">«${esc(q.line)}»</div>
+    <div class="parent-actions">
+      <button class="pbtn ok"   id="pOk">✓ Повторил</button>
+      <button class="pbtn bad"  id="pBad">✗ Не смог</button>
+      <button class="pbtn skip" id="pSkip">Пропустить</button>
+    </div>
+  `;
+}
+
+function renderTextRecall(q){
+  return `
+    <div class="qkind">Слово</div>
+    <div class="prompt big">${esc(q.word)}</div>
+    <div class="parent-actions">
+      <button class="pbtn ok"   id="pOk">✓ Знает</button>
+      <button class="pbtn bad"  id="pBad">✗ Не знает</button>
+      <button class="pbtn skip" id="pSkip">Пропустить</button>
+    </div>
+  `;
+}
+
+/* ── handlers ── */
+function bindHandlers(q){
+  // play button
+  const pb = document.getElementById("play");
+  if (pb){
+    const url = q.target ? `${BASE}/${q.target.audio}` : null;
+    pb.addEventListener("click", () => playAudio(url));
+    if (q.kind === "audio2img"){
+      // авто-проиграть при появлении
+      setTimeout(() => playAudio(url), 200);
+    }
+  }
+
+  // image options
+  document.querySelectorAll(".opt-img").forEach(el => {
+    el.addEventListener("click", () => onPick(el));
+  });
+  // text options
+  document.querySelectorAll(".opt").forEach(el => {
+    el.addEventListener("click", () => onPick(el));
+  });
+
+  // parent buttons
+  const pShow = document.getElementById("pShow");
+  if (pShow) pShow.addEventListener("click", () => {
+    revealed = true;
+    const r = document.getElementById("reveal");
+    if (r) r.classList.remove("hidden");
+    // подсветим правильный для наглядности
+    document.querySelectorAll(".opt[data-correct='1'], .opt-img[data-correct='1']").forEach(el => el.classList.add("ok"));
+    // в parent режиме можно проиграть и аудио сразу
+    if (q.target) playAudio(`${BASE}/${q.target.audio}`);
+  });
+  const pOk = document.getElementById("pOk");
+  if (pOk) pOk.addEventListener("click", () => { score.ok++; nextQ(); });
+  const pBad = document.getElementById("pBad");
+  if (pBad) pBad.addEventListener("click", () => { score.bad++; nextQ(); });
+  const pSkip = document.getElementById("pSkip");
+  if (pSkip) pSkip.addEventListener("click", () => { nextQ(); });
+}
+
+function onPick(el){
+  if (mode !== "self" || answered) return;
+  answered = true;
+  const ok = el.dataset.correct === "1";
+  if (ok){
+    el.classList.add("ok");
+    score.ok++;
+  } else {
+    el.classList.add("bad");
+    score.bad++;
+    document.querySelectorAll("[data-correct='1']").forEach(e => e.classList.add("ok"));
+  }
+  // dim others
+  document.querySelectorAll(".opt, .opt-img").forEach(e => {
+    if (e !== el && !e.classList.contains("ok")) e.classList.add("dim");
+  });
+  setTimeout(() => nextQ(), ok ? 700 : 1400);
+}
+
+function nextQ(){
+  qi++;
+  render();
+}
+
+/* ── finish screen ── */
+function renderFinish(){
+  const total = score.ok + score.bad;
+  const pct = total ? Math.round(score.ok / total * 100) : 0;
+  let emoji = "🎉", title = "Отлично!";
+  if (pct < 50)      { emoji = "💪"; title = "Нужно повторить"; }
+  else if (pct < 80) { emoji = "👍"; title = "Хорошо!"; }
+
+  root.innerHTML = `
+    <div class="top">
+      <a class="back" href="lesson.html?n=${lesson.lesson}">← Урок</a>
+      <span class="num">Урок ${lesson.lesson}</span>
+    </div>
+    <div class="card finish">
+      <div class="emoji">${emoji}</div>
+      <h2>${title}</h2>
+      <div class="stat">
+        <div class="ok"><b>${score.ok}</b><span>верно</span></div>
+        <div class="bad"><b>${score.bad}</b><span>ошибок</span></div>
+        <div><b>${pct}%</b><span>результат</span></div>
+      </div>
+      <div class="finish-actions">
+        <button onclick="location.reload()">↻ Ещё раз</button>
+        <a class="alt" href="lesson.html?n=${lesson.lesson}">К уроку</a>
+        <a class="alt" href="index.html">К программе</a>
+      </div>
+    </div>
+  `;
+}
+
+init();
+</script>
+</body>
+</html>
