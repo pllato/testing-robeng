@@ -95,6 +95,29 @@
   .ru-prompt::before{content:"🇷🇺 ";font-size:14px}
   .ru-block{text-align:center;margin:0 0 8px}
 
+  /* spelling — slots and letters */
+  .slots{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:6px 0 18px;min-height:50px}
+  .slot{width:38px;height:48px;border:2px dashed var(--line);border-radius:10px;display:flex;align-items:center;justify-content:center;font:700 22px Manrope,sans-serif;color:var(--ink);background:#fff;cursor:pointer;transition:.12s;text-transform:lowercase}
+  .slot.filled{border-style:solid;border-color:var(--ac);background:#fff}
+  .slot.space{border-color:transparent;background:transparent;width:14px}
+  .slot.ok{border-color:var(--ok);background:var(--okbg);color:var(--ok)}
+  .slot.bad{border-color:var(--bad);background:var(--badbg);color:var(--bad)}
+  .letters{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:0 0 16px}
+  .letter{width:42px;height:50px;border:1px solid var(--line);border-radius:10px;display:flex;align-items:center;justify-content:center;font:700 22px Manrope,sans-serif;color:var(--ink);background:#fff;cursor:pointer;transition:.1s;user-select:none;text-transform:lowercase}
+  .letter:hover{border-color:var(--ac);transform:translateY(-1px)}
+  .letter.used{opacity:.25;pointer-events:none}
+  .letter.bad{background:var(--badbg);border-color:var(--bad);color:var(--bad);animation:shake .35s}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+
+  /* typed input */
+  .type-row{display:flex;flex-direction:column;gap:10px;align-items:center;margin:6px 0 12px}
+  .type-input{width:100%;max-width:320px;border:2px solid var(--line);border-radius:12px;padding:14px 18px;font:700 20px Manrope,sans-serif;text-align:center;outline:none;text-transform:lowercase;letter-spacing:.04em}
+  .type-input:focus{border-color:var(--ac)}
+  .type-input.ok{border-color:var(--ok);background:var(--okbg);color:var(--ok)}
+  .type-input.bad{border-color:var(--bad);background:var(--badbg);color:var(--bad)}
+  .type-submit{border:0;background:var(--ac);color:#fff;font:700 14px Manrope,sans-serif;padding:10px 22px;border-radius:10px;cursor:pointer}
+  .type-submit:disabled{opacity:.4;cursor:default}
+
   /* finish */
   .finish{text-align:center;padding:30px 16px}
   .finish .emoji{font-size:64px;margin:0 0 12px}
@@ -194,25 +217,39 @@ async function init(){
      - "img2word"    : показать картинку → выбрать слово
      - "ru2en"       : показать перевод → выбрать слово
      - "ru2img"      : показать перевод → выбрать картинку
+     - "scramble"    : собрать слово из букв
+     - "type"        : напечатать слово в поле
      - "gap"         : паттерн с пропуском → выбрать слово
      - "convo"       : показать строку диалога → попросить повторить (parent only)
 */
+function isSpellable(w){
+  // подходит для письменных заданий: одно слово из букв, разумная длина
+  if (!w) return false;
+  const s = String(w).trim();
+  if (s.length < 2 || s.length > 12) return false;
+  if (/[\s'’\-]/.test(s)) return false;   // фразы / апострофы / дефисы — пропускаем
+  return /^[a-zA-Z]+$/.test(s);
+}
+
 function buildQuestions(L){
   const qs = [];
   const wa = allWordAssets;
   const hasAssets = wa.length >= 2;
 
   // 1) для каждого слова — одна мини-игра, тип крутится по кругу
-  // приоритет: больше переводных, если перевод есть
   if (hasAssets){
-    const KINDS = ["audio2img", "ru2img", "img2word", "ru2en"];
+    const KINDS = ["audio2img", "ru2img", "scramble", "img2word", "ru2en", "type"];
     shuffle(wa).forEach((w, i) => {
       const distractors = sample(wa.filter(x => x.word !== w.word), Math.min(3, wa.length-1));
       const opts = shuffle([w, ...distractors]);
       let kind = KINDS[i % KINDS.length];
-      // если для целевого слова нет перевода — откатываемся к не-переводным
+      // переводных не бывает без перевода
       if ((kind === "ru2en" || kind === "ru2img") && !tr(w.word)) {
         kind = (i % 2 === 0) ? "audio2img" : "img2word";
+      }
+      // письменные задания только для коротких «чистых» слов
+      if ((kind === "scramble" || kind === "type") && !isSpellable(w.word)) {
+        kind = tr(w.word) ? "ru2en" : "img2word";
       }
       qs.push({ kind, target: w, options: opts });
     });
@@ -269,6 +306,8 @@ function render(){
   else if (q.kind === "img2word") body = renderImg2Word(q);
   else if (q.kind === "ru2en")    body = renderRu2En(q);
   else if (q.kind === "ru2img")   body = renderRu2Img(q);
+  else if (q.kind === "scramble") body = renderScramble(q);
+  else if (q.kind === "type")     body = renderType(q);
   else if (q.kind === "gap")      body = renderGap(q);
   else if (q.kind === "convo")    body = renderConvo(q);
   else if (q.kind === "text-recall") body = renderTextRecall(q);
@@ -315,6 +354,7 @@ function isQuestionForMode(q, m){
   if (m === "self"){
     return q.kind === "audio2img" || q.kind === "img2word"
         || q.kind === "ru2en"    || q.kind === "ru2img"
+        || q.kind === "scramble" || q.kind === "type"
         || q.kind === "gap";
   }
   // parent — все вопросы
@@ -414,6 +454,44 @@ function renderRu2Img(q){
   `;
 }
 
+function renderScramble(q){
+  const word = q.target.word.toLowerCase();
+  // shuffle letters but ensure the result actually differs from the original
+  let letters;
+  do {
+    letters = shuffle(word.split(""));
+  } while (letters.join("") === word && word.length > 1);
+
+  const slotsHtml = Array.from(word).map((_,i)=>`<div class="slot" data-pos="${i}"></div>`).join("");
+  const lettersHtml = letters.map((ch,i)=>`<div class="letter" data-li="${i}">${esc(ch)}</div>`).join("");
+  const ruWord = tr(q.target.word);
+  const ruBlock = ruWord ? `<div class="ru-block"><span class="ru-prompt">${esc(ruWord)}</span></div>` : "";
+  return `
+    <div class="qkind">Собери слово из букв</div>
+    ${ruBlock}
+    <div class="audio-row"><button class="audio-btn" id="play"><span class="ico">▶</span> Слушать</button></div>
+    <div class="slots" id="slots">${slotsHtml}</div>
+    <div class="letters" id="letters">${lettersHtml}</div>
+    ${parentBlock(q.target.word, "ребёнок составляет слово из букв")}
+  `;
+}
+
+function renderType(q){
+  const word = q.target.word;
+  const ruWord = tr(word);
+  const ruBlock = ruWord ? `<div class="ru-block"><span class="ru-prompt">${esc(ruWord)}</span></div>` : "";
+  return `
+    <div class="qkind">Напиши слово по-английски</div>
+    ${ruBlock}
+    <div class="audio-row"><button class="audio-btn" id="play"><span class="ico">▶</span> Слушать</button></div>
+    <div class="type-row">
+      <input class="type-input" id="typeInput" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="введите слово…" maxlength="${Math.max(word.length+4, 16)}"/>
+      <button class="type-submit" id="typeSubmit" disabled>Проверить</button>
+    </div>
+    ${parentBlock(q.target.word, "ребёнок печатает слово")}
+  `;
+}
+
 function renderGap(q){
   const promptHtml = esc(q.pattern).replace(/_+/g, '<span class="blank">?</span>');
   const opts = q.options.map((o,i) => `
@@ -474,6 +552,109 @@ function bindHandlers(q){
   document.querySelectorAll(".opt").forEach(el => {
     el.addEventListener("click", () => onPick(el));
   });
+
+  // ── scramble: tap letter → fills next empty slot; tap filled slot → returns letter
+  if (q.kind === "scramble"){
+    const slots = Array.from(document.querySelectorAll("#slots .slot"));
+    const letters = Array.from(document.querySelectorAll("#letters .letter"));
+    const target = q.target.word.toLowerCase();
+    const placed = new Array(slots.length).fill(null); // {li, ch} per slot
+
+    function checkComplete(){
+      if (placed.some(p => p === null)) return;
+      const guess = placed.map(p => p.ch).join("");
+      const ok = guess === target;
+      if (mode === "self"){
+        if (answered) return;
+        answered = true;
+        slots.forEach(s => s.classList.add(ok ? "ok" : "bad"));
+        if (ok){
+          score.ok++;
+        } else {
+          score.bad++;
+          // показать правильный ответ через 600мс
+          setTimeout(() => {
+            slots.forEach((s,i) => { s.classList.remove("bad"); s.classList.add("ok"); s.textContent = target[i]; });
+          }, 700);
+        }
+        if (q.target.audio) playAudio(`${BASE}/${q.target.audio}`);
+        // показать перевод
+        const ruText = tr(target);
+        if (ruText && !document.querySelector(".answer-hint")){
+          const hint = document.createElement("div");
+          hint.className = "ru-block answer-hint";
+          hint.style.marginTop = "12px";
+          hint.innerHTML = `<span class="ru-hint"><b>${esc(target)}</b> — ${esc(ruText)}</span>`;
+          document.querySelector(".card").appendChild(hint);
+        }
+        setTimeout(() => nextQ(), ok ? 1300 : 2200);
+      }
+    }
+    function placeLetter(li){
+      const letterEl = letters[li];
+      if (letterEl.classList.contains("used")) return;
+      const idx = placed.findIndex(p => p === null);
+      if (idx < 0) return;
+      placed[idx] = { li, ch: letterEl.textContent };
+      slots[idx].textContent = letterEl.textContent;
+      slots[idx].classList.add("filled");
+      letterEl.classList.add("used");
+      checkComplete();
+    }
+    function returnFromSlot(slotIdx){
+      if (answered) return;
+      const p = placed[slotIdx];
+      if (!p) return;
+      letters[p.li].classList.remove("used");
+      placed[slotIdx] = null;
+      slots[slotIdx].textContent = "";
+      slots[slotIdx].classList.remove("filled");
+    }
+    letters.forEach((el, li) => el.addEventListener("click", () => placeLetter(li)));
+    slots.forEach((el, si) => el.addEventListener("click", () => returnFromSlot(si)));
+  }
+
+  // ── type: input + submit
+  if (q.kind === "type"){
+    const input = document.getElementById("typeInput");
+    const btn   = document.getElementById("typeSubmit");
+    const target = q.target.word.toLowerCase();
+    function doCheck(){
+      if (mode !== "self" || answered) return;
+      const guess = (input.value || "").trim().toLowerCase();
+      if (!guess) return;
+      answered = true;
+      const ok = guess === target;
+      input.classList.add(ok ? "ok" : "bad");
+      input.disabled = true;
+      btn.disabled = true;
+      if (ok){
+        score.ok++;
+      } else {
+        score.bad++;
+        // показать правильное слово рядом
+        setTimeout(() => {
+          input.value = target;
+          input.classList.remove("bad");
+          input.classList.add("ok");
+        }, 800);
+      }
+      if (q.target.audio) playAudio(`${BASE}/${q.target.audio}`);
+      const ruText = tr(target);
+      if (ruText && !document.querySelector(".answer-hint")){
+        const hint = document.createElement("div");
+        hint.className = "ru-block answer-hint";
+        hint.style.marginTop = "12px";
+        hint.innerHTML = `<span class="ru-hint"><b>${esc(target)}</b> — ${esc(ruText)}</span>`;
+        document.querySelector(".card").appendChild(hint);
+      }
+      setTimeout(() => nextQ(), ok ? 1200 : 2200);
+    }
+    input.addEventListener("input", () => { btn.disabled = !input.value.trim(); });
+    input.addEventListener("keydown", e => { if (e.key === "Enter") doCheck(); });
+    btn.addEventListener("click", doCheck);
+    setTimeout(() => input.focus(), 50);
+  }
 
   // parent buttons
   const pShow = document.getElementById("pShow");
