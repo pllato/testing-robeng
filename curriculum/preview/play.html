@@ -118,6 +118,22 @@
   .type-submit{border:0;background:var(--ac);color:#fff;font:700 14px Manrope,sans-serif;padding:10px 22px;border-radius:10px;cursor:pointer}
   .type-submit:disabled{opacity:.4;cursor:default}
 
+  /* study (flashcard slideshow) */
+  .study-card{text-align:center;padding:14px 16px}
+  .study-card .step{font-size:11px;font-weight:600;color:var(--mute);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+  .study-card img{display:block;margin:0 auto 14px;width:280px;max-width:75vw;aspect-ratio:1/1;object-fit:cover;background:#f0eff5;border-radius:18px}
+  .study-card .word{font-size:34px;font-weight:800;letter-spacing:-.01em;margin:0 0 4px}
+  .study-card .ru{font-size:16px;color:var(--mute);margin:0 0 14px}
+  .study-card .audio-row{margin:6px 0 18px}
+  .study-nav{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap}
+  .study-nav button{border:0;border-radius:12px;padding:11px 18px;font:700 14px Manrope,sans-serif;cursor:pointer;transition:.12s}
+  .study-nav button:hover{transform:translateY(-1px)}
+  .study-nav .prev{background:#fff;color:var(--mute);border:1px solid var(--line)}
+  .study-nav .prev:disabled{opacity:.35;cursor:default}
+  .study-nav .next{background:var(--ac);color:#fff;min-width:120px}
+  .study-skip{display:inline-block;margin-top:14px;font-size:12px;color:var(--mute);text-decoration:underline;cursor:pointer;background:transparent;border:0}
+  .study-skip:hover{color:var(--ac)}
+
   /* finish */
   .finish{text-align:center;padding:30px 16px}
   .finish .emoji{font-size:64px;margin:0 0 12px}
@@ -177,6 +193,11 @@ let qi = 0;
 let score = { ok:0, bad:0 };
 let answered = false;     // for self mode — block double-clicks
 let revealed = false;     // for parent mode
+
+// study phase
+const skipStudyParam = params.get("skip") === "study";
+let phase = skipStudyParam ? "quiz" : "study";  // "study" → "quiz" → "finish"
+let studyIdx = 0;
 
 const tr = w => translations[(w||'').toLowerCase().trim()] || '';
 
@@ -284,6 +305,9 @@ function buildQuestions(L){
 
 /* ──────────── Render ──────────── */
 function render(){
+  if (phase === "study"){
+    return renderStudy();
+  }
   if (qi >= questions.length || (mode === "self" && currentQuestionsForMode().length === 0)){
     return renderFinish();
   }
@@ -710,6 +734,83 @@ function onPick(el){
 function nextQ(){
   qi++;
   render();
+}
+
+/* ── study slideshow ── */
+function renderStudy(){
+  const list = allWordAssets;
+  if (!list.length){ phase = "quiz"; return render(); }
+  if (studyIdx < 0) studyIdx = 0;
+  if (studyIdx >= list.length){
+    phase = "quiz";
+    return render();
+  }
+  const w = list[studyIdx];
+  const ru = tr(w.word);
+  const pct = Math.round(((studyIdx) / list.length) * 100);
+
+  root.innerHTML = `
+    <div class="top">
+      <a class="back" href="lesson.html?n=${lesson.lesson}">← Урок</a>
+      <span class="num">Урок ${lesson.lesson} · знакомство</span>
+      <div class="mode-pick" id="modePick">
+        <button data-m="self"   class="${mode==='self'?'on':''}">🎯 Сам</button>
+        <button data-m="parent" class="${mode==='parent'?'on':''}">👨‍👧 С родителем</button>
+      </div>
+    </div>
+
+    <div class="hud">
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      <div class="score" style="color:var(--mute)">${studyIdx+1} / ${list.length}</div>
+    </div>
+
+    <div class="card study-card">
+      <div class="step">Слово ${studyIdx+1} из ${list.length}</div>
+      <img src="${BASE}/${esc(w.image)}" alt="${esc(w.word)}"/>
+      <div class="word">${esc(w.word)}</div>
+      ${ru ? `<div class="ru">🇷🇺 ${esc(ru)}</div>` : ""}
+      <div class="audio-row"><button class="audio-btn" id="play"><span class="ico">▶</span> Слушать</button></div>
+      <div class="study-nav">
+        <button class="prev" id="prev" ${studyIdx===0?"disabled":""}>← Назад</button>
+        <button class="next" id="next">${studyIdx === list.length-1 ? "Начать игру →" : "Дальше →"}</button>
+      </div>
+      <div><button class="study-skip" id="skip">пропустить · сразу к игре</button></div>
+    </div>
+  `;
+
+  // mode toggle (rebuild study from start in new mode)
+  document.getElementById("modePick").addEventListener("click", e => {
+    const b = e.target.closest("button[data-m]");
+    if (!b) return;
+    const m = b.dataset.m;
+    if (m !== mode){
+      mode = m; qi = 0; score = { ok:0, bad:0 }; studyIdx = 0; phase = "study";
+      const u = new URL(location.href); u.searchParams.set("mode", mode);
+      history.replaceState(null,"",u);
+      render();
+    }
+  });
+
+  // audio
+  const audioUrl = `${BASE}/${w.audio}`;
+  document.getElementById("play").addEventListener("click", () => playAudio(audioUrl));
+  // авто-проиграть аудио при показе карточки
+  setTimeout(() => playAudio(audioUrl), 250);
+
+  // navigation
+  document.getElementById("prev").addEventListener("click", () => { studyIdx--; render(); });
+  document.getElementById("next").addEventListener("click", () => { studyIdx++; render(); });
+  document.getElementById("skip").addEventListener("click", () => { phase = "quiz"; render(); });
+
+  // keyboard: Left/Right arrows
+  if (!window._studyKeysBound){
+    window._studyKeysBound = true;
+    document.addEventListener("keydown", e => {
+      if (phase !== "study") return;
+      if (e.key === "ArrowLeft" && studyIdx > 0){ studyIdx--; render(); }
+      else if (e.key === "ArrowRight" || e.key === " " || e.key === "Enter"){ studyIdx++; render(); e.preventDefault(); }
+    });
+  }
 }
 
 /* ── finish screen ── */
