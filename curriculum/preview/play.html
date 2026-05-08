@@ -198,6 +198,7 @@
 const BASE = "https://pub-4a4bf55405d74fe58e817b5fb86955d4.r2.dev";
 const CURRICULUM_URL = BASE + "/curriculum.json";
 const TRANSLATIONS_URL = "translations.json"; // локальный файл рядом с play.html
+const IMAGE_DUPES_URL  = "image_dupes.json";  // отчёт о визуально-одинаковых картинках (по урокам)
 
 const params = new URLSearchParams(location.search);
 const lessonNum = parseInt(params.get("n") || "1", 10);
@@ -220,6 +221,7 @@ function playAudio(url){
 let lesson = null;        // current lesson object
 let allWordAssets = [];   // word_assets pool from this lesson
 let translations = {};    // { "hello": "привет", ... }
+let ambiguousWords = new Set();  // слова текущего урока, чья картинка совпадает с >=1 другим словом
 
 // Программа = последовательность шагов, каждый шаг — либо студи-карточка,
 // либо вопрос. Блок: [study × N, quiz × N], где N=BLOCK_SIZE. После всех
@@ -239,16 +241,21 @@ const tr = w => translations[(w||'').toLowerCase().trim()] || '';
 
 async function init(){
   let data;
+  let dupesData = null;
   try{
-    const [cR, tR] = await Promise.all([
+    const [cR, tR, dR] = await Promise.all([
       fetch(CURRICULUM_URL, { cache: "no-cache" }),
-      fetch(TRANSLATIONS_URL, { cache: "no-cache" }).catch(()=>null)
+      fetch(TRANSLATIONS_URL, { cache: "no-cache" }).catch(()=>null),
+      fetch(IMAGE_DUPES_URL,  { cache: "no-cache" }).catch(()=>null),
     ]);
     if (!cR.ok) throw new Error("HTTP " + cR.status);
     data = await cR.json();
     if (tR && tR.ok){
       const tj = await tR.json();
       translations = (tj && tj.translations) ? tj.translations : {};
+    }
+    if (dR && dR.ok){
+      dupesData = await dR.json();
     }
   }catch(e){
     root.innerHTML = `<div class="loading err">Не удалось загрузить программу: ${esc(e.message)}</div>`;
@@ -261,6 +268,18 @@ async function init(){
   }
   document.title = `Урок ${lesson.lesson}. Игра — ELC Kids`;
   allWordAssets = (lesson.media && lesson.media.word_assets) || [];
+
+  // Собираем set «слов с картинкой-дублем» в этом уроке
+  ambiguousWords = new Set();
+  if (dupesData && Array.isArray(dupesData.flagged)){
+    const entry = dupesData.flagged.find(x => x.lesson === lessonNum);
+    if (entry){
+      (entry.duplicates || []).forEach(group => {
+        group.forEach(w => ambiguousWords.add(String(w).toLowerCase()));
+      });
+    }
+  }
+
   sequence = buildSequence(lesson, mode);
   ptr = 0;
   score = { ok:0, bad:0 };
@@ -290,18 +309,46 @@ function isSpellable(w){
   return /^[a-zA-Z]+$/.test(s);
 }
 
+// Визуальные типы — задание показывает картинку или просит выбрать из картинок
+const VISUAL_KINDS = new Set(["audio2img", "ru2img", "img2word"]);
+
+function isAmbiguous(word){
+  return ambiguousWords.has(String(word||'').toLowerCase());
+}
+
 function makeQuizItem(w, kind){
-  // gather 3 distractors from the lesson's full word pool
-  const distractors = sample(allWordAssets.filter(x => x.word !== w.word), Math.min(3, allWordAssets.length-1));
-  const opts = shuffle([w, ...distractors]);
+  const wordKey = String(w.word).toLowerCase();
+  // Если у слова дублируется картинка с другим словом в уроке, визуальные
+  // задания на нём бесполезны (4 одинаковые картинки или одна общая для двух разных слов).
+  // Подменяем на текстовый формат.
+  if (VISUAL_KINDS.has(kind) && isAmbiguous(wordKey)){
+    if (tr(w.word))           kind = "ru2en";
+    else if (isSpellable(w.word)) kind = "scramble";
+    else                       kind = "type";
+  }
   // safety: переводные требуют перевода
   if ((kind === "ru2en" || kind === "ru2img") && !tr(w.word)) {
-    kind = "img2word";
+    kind = isSpellable(w.word) ? "scramble" : "img2word";
   }
   // письменные — только для коротких «чистых» слов
   if ((kind === "scramble" || kind === "type") && !isSpellable(w.word)) {
     kind = tr(w.word) ? "ru2en" : "img2word";
   }
+  // финальная защита: если после всех подмен мы всё-таки на визуальном
+  // типе для двусмысленного слова — насильно переходим к scramble/type
+  if (VISUAL_KINDS.has(kind) && isAmbiguous(wordKey)){
+    kind = isSpellable(w.word) ? "scramble" : "ru2en";
+  }
+
+  // gather distractors. Для визуальных вопросов — только из не-двусмысленных,
+  // чтобы среди 4 картинок не оказалось ещё одна, неотличимая от целевой.
+  let pool = allWordAssets.filter(x => x.word !== w.word);
+  if (VISUAL_KINDS.has(kind)){
+    const cleaner = pool.filter(x => !isAmbiguous(x.word));
+    if (cleaner.length >= 3) pool = cleaner;
+  }
+  const distractors = sample(pool, Math.min(3, pool.length));
+  const opts = shuffle([w, ...distractors]);
   return { kind, target: w, options: opts };
 }
 
