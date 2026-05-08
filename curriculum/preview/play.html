@@ -2,7 +2,9 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="theme-color" content="#fafaf7"/>
 <title>ELC Kids — игра</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,9 +17,11 @@
     --bad:#e0394e;--badbg:rgba(224,57,78,.10);
     --warm:#ff9b3d;
   }
-  *{box-sizing:border-box}
-  html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Manrope,system-ui,sans-serif}
-  .wrap{max-width:880px;margin:0 auto;padding:20px 18px 80px}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 Manrope,system-ui,sans-serif;-webkit-text-size-adjust:100%}
+  body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+  .wrap{max-width:880px;margin:0 auto;padding:16px 16px 90px}
+  button,.opt,.opt-img,.letter,.slot,.audio-btn,.pbtn,.back,.num,.mode-pick button{touch-action:manipulation}
 
   /* top bar */
   .top{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
@@ -58,7 +62,7 @@
 
   /* options grid (text) */
   .opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .opt{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;cursor:pointer;font:600 16px Manrope,sans-serif;color:var(--ink);text-align:center;transition:.12s;user-select:none}
+  .opt{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 16px;min-height:56px;cursor:pointer;font:600 17px Manrope,sans-serif;color:var(--ink);text-align:center;transition:.12s;user-select:none;display:flex;align-items:center;justify-content:center}
   .opt:hover{border-color:var(--ac);transform:translateY(-1px)}
   .opt.ok{background:var(--okbg);border-color:var(--ok);color:var(--ok)}
   .opt.bad{background:var(--badbg);border-color:var(--bad);color:var(--bad)}
@@ -111,12 +115,21 @@
 
   /* typed input */
   .type-row{display:flex;flex-direction:column;gap:10px;align-items:center;margin:6px 0 12px}
-  .type-input{width:100%;max-width:320px;border:2px solid var(--line);border-radius:12px;padding:14px 18px;font:700 20px Manrope,sans-serif;text-align:center;outline:none;text-transform:lowercase;letter-spacing:.04em}
+  /* font-size:18px на input критичен на iOS — иначе Safari зумит при фокусе */
+  .type-input{width:100%;max-width:320px;border:2px solid var(--line);border-radius:12px;padding:14px 18px;font:700 18px Manrope,sans-serif;text-align:center;outline:none;text-transform:lowercase;letter-spacing:.04em;-webkit-appearance:none}
   .type-input:focus{border-color:var(--ac)}
   .type-input.ok{border-color:var(--ok);background:var(--okbg);color:var(--ok)}
   .type-input.bad{border-color:var(--bad);background:var(--badbg);color:var(--bad)}
-  .type-submit{border:0;background:var(--ac);color:#fff;font:700 14px Manrope,sans-serif;padding:10px 22px;border-radius:10px;cursor:pointer}
+  .type-submit{border:0;background:var(--ac);color:#fff;font:700 15px Manrope,sans-serif;padding:13px 26px;border-radius:12px;cursor:pointer;min-height:46px;min-width:140px}
   .type-submit:disabled{opacity:.4;cursor:default}
+
+  /* review header (между основной программой и повтором ошибок) */
+  .review-hdr{text-align:center;padding:30px 18px}
+  .review-hdr .emoji{font-size:54px;margin:0 0 8px;color:var(--ac)}
+  .review-hdr h3{margin:0 0 6px;font-size:22px}
+  .review-hdr p{margin:0 0 18px;color:var(--mute);font-size:14px}
+  .review-hdr .rev-go{border:0;background:var(--ac);color:#fff;font:700 15px Manrope,sans-serif;padding:13px 28px;border-radius:12px;cursor:pointer;min-height:48px;min-width:160px}
+  .review-tag{display:inline-block;background:var(--warm);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;letter-spacing:.04em;text-transform:uppercase;margin-right:6px;vertical-align:1px}
 
   /* study (flashcard slideshow) */
   .study-card{text-align:center;padding:14px 16px}
@@ -152,8 +165,27 @@
 
   @media(max-width:540px){
     .prompt{font-size:20px}
-    .prompt.big{font-size:26px}
+    .prompt.big{font-size:24px}
     .big-img{width:200px}
+    .card{padding:18px 16px;border-radius:16px}
+    h1{font-size:20px}
+    .top{gap:8px}
+    .num{font-size:10px;padding:3px 8px}
+    .mode-pick{margin-left:0;width:100%;justify-content:stretch}
+    .mode-pick button{flex:1;padding:9px 6px;font-size:11px}
+    .study-card .word{font-size:30px}
+    .study-card img{width:230px}
+    .letter{width:46px;height:54px;font-size:24px}
+    .slot{width:36px;height:48px;font-size:22px}
+    .opt{padding:14px 12px;font-size:16px;min-height:52px}
+    .pbtn{padding:13px 14px;font-size:14px}
+    .audio-btn{padding:12px 22px;font-size:15px;min-height:46px}
+  }
+  @media(max-width:380px){
+    .letter{width:40px;height:48px;font-size:21px}
+    .slot{width:32px;height:42px;font-size:19px}
+    .opts{gap:8px}
+    .opt{font-size:15px}
   }
 </style>
 </head>
@@ -188,16 +220,20 @@ function playAudio(url){
 let lesson = null;        // current lesson object
 let allWordAssets = [];   // word_assets pool from this lesson
 let translations = {};    // { "hello": "привет", ... }
-let questions = [];       // built question queue
-let qi = 0;
+
+// Программа = последовательность шагов, каждый шаг — либо студи-карточка,
+// либо вопрос. Блок: [study × N, quiz × N], где N=BLOCK_SIZE. После всех
+// блоков — повтор ошибочных слов (review). После — финиш.
+const BLOCK_SIZE = 3;
+const MAX_REVIEW = 5;
+let sequence = [];        // [{kind:"study"|<quiz_kind>, target, options?, ...}]
+let ptr = 0;              // указатель в sequence
 let score = { ok:0, bad:0 };
 let answered = false;     // for self mode — block double-clicks
 let revealed = false;     // for parent mode
-
-// study phase
+let wrongs = [];          // word_assets, ответы на которые были неверны
+let reviewAdded = false;  // повтор уже добавлен (чтобы не дублировался)
 const skipStudyParam = params.get("skip") === "study";
-let phase = skipStudyParam ? "quiz" : "study";  // "study" → "quiz" → "finish"
-let studyIdx = 0;
 
 const tr = w => translations[(w||'').toLowerCase().trim()] || '';
 
@@ -225,9 +261,11 @@ async function init(){
   }
   document.title = `Урок ${lesson.lesson}. Игра — ELC Kids`;
   allWordAssets = (lesson.media && lesson.media.word_assets) || [];
-  questions = buildQuestions(lesson);
-  qi = 0;
+  sequence = buildSequence(lesson, mode);
+  ptr = 0;
   score = { ok:0, bad:0 };
+  wrongs = [];
+  reviewAdded = false;
   render();
 }
 
@@ -252,89 +290,119 @@ function isSpellable(w){
   return /^[a-zA-Z]+$/.test(s);
 }
 
-function buildQuestions(L){
-  const qs = [];
-  const wa = allWordAssets;
-  const hasAssets = wa.length >= 2;
+function makeQuizItem(w, kind){
+  // gather 3 distractors from the lesson's full word pool
+  const distractors = sample(allWordAssets.filter(x => x.word !== w.word), Math.min(3, allWordAssets.length-1));
+  const opts = shuffle([w, ...distractors]);
+  // safety: переводные требуют перевода
+  if ((kind === "ru2en" || kind === "ru2img") && !tr(w.word)) {
+    kind = "img2word";
+  }
+  // письменные — только для коротких «чистых» слов
+  if ((kind === "scramble" || kind === "type") && !isSpellable(w.word)) {
+    kind = tr(w.word) ? "ru2en" : "img2word";
+  }
+  return { kind, target: w, options: opts };
+}
 
-  // 1) для каждого слова — одна мини-игра, тип крутится по кругу
-  if (hasAssets){
-    const KINDS = ["audio2img", "ru2img", "scramble", "img2word", "ru2en", "type"];
-    shuffle(wa).forEach((w, i) => {
-      const distractors = sample(wa.filter(x => x.word !== w.word), Math.min(3, wa.length-1));
-      const opts = shuffle([w, ...distractors]);
-      let kind = KINDS[i % KINDS.length];
-      // переводных не бывает без перевода
-      if ((kind === "ru2en" || kind === "ru2img") && !tr(w.word)) {
-        kind = (i % 2 === 0) ? "audio2img" : "img2word";
-      }
-      // письменные задания только для коротких «чистых» слов
-      if ((kind === "scramble" || kind === "type") && !isSpellable(w.word)) {
-        kind = tr(w.word) ? "ru2en" : "img2word";
-      }
-      qs.push({ kind, target: w, options: opts });
-    });
-  } else {
-    // fallback — text-only word recall
-    shuffle(L.words || []).forEach(w => {
-      qs.push({ kind:"text-recall", word:w });
-    });
+function buildSequence(L, currentMode){
+  const seq = [];
+  const wa = allWordAssets;
+  if (!wa.length){
+    (L.words || []).forEach(w => seq.push({ kind:"text-recall", word:w }));
+    return seq;
   }
 
-  // 2) grammar gap-fill — для каждого паттерна с ____
+  // распределяем тип задания по кругу — варьируем форматы
+  const KINDS = ["ru2img", "audio2img", "scramble", "ru2en", "img2word", "type"];
+  let kindIdx = 0;
+  const shuffled = shuffle(wa);
+
+  // нарезаем на блоки по BLOCK_SIZE
+  for (let i = 0; i < shuffled.length; i += BLOCK_SIZE){
+    const block = shuffled.slice(i, i + BLOCK_SIZE);
+    // 1) знакомство — только если не запросили skip=study
+    if (!skipStudyParam){
+      for (const w of block) seq.push({ kind:"study", target: w });
+    }
+    // 2) тренировка — по 1 вопросу на каждое слово блока
+    for (const w of block){
+      seq.push(makeQuizItem(w, KINDS[kindIdx++ % KINDS.length]));
+    }
+  }
+
+  // 3) грамматика gap-fill — 1-2 в самом конце
+  const gaps = [];
   (L.grammar_patterns || []).forEach(p => {
     if (!/_/.test(p)) return;
-    // выбираем слово-кандидат: возьмём из L.words какое-нибудь имя/слово
     const pool = (L.words || []).slice();
     if (!pool.length) return;
     const correct = pool[Math.floor(Math.random()*pool.length)];
     const distractors = sample(pool.filter(x => x !== correct), Math.min(3, pool.length-1));
     const opts = shuffle([correct, ...distractors]);
-    qs.push({ kind:"gap", pattern:p, correct, options:opts });
+    gaps.push({ kind:"gap", pattern:p, correct, options:opts });
   });
+  shuffle(gaps).slice(0, 2).forEach(g => seq.push(g));
 
-  // 3) conversation lines — только для parent-режима как «попроси повторить»
-  // (для self-режима пропустим — там нет однозначного правильного ответа)
-  // Добавим всегда, но фильтр применим в render()
-  (L.conversation || []).forEach(line => {
-    qs.push({ kind:"convo", line });
+  // 4) диалог — для parent режима, в самом конце, 2 строки максимум
+  if (currentMode === "parent"){
+    shuffle(L.conversation || []).slice(0, 2).forEach(line => seq.push({ kind:"convo", line }));
+  }
+
+  return seq;
+}
+
+// Когда основная программа пройдена и есть ошибки — добавляем review
+function maybeAppendReview(){
+  if (reviewAdded) return;
+  reviewAdded = true;
+  if (!wrongs.length) return;
+  // уникальные слова из ошибочных
+  const seen = new Set();
+  const uniq = wrongs.filter(w => { const k = w.word; if (seen.has(k)) return false; seen.add(k); return true; });
+  const pick = sample(uniq, Math.min(MAX_REVIEW, uniq.length));
+  // вставляем разделитель + до 5 повторных вопросов (в облегчённой форме — ru2img/ru2en)
+  sequence.push({ kind:"review-hdr" });
+  pick.forEach((w, i) => {
+    const easyKind = (i % 2 === 0 && tr(w.word)) ? "ru2img" : "img2word";
+    sequence.push({ ...makeQuizItem(w, easyKind), isReview: true });
   });
-
-  return qs;
 }
 
 /* ──────────── Render ──────────── */
 function render(){
-  if (phase === "study"){
-    return renderStudy();
+  // если дошли до конца программы и ошибки есть — однократно добавляем review
+  if (ptr >= sequence.length && !reviewAdded){
+    maybeAppendReview();
   }
-  if (qi >= questions.length || (mode === "self" && currentQuestionsForMode().length === 0)){
+  if (ptr >= sequence.length){
     return renderFinish();
   }
-  // skip questions not applicable to current mode
-  while (qi < questions.length && !isQuestionForMode(questions[qi], mode)){
-    qi++;
-  }
-  if (qi >= questions.length) return renderFinish();
-
-  const q = questions[qi];
+  const item = sequence[ptr];
   answered = false;
   revealed = false;
 
-  const total = currentQuestionsForMode().length + currentAnsweredCount();
-  const done = currentAnsweredCount();
+  // study card?
+  if (item.kind === "study") return renderStudyCard(item);
+  if (item.kind === "review-hdr") return renderReviewHeader();
+
+  // обычный вопрос
+  const total = sequence.filter(x => isQuiz(x)).length;
+  const done  = sequence.slice(0, ptr).filter(x => isQuiz(x)).length;
   const pct = Math.round((done / Math.max(total,1)) * 100);
 
   let body = "";
-  if (q.kind === "audio2img")   body = renderAudio2Img(q);
-  else if (q.kind === "img2word") body = renderImg2Word(q);
-  else if (q.kind === "ru2en")    body = renderRu2En(q);
-  else if (q.kind === "ru2img")   body = renderRu2Img(q);
-  else if (q.kind === "scramble") body = renderScramble(q);
-  else if (q.kind === "type")     body = renderType(q);
-  else if (q.kind === "gap")      body = renderGap(q);
-  else if (q.kind === "convo")    body = renderConvo(q);
-  else if (q.kind === "text-recall") body = renderTextRecall(q);
+  if (item.kind === "audio2img")   body = renderAudio2Img(item);
+  else if (item.kind === "img2word") body = renderImg2Word(item);
+  else if (item.kind === "ru2en")    body = renderRu2En(item);
+  else if (item.kind === "ru2img")   body = renderRu2Img(item);
+  else if (item.kind === "scramble") body = renderScramble(item);
+  else if (item.kind === "type")     body = renderType(item);
+  else if (item.kind === "gap")      body = renderGap(item);
+  else if (item.kind === "convo")    body = renderConvo(item);
+  else if (item.kind === "text-recall") body = renderTextRecall(item);
+
+  const reviewTag = item.isReview ? `<span class="review-tag">↻ повтор</span>` : "";
 
   root.innerHTML = `
     <div class="top">
@@ -349,6 +417,7 @@ function render(){
     <div class="hud">
       <div class="bar"><i style="width:${pct}%"></i></div>
       <div class="score">
+        ${reviewTag}
         <span class="ok">✓ ${score.ok}</span> · <span class="bad">✗ ${score.bad}</span>
       </div>
     </div>
@@ -356,43 +425,30 @@ function render(){
     <div class="card">${body}</div>
   `;
 
-  // mode toggle
-  document.getElementById("modePick").addEventListener("click", e => {
+  bindModeToggle();
+  bindHandlers(item);
+}
+
+function isQuiz(item){
+  return item && item.kind && item.kind !== "study" && item.kind !== "review-hdr";
+}
+
+function bindModeToggle(){
+  const pick = document.getElementById("modePick");
+  if (!pick) return;
+  pick.addEventListener("click", e => {
     const b = e.target.closest("button[data-m]");
     if (!b) return;
     const m = b.dataset.m;
     if (m !== mode){
       mode = m;
-      // restart for clean state
-      qi = 0; score = { ok:0, bad:0 };
+      sequence = buildSequence(lesson, mode);
+      ptr = 0; score = { ok:0, bad:0 }; wrongs = []; reviewAdded = false;
       const u = new URL(location.href); u.searchParams.set("mode", mode);
       history.replaceState(null,"",u);
       render();
     }
   });
-
-  bindHandlers(q);
-}
-
-function isQuestionForMode(q, m){
-  if (m === "self"){
-    return q.kind === "audio2img" || q.kind === "img2word"
-        || q.kind === "ru2en"    || q.kind === "ru2img"
-        || q.kind === "scramble" || q.kind === "type"
-        || q.kind === "gap";
-  }
-  // parent — все вопросы
-  return true;
-}
-function currentQuestionsForMode(){
-  let n = 0;
-  for (let i=qi+1;i<questions.length;i++) if (isQuestionForMode(questions[i], mode)) n++;
-  return Array(n).fill(0); // length-only
-}
-function currentAnsweredCount(){
-  let n = 0;
-  for (let i=0;i<qi;i++) if (isQuestionForMode(questions[i], mode)) n++;
-  return n;
 }
 
 /* helpers — общие блоки */
@@ -596,6 +652,7 @@ function bindHandlers(q){
           score.ok++;
         } else {
           score.bad++;
+          if (q.target) wrongs.push(q.target);
           // показать правильный ответ через 600мс
           setTimeout(() => {
             slots.forEach((s,i) => { s.classList.remove("bad"); s.classList.add("ok"); s.textContent = target[i]; });
@@ -656,6 +713,7 @@ function bindHandlers(q){
         score.ok++;
       } else {
         score.bad++;
+        if (q.target) wrongs.push(q.target);
         // показать правильное слово рядом
         setTimeout(() => {
           input.value = target;
@@ -702,7 +760,7 @@ function bindHandlers(q){
 function onPick(el){
   if (mode !== "self" || answered) return;
   answered = true;
-  const q = questions[qi];
+  const q = sequence[ptr];
   const ok = el.dataset.correct === "1";
   if (ok){
     el.classList.add("ok");
@@ -710,6 +768,7 @@ function onPick(el){
   } else {
     el.classList.add("bad");
     score.bad++;
+    if (q && q.target) wrongs.push(q.target);
     document.querySelectorAll("[data-correct='1']").forEach(e => e.classList.add("ok"));
   }
   // dim others
@@ -732,22 +791,23 @@ function onPick(el){
 }
 
 function nextQ(){
-  qi++;
+  ptr++;
   render();
 }
 
-/* ── study slideshow ── */
-function renderStudy(){
-  const list = allWordAssets;
-  if (!list.length){ phase = "quiz"; return render(); }
-  if (studyIdx < 0) studyIdx = 0;
-  if (studyIdx >= list.length){
-    phase = "quiz";
-    return render();
-  }
-  const w = list[studyIdx];
+/* ── study card (одна карточка из interleaved блока) ── */
+function renderStudyCard(item){
+  const w = item.target;
   const ru = tr(w.word);
-  const pct = Math.round(((studyIdx) / list.length) * 100);
+  // прогресс — по всему sequence
+  const total = sequence.length;
+  const pct = Math.round((ptr / Math.max(total,1)) * 100);
+  // позиция в текущем «знакомстве»: считаем подряд идущие study от начала блока
+  let blockStart = ptr; while (blockStart > 0 && sequence[blockStart-1].kind === "study") blockStart--;
+  let blockEnd = ptr; while (blockEnd+1 < sequence.length && sequence[blockEnd+1].kind === "study") blockEnd++;
+  const studyN = ptr - blockStart + 1;
+  const studyTot = blockEnd - blockStart + 1;
+  const isLastInBlock = ptr === blockEnd;
 
   root.innerHTML = `
     <div class="top">
@@ -761,56 +821,52 @@ function renderStudy(){
 
     <div class="hud">
       <div class="bar"><i style="width:${pct}%"></i></div>
-      <div class="score" style="color:var(--mute)">${studyIdx+1} / ${list.length}</div>
+      <div class="score" style="color:var(--mute)">${studyN} / ${studyTot}</div>
     </div>
 
     <div class="card study-card">
-      <div class="step">Слово ${studyIdx+1} из ${list.length}</div>
+      <div class="step">Новое слово ${studyN} из ${studyTot}</div>
       <img src="${BASE}/${esc(w.image)}" alt="${esc(w.word)}"/>
       <div class="word">${esc(w.word)}</div>
       ${ru ? `<div class="ru">🇷🇺 ${esc(ru)}</div>` : ""}
       <div class="audio-row"><button class="audio-btn" id="play"><span class="ico">▶</span> Слушать</button></div>
       <div class="study-nav">
-        <button class="prev" id="prev" ${studyIdx===0?"disabled":""}>← Назад</button>
-        <button class="next" id="next">${studyIdx === list.length-1 ? "Начать игру →" : "Дальше →"}</button>
+        <button class="next" id="next">${isLastInBlock ? "К тренировке →" : "Дальше →"}</button>
       </div>
-      <div><button class="study-skip" id="skip">пропустить · сразу к игре</button></div>
+      <div><button class="study-skip" id="skip">пропустить знакомство</button></div>
     </div>
   `;
 
-  // mode toggle (rebuild study from start in new mode)
-  document.getElementById("modePick").addEventListener("click", e => {
-    const b = e.target.closest("button[data-m]");
-    if (!b) return;
-    const m = b.dataset.m;
-    if (m !== mode){
-      mode = m; qi = 0; score = { ok:0, bad:0 }; studyIdx = 0; phase = "study";
-      const u = new URL(location.href); u.searchParams.set("mode", mode);
-      history.replaceState(null,"",u);
-      render();
-    }
-  });
+  bindModeToggle();
 
-  // audio
+  // audio — авто-проигрыш при показе
   const audioUrl = `${BASE}/${w.audio}`;
   document.getElementById("play").addEventListener("click", () => playAudio(audioUrl));
-  // авто-проиграть аудио при показе карточки
   setTimeout(() => playAudio(audioUrl), 250);
 
-  // navigation
-  document.getElementById("prev").addEventListener("click", () => { studyIdx--; render(); });
-  document.getElementById("next").addEventListener("click", () => { studyIdx++; render(); });
-  document.getElementById("skip").addEventListener("click", () => { phase = "quiz"; render(); });
+  document.getElementById("next").addEventListener("click", () => { ptr++; render(); });
+  document.getElementById("skip").addEventListener("click", () => {
+    // прыгаем за все следующие подряд study — сразу к ближайшему вопросу
+    while (ptr < sequence.length && sequence[ptr].kind === "study") ptr++;
+    render();
+  });
+}
 
-  // keyboard: Left/Right arrows
-  if (!window._studyKeysBound){
-    window._studyKeysBound = true;
-    document.addEventListener("keydown", e => {
-      if (phase !== "study") return;
-      if (e.key === "ArrowLeft" && studyIdx > 0){ studyIdx--; render(); }
-      else if (e.key === "ArrowRight" || e.key === " " || e.key === "Enter"){ studyIdx++; render(); e.preventDefault(); }
-    });
-  }
+/* ── review-hdr — показывается перед блоком повтора ─── */
+function renderReviewHeader(){
+  root.innerHTML = `
+    <div class="top">
+      <a class="back" href="lesson.html?n=${lesson.lesson}">← Урок</a>
+      <span class="num">Урок ${lesson.lesson} · повтор ошибок</span>
+    </div>
+    <div class="card review-hdr">
+      <div class="emoji">↻</div>
+      <h3>Давай повторим то, что не получилось</h3>
+      <p>Несколько слов для закрепления — потом финиш.</p>
+      <button class="rev-go" id="revGo">Поехали →</button>
+    </div>
+  `;
+  document.getElementById("revGo").addEventListener("click", () => { ptr++; render(); });
 }
 
 /* ── finish screen ── */
