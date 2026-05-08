@@ -20,8 +20,10 @@
 
   const state = {
     curriculum: null,
-    progress: {},          // { studentId: { lessonNum: {done, date, ...} } }
-    progressUnsub: null,   // для off()
+    progress: {},            // { studentId: { lessonNum: {done, date, ...} } }
+    progressUnsub: null,     // для off()
+    gameResults: {},         // { studentId: { lessonNum: { self?:{...}, parent?:{...} } } }
+    gameResultsUnsub: null,
     selectedStudentId: null,
     studentFilter: '',
   };
@@ -76,16 +78,37 @@
   // ── RTDB subscription для выбранного ученика ──────────────────
   function subscribeProgress(studentId) {
     if (state.progressUnsub) { state.progressUnsub(); state.progressUnsub = null; }
+    if (state.gameResultsUnsub) { state.gameResultsUnsub(); state.gameResultsUnsub = null; }
     if (!studentId || !window.fbDb) return;
+
     const ref = fbDb.ref('eduSchedule/programProgress/' + studentId);
     const handler = ref.on('value', (snap) => {
       state.progress[studentId] = snap.val() || {};
       renderDetail();
-      // обновим счётчик в списке
       const el = document.querySelector('.pg-stu[data-sid="' + studentId + '"] .pg-progress');
       if (el) el.textContent = doneCount(studentId) + '/70';
     });
     state.progressUnsub = () => ref.off('value', handler);
+
+    // подписка на результаты мини-игры
+    const grRef = fbDb.ref('eduSchedule/programGameResults/' + studentId);
+    const grHandler = grRef.on('value', (snap) => {
+      state.gameResults[studentId] = snap.val() || {};
+      renderDetail();
+    });
+    state.gameResultsUnsub = () => grRef.off('value', grHandler);
+  }
+
+  function gameResultFor(studentId, lessonNum) {
+    const r = state.gameResults[studentId];
+    if (!r) return null;
+    return r[lessonNum] || null;
+  }
+  function bestPctFor(r) {
+    // r это {self?:{pct,...}, parent?:{pct,...}} — возвращаем макс
+    if (!r) return null;
+    const arr = [r.self?.pct, r.parent?.pct].filter(x => typeof x === "number");
+    return arr.length ? Math.max(...arr) : null;
   }
 
   async function toggleLesson(studentId, lessonNum) {
@@ -110,9 +133,11 @@
     const phone = cleanPhone(student.parentPhone || student.phone);
     if (!phone) { alert('У ученика не указан номер родителя/ученика'); return; }
     const n = lesson.lesson;
+    const sid = encodeURIComponent(student.id || '');
+    const sidParam = sid ? `&sid=${sid}` : '';
     const lessonUrl = `${LESSON_PUBLIC_BASE}/lesson.html?n=${n}`;
-    const playSelf  = `${LESSON_PUBLIC_BASE}/play.html?n=${n}&mode=self`;
-    const playPar   = `${LESSON_PUBLIC_BASE}/play.html?n=${n}&mode=parent`;
+    const playSelf  = `${LESSON_PUBLIC_BASE}/play.html?n=${n}&mode=self${sidParam}`;
+    const playPar   = `${LESSON_PUBLIC_BASE}/play.html?n=${n}&mode=parent${sidParam}`;
     const wordsLine = (lesson.words || []).join(', ');
     const text =
       `Здравствуйте! Сегодня прошли урок ${n}: ${lesson.topic || ''}.\n` +
@@ -189,10 +214,22 @@
       const p = prog[L.lesson];
       const isDone = !!(p && p.done);
       const dateStr = isDone && p.date ? new Date(p.date).toLocaleDateString('ru-RU') : '';
+      const gr = gameResultFor(sid, L.lesson);
+      const pct = bestPctFor(gr);
+      // цвет бейджа от %: <50 красный, 50-79 жёлтый, 80+ зелёный
+      let pctColor = '#1db870';
+      if (pct != null) {
+        if (pct < 50) pctColor = '#e0394e';
+        else if (pct < 80) pctColor = '#ff9b3d';
+      }
+      const gameBadge = (pct != null)
+        ? `<div class="pg-game" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#fff;background:${pctColor};padding:3px 7px;border-radius:6px;margin-top:4px" title="результат мини-игры (max self/parent)">🎯 ${pct}%</div>`
+        : '';
       return `<div class="pg-card${isDone ? ' done' : ''}">
         <div class="pg-num">Урок ${L.lesson}</div>
         <div class="pg-topic">${esc(L.topic || '')}</div>
         ${dateStr ? `<div class="pg-meta">проведён ${esc(dateStr)}</div>` : ''}
+        ${gameBadge}
         <div class="pg-actions">
           <button class="pg-btn pg-mark ${isDone ? 'is-done' : ''}" data-act="mark" data-n="${L.lesson}">${isDone ? '✓ Проведён' : 'Отметить'}</button>
           <button class="pg-btn pg-wa" data-act="wa" data-n="${L.lesson}" title="Отправить материал в WhatsApp">WA</button>

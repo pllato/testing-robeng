@@ -6,6 +6,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#fafaf7"/>
 <title>ELC Kids — игра</title>
+
+<!-- Firebase (compat SDK so the same call style как в index.html/program.js) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -200,9 +205,32 @@ const CURRICULUM_URL = BASE + "/curriculum.json";
 const TRANSLATIONS_URL = "translations.json"; // локальный файл рядом с play.html
 const IMAGE_DUPES_URL  = "image_dupes.json";  // отчёт о визуально-одинаковых картинках (по урокам)
 
+// ── Firebase (тот же проект что у CRM в index.html) ──
+// Пишем результат игры в eduSchedule/programGameResults/{studentId}/{lessonNum}.
+// Чтение этого пути в CRM уже из учительского кабинета по обычным правилам.
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCC61xh7Rdwkrw63BIzgdDqVq5_FOBUlgI",
+  authDomain: "elc-robeng.firebaseapp.com",
+  projectId: "elc-robeng",
+  storageBucket: "elc-robeng.firebasestorage.app",
+  messagingSenderId: "787056352049",
+  appId: "1:787056352049:web:988906f19d87fca3056e10",
+  databaseURL: "https://elc-robeng-default-rtdb.firebaseio.com"
+};
+let fbDb = null;
+try {
+  if (typeof firebase !== "undefined") {
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    fbDb = firebase.database();
+    // анонимная аутентификация, чтобы правила могли требовать auth != null
+    firebase.auth().signInAnonymously().catch(()=>{ /* пользователь играет — молча */ });
+  }
+} catch(e) { console.warn("firebase init failed", e); fbDb = null; }
+
 const params = new URLSearchParams(location.search);
 const lessonNum = parseInt(params.get("n") || "1", 10);
 let mode = params.get("mode") === "parent" ? "parent" : "self";
+const studentId = params.get("sid") || ""; // приходит из WhatsApp/кабинета родителя
 
 const root = document.getElementById("root");
 
@@ -924,6 +952,9 @@ function renderFinish(){
   if (pct < 50)      { emoji = "💪"; title = "Нужно повторить"; }
   else if (pct < 80) { emoji = "👍"; title = "Хорошо!"; }
 
+  // Сохраняем результат — в localStorage всегда, в RTDB если есть studentId
+  saveGameResult({ total, ok: score.ok, bad: score.bad, pct }).catch(()=>{});
+
   root.innerHTML = `
     <div class="top">
       <a class="back" href="lesson.html?n=${lesson.lesson}">← Урок</a>
@@ -944,6 +975,35 @@ function renderFinish(){
       </div>
     </div>
   `;
+}
+
+async function saveGameResult({ total, ok, bad, pct }){
+  const payload = {
+    total, ok, bad, pct,
+    mode,
+    finishedAt: new Date().toISOString(),
+    // список слов, которые были не сразу узнаны (уникальные имена)
+    wrongs: Array.from(new Set(wrongs.map(w => w && w.word).filter(Boolean))).slice(0, 30),
+    studentId: studentId || null,
+    lessonNum,
+  };
+  // 1) localStorage — всегда, так что хотя бы локально хранится прогресс
+  try {
+    localStorage.setItem(`elc_game_${lessonNum}_${mode}`, JSON.stringify(payload));
+  } catch {}
+  // 2) Firebase RTDB — если есть studentId и SDK инициализирован
+  if (studentId && fbDb){
+    try {
+      // ждём анонимного входа максимум 2с (правила могут требовать auth)
+      await new Promise(res => {
+        if (firebase.auth().currentUser) return res();
+        const off = firebase.auth().onAuthStateChanged(u => { if (u){ off(); res(); } });
+        setTimeout(res, 2000);
+      });
+      // Пишем под ключом mode, чтобы self/parent не затирали друг друга
+      await fbDb.ref(`eduSchedule/programGameResults/${studentId}/${lessonNum}/${mode}`).set(payload);
+    } catch (e) { /* offline / правила не пускают / пользователь не критичен */ }
+  }
 }
 
 init();
