@@ -109,12 +109,17 @@
   function sendToWhatsApp(student, lesson) {
     const phone = cleanPhone(student.parentPhone || student.phone);
     if (!phone) { alert('У ученика не указан номер родителя/ученика'); return; }
-    const url = `${LESSON_PUBLIC_BASE}/lesson.html?n=${lesson.lesson}`;
+    const n = lesson.lesson;
+    const lessonUrl = `${LESSON_PUBLIC_BASE}/lesson.html?n=${n}`;
+    const playSelf  = `${LESSON_PUBLIC_BASE}/play.html?n=${n}&mode=self`;
+    const playPar   = `${LESSON_PUBLIC_BASE}/play.html?n=${n}&mode=parent`;
     const wordsLine = (lesson.words || []).join(', ');
     const text =
-      `Здравствуйте! Сегодня прошли урок ${lesson.lesson}: ${lesson.topic || ''}.\n` +
-      (wordsLine ? `Слова: ${wordsLine}\n` : '') +
-      `Материал для повторения: ${url}`;
+      `Здравствуйте! Сегодня прошли урок ${n}: ${lesson.topic || ''}.\n` +
+      (wordsLine ? `Слова: ${wordsLine}\n\n` : '\n') +
+      `📖 Материал для повторения:\n${lessonUrl}\n\n` +
+      `🎯 Тренировка для ребёнка (сам):\n${playSelf}\n\n` +
+      `👨‍👧 Игра вместе с ребёнком:\n${playPar}`;
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank');
   }
 

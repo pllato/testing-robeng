@@ -178,6 +178,8 @@
 <script>
 const WORKER = 'https://flat-pond-6e68.uurraa.workers.dev';
 const TOKEN = new URLSearchParams(location.search).get('t') || '';
+// База превью программы: 70 уроков + игры. Сменим на боевой URL при выкатке.
+const LESSON_BASE = 'http://127.0.0.1:8800';
 
 let DATA = null;
 let activeKid = 0;
@@ -326,11 +328,41 @@ function renderKid(kid) {
   return `
     ${teacher ? renderTeacher(teacher) : ''}
     ${renderUpcoming(allUpcoming)}
+    ${renderPractice(progress)}
     ${renderAttendance(attCounts, attRecent)}
     ${renderVideos(allVideos)}
     ${progress.total ? renderProgress(progress, kid.level) : ''}
     ${renderCTA()}
     <div class="ftr">RobEng · ELC Kids · elc-kids.kz</div>
+  `;
+}
+
+// «Тренировка дома» — ссылка на программу, тренировку и игру с родителем
+function renderPractice(progress) {
+  // Подсказка: какой урок открыть по умолчанию (последний пройденный или 1)
+  const n = Math.max(1, Math.min(70, (progress && progress.passed) ? progress.passed : 1));
+  return `
+    <div class="sec-h">Тренировка дома</div>
+    <div class="card">
+      <div style="font-size:14px;line-height:1.4;color:var(--ink);margin-bottom:10px">
+        Повторите пройденный материал — на каждом уроке есть карточки со словами,
+        тренировка для ребёнка и игра, в которую можно поиграть вместе.
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <a href="${LESSON_BASE}/lesson.html?n=${n}" target="_blank"
+           style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);text-decoration:none;color:var(--ink);font-weight:600;font-size:14px">
+          <span style="font-size:18px">📖</span><span>Открыть программу — урок ${n}</span>
+        </a>
+        <a href="${LESSON_BASE}/play.html?n=${n}&mode=self" target="_blank"
+           style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:linear-gradient(135deg,#ede9fe,#fef3e6);border:1px solid #c4b5fd;border-radius:var(--r);text-decoration:none;color:var(--ink);font-weight:700;font-size:14px">
+          <span style="font-size:18px">🎯</span><span>Тренировка для ребёнка</span>
+        </a>
+        <a href="${LESSON_BASE}/play.html?n=${n}&mode=parent" target="_blank"
+           style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:linear-gradient(135deg,#dcfce7,#bbf7d0);border:1px solid #86efac;border-radius:var(--r);text-decoration:none;color:var(--ink);font-weight:700;font-size:14px">
+          <span style="font-size:18px">👨‍👧</span><span>Игра вместе с ребёнком</span>
+        </a>
+      </div>
+    </div>
   `;
 }
 
