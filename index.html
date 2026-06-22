@@ -2014,13 +2014,57 @@ function setFbStatus(state, label){
   if(lbl){lbl.textContent=label;}
 }
 
+// Ключи, которые пишет общий debounce-save(). ВАЖНО:
+//  • 'attendance' исключён намеренно — табель пишется по одной ячейке
+//    (см. saveAttCell), поэтому обычное сохранение его больше не затирает.
+//  • 'videoReports' и 'appUsers' живут в отдельных узлах Firebase
+//    (videoRef / usersRef) и не должны попадать в eduSchedule.
+const EDU_SAVE_KEYS=['subjects','teachers','avail','students','enrollments','journal','scheduleHistory','makeups','reportsSent','trash','settings'];
+
+// Низкоуровневый помощник: точечно пишет только переданные пути,
+// НЕ перезаписывая остальное дерево (dbRef.update вместо dbRef.set).
+function savePaths(upd){
+  try{localStorage.setItem('edu_v5',JSON.stringify(S));}catch(e){}
+  setFbStatus('saving','Сохранение...');
+  return dbRef.update(upd)
+    .then(()=>setFbStatus('online','Сохранено ✓'))
+    .catch(err=>{console.error('Firebase savePaths:',err);setFbStatus('error','Ошибка сохранения');});
+}
+
+// Точечная запись одной ячейки табеля (+журнал). v===null удаляет ячейку.
+function saveAttCell(k){
+  const v=(S.attendance&&S.attendance[k]!=null)?S.attendance[k]:null;
+  return savePaths({['attendance/'+k]:v, journal:S.journal||[]});
+}
+
+// Точечная запись одного абонемента (+журнал): продление, renewalLogs
+// (комментарии о запросе продления) и отпуск — всё внутри объекта enrollment.
+function saveEnroll(enrollId){
+  const idx=(S.enrollments||[]).findIndex(e=>e&&e.id===enrollId);
+  if(idx<0)return save();
+  return savePaths({['enrollments/'+idx]:S.enrollments[idx], journal:S.journal||[]});
+}
+
+// Полная перезапись всего дерева — ТОЛЬКО для явного отката из резервной копии.
+function saveFull(){
+  try{localStorage.setItem('edu_v5',JSON.stringify(S));}catch(e){}
+  setFbStatus('saving','Сохранение...');
+  return dbRef.set(S)
+    .then(()=>setFbStatus('online','Сохранено ✓'))
+    .catch(err=>{console.error('Firebase saveFull:',err);setFbStatus('error','Ошибка сохранения');});
+}
+
 function save(){
   try{localStorage.setItem('edu_v5',JSON.stringify(S));}catch(e){}
   if(_saveTimer)clearTimeout(_saveTimer);
   setFbStatus('saving','Сохранение...');
   _saveTimer=setTimeout(()=>{
     _saveTimer=null;
-    dbRef.set(S)
+    // update() пишет только перечисленные ключи и НЕ удаляет остальные ветки —
+    // устаревшая вкладка больше не может откатить всю базу одной записью.
+    const payload={};
+    EDU_SAVE_KEYS.forEach(k=>{ if(S[k]!==undefined) payload[k]=S[k]; });
+    dbRef.update(payload)
       .then(()=>setFbStatus('online','Сохранено ✓'))
       .catch(err=>{console.error('Firebase save:',err);setFbStatus('error','Ошибка сохранения');});
   },600);
@@ -5380,7 +5424,7 @@ function setAtt(enrollId,dateStr,val,user){
   const st=student(e?.studentId),t=teacher(e?.teacherId);
   const labels={done:'Урок проведён',miss:'Пропуск',makeup:'Отработан'};
   logAction('attendance',`${labels[val]||val}: ${st?.name||'—'}`,`${t?.name||'—'} · ${dateStr}`);
-  save();renderSchedule();
+  saveAttCell(k);renderSchedule();
   // WhatsApp уведомление только при пропуске урока
   if(!isToggleOff && st && val==='miss'){
     const parentPhone=st.parentPhone||'';
@@ -5486,7 +5530,8 @@ function saveMakeup(){
     if(parentPhone){ notifyWhatsAppWithHistory(parentPhone,msg,_mkLeadId,_mkSender).then(r=>{ if(r?.ok) logNotify('crm',lead.name||'—',parentPhone,msg,{stage:newStage}); }); }
     if(studentPhone&&studentPhone!==parentPhone){ notifyWhatsAppWithHistory(studentPhone,msg,_mkLeadId,_mkSender).then(r=>{ if(r?.ok) logNotify('crm',lead.name||'—',studentPhone,msg,{stage:newStage}); }); }
   }
-  save();close1('m-makeup');renderSchedule();toast('Отработка сохранена');
+  savePaths({['makeups/'+k]:S.makeups[k], ['attendance/'+k]:S.attendance[k], journal:S.journal||[]});
+  close1('m-makeup');renderSchedule();toast('Отработка сохранена');
 }
 
 // ── DUPLICATE DETECTION ───────────────────────────────────────────
@@ -7746,7 +7791,7 @@ function saveRenewalNote(enrollId){
   addRenewalLog(enrollId,'Комментарий','💬','var(--t3)',note);
   const el=document.getElementById('rnote-'+enrollId);
   if(el)el.value='';
-  save();renderRenewals();toast('Комментарий сохранён');
+  saveEnroll(enrollId);renderRenewals();toast('Комментарий сохранён');
 }
 
 function cancelVacation(enrollId){
@@ -7767,7 +7812,7 @@ function cancelVacation(enrollId){
   S.enrollments[idx].vacations.splice(vacIdx,1);
   addRenewalLog(enrollId,'Отпуск отменён','✕','var(--rd)',`был ${fmtDateRu(vac.from)}–${fmtDateRu(vac.to)}`);
   logAction('vacation','Отпуск отменён: '+(S.students?.find(s=>s.id===e.studentId)?.name||'-'),'');
-  save();renderRenewals();toast('Отпуск отменён');
+  saveEnroll(enrollId);renderRenewals();toast('Отпуск отменён');
 }
 
 function saveVacationUI(enrollId){
@@ -7797,7 +7842,7 @@ function saveVacationUI(enrollId){
   const note=getNoteInput(enrollId)||`с ${fmtDateRu(from)} по ${fmtDateRu(to)}, +${vacDays} ур.`;
   addRenewalLog(enrollId,'Отпуск','🏖','var(--tl)',note);
   logAction('vacation','Отпуск: '+(S.students?.find(s=>s.id===e.studentId)?.name||'-'),from+' - '+to);
-  save();
+  saveEnroll(enrollId);
   document.getElementById('vac-modal-'+enrollId)?.remove();
   renderRenewals();
   toast(`Отпуск сохранён, абонемент продлён на ${vacDays} уроков`);
@@ -7853,7 +7898,7 @@ function saveRenewUI(enrollId){
     const _msgR=`Здравствуйте! Спасибо, оплату видим 🙏\n\nАбонемент *${stuName}* продлён до ${fmtDateRu(newEndStr)}.`;
     notifyWhatsApp('+'+_phoneR, _msgR);
   }
-  save();
+  saveEnroll(enrollId);
   document.getElementById('renew-modal-'+enrollId)?.remove();
   renderRenewals();toast('Абонемент продлён до '+fmtDateRu(newEndStr));
 }
@@ -7918,7 +7963,7 @@ function deactivateEnrollUI(enrollId){
   S.enrollments[idx].deactivationDate=new Date().toISOString().slice(0,10);
   const stuName=S.students?.find(s=>s.id===S.enrollments[idx].studentId)?.name||'-';
   logAction('deactivate','Деактивирован: '+stuName,'Причина: '+reasonText);
-  save();renderRenewals();renderStudents();toast('Ученик деактивирован');
+  saveEnroll(enrollId);renderRenewals();renderStudents();toast('Ученик деактивирован');
 }
 
 function renewEnroll(enrollId){
@@ -7936,7 +7981,7 @@ function renewEnroll(enrollId){
   S.enrollments[idx].renewalComment='';
   const stuName=S.students?.find(s=>s.id===e.studentId)?.name||'-';
   logAction('renewal','Продлено: '+stuName,'до '+newEndStr);
-  save();renderRenewals();renderDelayed();toast('Абонемент продлён до '+fmtDateRu(newEndStr));
+  saveEnroll(enrollId);renderRenewals();renderDelayed();toast('Абонемент продлён до '+fmtDateRu(newEndStr));
 }
 
 function markDelayed(enrollId){
@@ -7951,7 +7996,7 @@ function markDelayed(enrollId){
   S.enrollments[idx].renewalHandled=true;
   const stuName=S.students?.find(s=>s.id===S.enrollments[idx].studentId)?.name||'-';
   logAction('payment_delayed','Оплата задерживается: '+stuName,'до '+dueDate);
-  save();renderRenewals();renderDelayed();toast('Отмечено - оплата ожидается до '+fmtDateRu(dueDate));
+  saveEnroll(enrollId);renderRenewals();renderDelayed();toast('Отмечено - оплата ожидается до '+fmtDateRu(dueDate));
 }
 
 function clearDelayed(enrollId){
@@ -7968,7 +8013,7 @@ function clearDelayed(enrollId){
   S.enrollments[idx].renewalHandled=false;
   const stuName=S.students?.find(s=>s.id===e.studentId)?.name||'—';
   logAction('payment_received','Оплата получена: '+stuName,'до '+newEndStr);
-  save();renderDelayed();renderRenewals();toast('Оплата получена, абонемент до '+fmtDateRu(newEndStr));
+  saveEnroll(enrollId);renderDelayed();renderRenewals();toast('Оплата получена, абонемент до '+fmtDateRu(newEndStr));
 }
 
 function deactivateEnroll(enrollId){
@@ -7985,7 +8030,7 @@ function deactivateEnroll(enrollId){
   S.enrollments[idx].deactivationDate=new Date().toISOString().slice(0,10);
   const stuName=S.students?.find(s=>s.id===S.enrollments[idx].studentId)?.name||'-';
   logAction('deactivate','Деактивирован: '+stuName,'Причина: '+reasonText);
-  save();renderRenewals();renderStudents();toast('Ученик деактивирован');
+  saveEnroll(enrollId);renderRenewals();renderStudents();toast('Ученик деактивирован');
 }
 function updateRenewalsBadge(){
   const items=(S.enrollments||[]).filter(e=>{
@@ -8062,19 +8107,24 @@ function setVacation(enrollId){
 
   // Mark attendance as vacation for all lesson days in period
   if(!S.attendance)S.attendance={};
+  const vacKeys=[];
   const cur2=new Date(dFrom);
   while(cur2<=dTo){
     const dow=(cur2.getDay()+6)%7;
     const dateStr=cur2.toISOString().slice(0,10);
     if(lessonDays.includes(dow)){
       const key=enrollId+'_'+dateStr;
-      if(!S.attendance[key]) S.attendance[key]='vacation';
+      if(!S.attendance[key]){ S.attendance[key]='vacation'; vacKeys.push(key); }
     }
     cur2.setDate(cur2.getDate()+1);
   }
 
   logAction('vacation','Отпуск: '+(stu?.name||'-'),from+' - '+to+(choice?' (абонемент продлён)':' (пропуск)'));
-  save();renderStudents();renderRenewals();
+  // Точечно: сам абонемент + только изменённые ячейки табеля + журнал.
+  const _vu={['enrollments/'+idx]:S.enrollments[idx], journal:S.journal||[]};
+  vacKeys.forEach(k=>{ _vu['attendance/'+k]=S.attendance[k]; });
+  savePaths(_vu);
+  renderStudents();renderRenewals();
 }
 
 function reactivateEnroll(enrollId){
@@ -8089,7 +8139,7 @@ function reactivateEnroll(enrollId){
     e.dateEnd=addMonth(today);
   }
   logAction('enroll',`Активирован: ${st?.name||'—'}`,`Слот занят · период до ${fmtDate(e.dateEnd)}`);
-  save();renderStudents();renderSchedule();toast('Активирован · слот занят до '+fmtDate(e.dateEnd));
+  saveEnroll(enrollId);renderStudents();renderSchedule();toast('Активирован · слот занят до '+fmtDate(e.dateEnd));
 }
 // Edit only student contact info (not enrollment)
 function editStudentInfo(stuId){
@@ -8749,7 +8799,7 @@ function extendSame(){
   // Спасибо за оплату
   const _phoneES=(st?.parentPhone||st?.phone||'').replace(/\D/g,'');
   if(_phoneES){ notifyWhatsApp('+'+_phoneES,`Здравствуйте! Спасибо, оплату видим 🙏\n\nАбонемент *${st?.name||''}* продлён до ${fmtDate(dateEnd)}.`); }
-  save();close1('m-extend');renderStudents();renderSchedule();toast('Продлено до '+fmtDate(dateEnd));
+  saveEnroll(extEnrollId);close1('m-extend');renderStudents();renderSchedule();toast('Продлено до '+fmtDate(dateEnd));
 }
 
 function extendNew(){
@@ -8772,7 +8822,7 @@ function extendNew(){
   // Спасибо за оплату
   const _phoneEN=(st?.parentPhone||st?.phone||'').replace(/\D/g,'');
   if(_phoneEN){ notifyWhatsApp('+'+_phoneEN,`Здравствуйте! Спасибо, оплату видим 🙏\n\nАбонемент *${st?.name||''}* продлён до ${fmtDate(dateEnd)}.`); }
-  save();close1('m-extend');renderStudents();renderSchedule();toast('Продлено с изменениями до '+fmtDate(dateEnd));
+  saveEnroll(extEnrollId);close1('m-extend');renderStudents();renderSchedule();toast('Продлено с изменениями до '+fmtDate(dateEnd));
 }
 
 // ── DEACTIVATE ────────────────────────────────────────────────────
@@ -8783,7 +8833,7 @@ function deactivateEnroll(enrollId){
   const today=new Date().toISOString().slice(0,10);
   e.dateEnd=today;e.inactive=true;
   logAction('deactivate',`Деактивирован: ${st?.name||'—'}`,`Запись завершена ${fmtDate(today)}`);
-  save();renderStudents();toast('Запись деактивирована');
+  saveEnroll(enrollId);renderStudents();toast('Запись деактивирована');
 }
 
 // ── DEDUP old enrollments ─────────────────────────────────────────
@@ -14688,7 +14738,7 @@ function restoreBackup(key){
     if(!S.reportsSent)S.reportsSent={};
     if(!S.trash)S.trash=[];
     logAction('other',`Откат к резервной копии: ${b.ts}`,`Выполнил: ${user}`);
-    save();applyScheduledAvail();updateWL();renderDashboard();updateTrashBadge();
+    saveFull();applyScheduledAvail();updateWL();renderDashboard();updateTrashBadge();
     toast('✓ Данные восстановлены из резервной копии!');
     renderBackups();
   }).catch(err=>toast('Ошибка отката: '+err.message,true));
