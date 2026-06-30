@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Pllato · КП — CRM для грузоперевозок</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',sans-serif;background:#f5f5f7;color:#1a1830;font-size:15px;line-height:1.6;}
+.page{max-width:780px;margin:0 auto;background:#fff;}
+
+/* COVER */
+.cover{min-height:100vh;display:flex;flex-direction:column;justify-content:space-between;padding:56px 64px;background:#fff;position:relative;overflow:hidden;}
+.cover::before{content:'';position:absolute;top:-120px;right:-120px;width:500px;height:500px;background:radial-gradient(circle,rgba(247,148,29,0.08) 0%,transparent 70%);pointer-events:none;}
+.logo-row{display:flex;align-items:center;gap:12px;}
+.logo-mark{width:40px;height:40px;background:linear-gradient(135deg,#F7941D,#6DC21B);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:15px;letter-spacing:-0.5px;}
+.logo-name{font-weight:800;font-size:18px;letter-spacing:-0.5px;color:#1a1830;}
+.doc-type{font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#F7941D;margin-bottom:18px;}
+.cover-title{font-size:52px;font-weight:900;line-height:1.05;letter-spacing:-2px;color:#1a1830;margin-bottom:20px;}
+.cover-title span{color:#F7941D;}
+.cover-sub{font-size:17px;color:#5a5778;max-width:540px;line-height:1.6;}
+.cover-price-box{background:linear-gradient(135deg,#fff8ee,#fff);border:2px solid #F7941D;border-radius:20px;padding:36px 48px;display:inline-flex;gap:64px;margin-top:48px;}
+.price-item{display:flex;flex-direction:column;gap:4px;}
+.price-label{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#9896b0;}
+.price-val{font-size:32px;font-weight:900;color:#1a1830;letter-spacing:-1px;}
+.price-sub{font-size:12px;color:#6DC21B;font-weight:600;}
+.cover-footer{display:flex;align-items:center;justify-content:space-between;border-top:1px solid #eee;padding-top:24px;margin-top:48px;}
+.cover-client{font-size:13px;color:#9896b0;}
+.cover-client strong{color:#1a1830;font-weight:700;}
+.cover-date{font-size:12px;color:#9896b0;}
+
+/* SECTIONS */
+.section{padding:64px;}
+.section:nth-child(even){background:#fafafa;}
+.sec-num{font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#F7941D;margin-bottom:12px;}
+.sec-title{font-size:32px;font-weight:800;letter-spacing:-1px;color:#1a1830;margin-bottom:24px;line-height:1.15;}
+.sec-body{font-size:15px;color:#4a4868;line-height:1.7;}
+.sec-body p{margin-bottom:16px;}
+
+/* QUOTE */
+.quote{background:#fff8ee;border-left:4px solid #F7941D;border-radius:0 12px 12px 0;padding:24px 28px;margin:28px 0;font-size:15px;font-style:italic;color:#4a4868;}
+.quote cite{display:block;margin-top:10px;font-style:normal;font-size:12px;font-weight:700;color:#9896b0;text-transform:uppercase;letter-spacing:1px;}
+
+/* CARDS GRID */
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:28px;}
+.card{background:#fff;border:1px solid #eee;border-radius:16px;padding:24px;transition:border-color .2s;}
+.card:hover{border-color:#F7941D;}
+.card-icon{font-size:28px;margin-bottom:12px;}
+.card-title{font-weight:700;font-size:15px;color:#1a1830;margin-bottom:6px;}
+.card-text{font-size:13px;color:#6a6888;line-height:1.5;}
+
+/* LIST */
+.check-list{list-style:none;margin-top:20px;}
+.check-list li{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid #f0eef6;font-size:14px;color:#4a4868;}
+.check-list li:last-child{border-bottom:none;}
+.check-list li::before{content:'✓';color:#6DC21B;font-weight:800;font-size:16px;flex-shrink:0;line-height:1.5;}
+
+/* FLOW */
+.flow{display:flex;flex-direction:column;gap:0;margin-top:28px;}
+.flow-step{display:flex;gap:24px;align-items:flex-start;padding:20px 0;border-bottom:1px solid #f0eef6;}
+.flow-step:last-child{border-bottom:none;}
+.flow-num{width:40px;height:40px;background:linear-gradient(135deg,#F7941D,#f5a94a);border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px;flex-shrink:0;}
+.flow-body{}
+.flow-title{font-weight:700;font-size:15px;color:#1a1830;margin-bottom:4px;}
+.flow-text{font-size:13px;color:#6a6888;line-height:1.5;}
+
+/* TABLE */
+.price-table{width:100%;border-collapse:collapse;margin-top:28px;}
+.price-table th{text-align:left;padding:12px 16px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#9896b0;border-bottom:2px solid #eee;}
+.price-table td{padding:16px;font-size:14px;color:#4a4868;border-bottom:1px solid #f0eef6;vertical-align:top;}
+.price-table td:first-child{font-weight:600;color:#1a1830;}
+.price-table tr:last-child td{border-bottom:none;}
+.price-table .total td{font-weight:800;font-size:16px;color:#1a1830;border-top:2px solid #eee;}
+.badge{display:inline-block;background:#fff4e3;color:#F7941D;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;}
+.badge-green{background:#f0fce8;color:#4a9c1b;}
+
+/* FOOTER */
+.footer{background:#1a1830;color:#fff;padding:48px 64px;display:flex;justify-content:space-between;align-items:center;}
+.footer-brand{font-weight:800;font-size:18px;letter-spacing:-0.5px;}
+.footer-brand span{color:#F7941D;}
+.footer-links{display:flex;flex-direction:column;gap:4px;font-size:13px;color:rgba(255,255,255,0.5);text-align:right;}
+
+/* DIVIDER */
+.divider{height:1px;background:linear-gradient(to right,#F7941D,transparent);margin:0 64px;}
+
+@media(max-width:640px){
+.cover{padding:36px 28px;}
+.cover-title{font-size:34px;}
+.cover-price-box{gap:36px;padding:28px 32px;}
+.price-val{font-size:24px;}
+.section{padding:40px 28px;}
+.sec-title{font-size:24px;}
+.cards{grid-template-columns:1fr;}
+.footer{flex-direction:column;gap:24px;padding:36px 28px;text-align:center;}
+.footer-links{text-align:center;}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- COVER -->
+<div class="cover">
+  <div>
+    <div class="logo-row">
+      <div class="logo-mark">Pl</div>
+      <div class="logo-name">Pllato.</div>
+    </div>
+  </div>
+  <div>
+    <div class="doc-type">Коммерческое предложение</div>
+    <h1 class="cover-title">CRM + пульт для<br/><span>грузоперевозок</span></h1>
+    <p class="cover-sub">Воронка заявок, пульт оператора 24/7, веб-кабинет водителя — всё под ключ, в вашу собственность, без абонентской платы. Сайт-лендинг в подарок.</p>
+    <div class="cover-price-box">
+      <div class="price-item">
+        <div class="price-label">Стоимость</div>
+        <div class="price-val">$3 000</div>
+        <div class="price-sub">Сайт в подарок</div>
+      </div>
+      <div class="price-item">
+        <div class="price-label">Срок</div>
+        <div class="price-val">2–3 нед.</div>
+        <div class="price-sub">Старт через 3–5 дней</div>
+      </div>
+      <div class="price-item">
+        <div class="price-label">Предоплата</div>
+        <div class="price-val">$300</div>
+        <div class="price-sub">Остальное — постоплатой</div>
+      </div>
+    </div>
+  </div>
+  <div class="cover-footer">
+    <div class="cover-client">Подготовлено для: <strong>Бахытжан Джаксыбеков, Айгерим Хасанова</strong></div>
+    <div class="cover-date">Астана · 30 июня 2026</div>
+  </div>
+</div>
+
+<!-- 01 ЧТО МЫ УСЛЫШАЛИ -->
+<div class="section">
+  <div class="sec-num">01 раздел</div>
+  <h2 class="sec-title">Что мы услышали</h2>
+  <div class="sec-body">
+    <p>Бахытжан, Айгерим — по итогам нашего разговора задача такая: вы строите грузовое такси / сервис переездов для Астаны. Физические лица и юридические компании оставляют заявку — вы находите газель, грузчиков, организуете переезд или перевозку груза. Ориентир — Яндекс Перевозки, но с фокусом на B2B и контроль каждого заказа.</p>
+    <p>Сейчас вы на этапе бюджетирования: хотите понять реальную стоимость системы, прежде чем вкладываться. Мобильного приложения на старте не нужно — всё через веб и WhatsApp.</p>
+    <p>Самая важная вещь, которую мы зафиксировали: <strong>ни одна заявка не должна потеряться</strong>. Клиент заказал газель на 6 утра — система должна отследить, что водитель принял заказ, выехал и доставил. Оператор видит всё в одном экране.</p>
+  </div>
+  <div class="quote">
+    «Хотим чтобы люди могли оставить заявку: откуда, куда, сколько газелей, сколько грузчиков нужно. И чтобы мы не пропустили ни одного заказа — даже если это шесть утра или десять вечера.»
+    <cite>— из разговора, Бахытжан и Айгерим</cite>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- 02 ЧТО МЫ ПОСТРОИМ -->
+<div class="section">
+  <div class="sec-num">02 раздел</div>
+  <h2 class="sec-title">Что мы построим</h2>
+  <div class="sec-body">
+    <p>Три блока в одной системе на вашем сервере, в вашу собственность — без ежемесячной платы за «коробку»:</p>
+  </div>
+  <div class="cards">
+    <div class="card">
+      <div class="card-icon">🗂</div>
+      <div class="card-title">Воронка заявок / CRM</div>
+      <div class="card-text">Все заявки с сайта и WhatsApp — в одном месте. Оператор видит статус каждого заказа, не теряет ни одного клиента.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">🎛</div>
+      <div class="card-title">Пульт оператора</div>
+      <div class="card-text">Диспетчерский экран: текущие заказы, статусы водителей, назначение машины одной кнопкой. Работает 24/7.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">🚐</div>
+      <div class="card-title">Веб-кабинет водителя</div>
+      <div class="card-text">Водитель открывает страницу в телефоне и нажимает: «Принял → Выехал → Доставил». Никаких приложений из магазина.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">🌐</div>
+      <div class="card-title">Сайт-лендинг</div>
+      <div class="card-text">Форма заявки с калькулятором (откуда/куда, газель, грузчики), выбор юр/физ лицо. В подарок — делаем параллельно.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">💬</div>
+      <div class="card-title">WhatsApp в карточке</div>
+      <div class="card-text">Переписка с клиентом прямо внутри заявки. Вся история в одном месте — оператор не переключается между приложениями.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">📄</div>
+      <div class="card-title">Счета для юр лиц</div>
+      <div class="card-text">По завершении заказа — автоматическое формирование счёта на оплату для юридических лиц. Отправка в WhatsApp.</div>
+    </div>
+  </div>
+</div>
+
+<!-- 03 ВОРОНКА -->
+<div class="section">
+  <div class="sec-num">03 раздел</div>
+  <h2 class="sec-title">Воронка заявок</h2>
+  <div class="sec-body">
+    <p>Не пропустить ни одну заявку — главная задача на старте. Каждый заказ проходит чёткий путь от входящего запроса до закрытия.</p>
+  </div>
+  <div class="flow">
+    <div class="flow-step">
+      <div class="flow-num">1</div>
+      <div class="flow-body">
+        <div class="flow-title">Новая заявка</div>
+        <div class="flow-text">Поступает с сайта или WhatsApp. Автоматически создаётся карточка: откуда, куда, дата/время, тип клиента (юр/физ), телефон.</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">2</div>
+      <div class="flow-body">
+        <div class="flow-title">Квалификация и расчёт</div>
+        <div class="flow-text">Оператор уточняет детали — объём, этаж, дополнительные услуги. Рассчитывает стоимость и подтверждает с клиентом.</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">3</div>
+      <div class="flow-body">
+        <div class="flow-title">Назначение машины и команды</div>
+        <div class="flow-text">Оператор в пульте выбирает свободную газель и грузчиков, назначает на заказ. Водителю приходит уведомление в его веб-кабинет.</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">4</div>
+      <div class="flow-body">
+        <div class="flow-title">Исполнение и трекинг</div>
+        <div class="flow-text">Водитель нажимает «Принял → Выехал → На месте → Завершил». Статус в реальном времени виден оператору и клиенту.</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">5</div>
+      <div class="flow-body">
+        <div class="flow-title">Закрытие и документы</div>
+        <div class="flow-text">Заказ закрыт. Система формирует акт/счёт для юр лица, фиксирует выплату водителю, запрашивает оценку у клиента.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- 04 ПУЛЬТ -->
+<div class="section">
+  <div class="sec-num">04 раздел</div>
+  <h2 class="sec-title">Пульт оператора</h2>
+  <div class="sec-body">
+    <p>Диспетчер видит всё на одном экране. Это «вышка» вашего бизнеса: текущие заказы, статусы водителей, входящие заявки — всё в реальном времени.</p>
+  </div>
+  <ul class="check-list">
+    <li>Список активных заказов с цветовыми статусами (ожидание / в пути / завершён)</li>
+    <li>Свободные и занятые водители — видно кто доступен прямо сейчас</li>
+    <li>Назначение водителя на заказ в один клик</li>
+    <li>Алерт: если заявка пришла и не обработана 15 минут — пульт сигнализирует</li>
+    <li>Алерт: водитель не подтвердил заказ за N минут — оператор видит и звонит</li>
+    <li>Журнал всех заказов за день / неделю / месяц</li>
+    <li>Быстрый чат с водителем прямо из карточки заказа</li>
+  </ul>
+</div>
+
+<!-- 05 ВОДИТЕЛЬ -->
+<div class="section">
+  <div class="sec-num">05 раздел</div>
+  <h2 class="sec-title">Веб-кабинет водителя</h2>
+  <div class="sec-body">
+    <p>Водитель открывает ссылку в браузере телефона — никакого приложения из магазина. Интерфейс предельно простой: одна кнопка на каждом шаге.</p>
+  </div>
+  <div class="cards">
+    <div class="card">
+      <div class="card-icon">📋</div>
+      <div class="card-title">Мои заказы</div>
+      <div class="card-text">Водитель видит только свои назначенные заказы — адрес, время, детали, контакт клиента.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">▶️</div>
+      <div class="card-title">Статусы одной кнопкой</div>
+      <div class="card-text">«Принял заказ» → «Выехал» → «На месте» → «Работа началась» → «Завершено». Каждое нажатие фиксируется с временем.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">⏱</div>
+      <div class="card-title">Почасовая фиксация</div>
+      <div class="card-text">При нажатии «Работа началась» — запускается таймер. При «Завершено» — фиксируется итоговое время для расчёта оплаты.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">💰</div>
+      <div class="card-title">Мои выплаты</div>
+      <div class="card-text">История выполненных заказов и суммы. Прозрачность для водителя — снижает конфликты и воровство.</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- 06 САЙТ -->
+<div class="section">
+  <div class="sec-num">06 раздел</div>
+  <h2 class="sec-title">Сайт-лендинг<br/><span style="color:#6DC21B;font-size:0.7em;">В подарок</span></h2>
+  <div class="sec-body">
+    <p>Параллельно с CRM делаем сайт — быстро, за 2–3 дня. Лендинг с формой заявки и калькулятором, оптимизированный под Google Ads. Заявка с сайта сразу падает в CRM.</p>
+  </div>
+  <ul class="check-list">
+    <li>Форма заявки: откуда → куда, дата/время, тип груза</li>
+    <li>Калькулятор стоимости: газель / грузчики / этажи / расстояние</li>
+    <li>Выбор типа клиента: юр. лицо → система готовит нужные документы</li>
+    <li>Мобильная версия — большинство клиентов придут с телефона</li>
+    <li>Подключение к Google Analytics для отслеживания заявок</li>
+    <li>Готов к запуску Google Ads и таргета сразу после сдачи</li>
+  </ul>
+</div>
+
+<!-- 07 КАК МЫ РАБОТАЕМ -->
+<div class="section">
+  <div class="sec-num">07 раздел</div>
+  <h2 class="sec-title">Как мы работаем</h2>
+  <div class="flow">
+    <div class="flow-step">
+      <div class="flow-num">1</div>
+      <div class="flow-body">
+        <div class="flow-title">Старт — 3–5 дней после предоплаты</div>
+        <div class="flow-text">Уточняем детали воронки, этапы вашего процесса, список ролей. Утверждаем структуру в одном созвоне.</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">2</div>
+      <div class="flow-body">
+        <div class="flow-title">Неделя 1–2 — разработка</div>
+        <div class="flow-text">Воронка + пульт + веб-кабинет водителя. Параллельно — сайт. Промежуточный доступ для вас — смотрите как идёт.</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">3</div>
+      <div class="flow-body">
+        <div class="flow-title">Неделя 2–3 — полировка и сдача</div>
+        <div class="flow-text">Тестирование всего цикла: заявка → пульт → водитель → закрытие. Обучение команды. Сдача под ключ.</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">4</div>
+      <div class="flow-body">
+        <div class="flow-title">После сдачи</div>
+        <div class="flow-text">2 недели поддержки включено. Исходный код и права — ваши. Хостинг и домен — на вас (помогаем настроить).</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- 08 СТОИМОСТЬ -->
+<div class="section">
+  <div class="sec-num">08 раздел</div>
+  <h2 class="sec-title">Стоимость и оплата</h2>
+  <table class="price-table">
+    <thead>
+      <tr>
+        <th>Что входит</th>
+        <th>Стоимость</th>
+        <th>Срок</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>CRM (воронка заявок, карточки клиентов, WhatsApp)</td>
+        <td>входит в пакет</td>
+        <td rowspan="4" style="vertical-align:middle;font-size:20px;font-weight:800;color:#F7941D;">2–3<br/>недели</td>
+      </tr>
+      <tr>
+        <td>Пульт оператора (диспетчерский экран, алерты)</td>
+        <td>входит в пакет</td>
+      </tr>
+      <tr>
+        <td>Веб-кабинет водителя (статусы, таймер, история)</td>
+        <td>входит в пакет</td>
+      </tr>
+      <tr>
+        <td>Счета для юр. лиц + журнал выплат водителям</td>
+        <td>входит в пакет</td>
+      </tr>
+      <tr>
+        <td>Сайт-лендинг с калькулятором и формой заявки <span class="badge-green badge">В подарок</span></td>
+        <td style="color:#6DC21B;font-weight:700;">$0</td>
+        <td>2–3 дня</td>
+      </tr>
+      <tr>
+        <td>2 недели поддержки после сдачи</td>
+        <td>включено</td>
+        <td>—</td>
+      </tr>
+      <tr class="total">
+        <td>Итого под ключ</td>
+        <td>$3 000</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <div style="margin-top:28px;padding:24px;background:#fff8ee;border-radius:16px;border:1px solid #fbd9aa;">
+    <div style="font-weight:700;font-size:15px;color:#1a1830;margin-bottom:8px;">График оплаты</div>
+    <ul class="check-list" style="margin-top:0;">
+      <li>$300 — предоплата, старт работ через 3–5 дней</li>
+      <li>$1 350 — по итогам первого показа (конец 1-й недели)</li>
+      <li>$1 350 — финальная приёмка и сдача под ключ</li>
+    </ul>
+  </div>
+</div>
+
+<!-- 09 ЧТО ВЫ ПОЛУЧАЕТЕ -->
+<div class="section">
+  <div class="sec-num">09 раздел</div>
+  <h2 class="sec-title">Что вы получаете</h2>
+  <ul class="check-list">
+    <li>Своя IT-платформа на вашем сервере — без ежемесячной абонентской платы</li>
+    <li>Полная передача исходного кода в собственность после финальной оплаты</li>
+    <li>Ни одна заявка не потеряется — пульт алертит, если заказ завис</li>
+    <li>Водители работают без приложений — только ссылка в браузере</li>
+    <li>Сайт с калькулятором, готовый к запуску Google Ads, в подарок</li>
+    <li>Счета для юр. лиц — автоматически, без ручной работы бухгалтера</li>
+    <li>2 недели поддержки включено — выходим на связь по любому вопросу</li>
+  </ul>
+  <div style="margin-top:40px;text-align:center;padding:40px;background:linear-gradient(135deg,#fff8ee,#fff);border:2px solid #F7941D;border-radius:20px;">
+    <div style="font-size:13px;color:#9896b0;margin-bottom:8px;text-transform:uppercase;letter-spacing:2px;font-weight:700;">Следующий шаг</div>
+    <div style="font-size:22px;font-weight:800;color:#1a1830;margin-bottom:16px;">Скажите «окей» — запустим через 3 дня</div>
+    <div style="font-size:14px;color:#6a6888;">Предоплата $300, остальное — постоплатой по этапам.</div>
+    <div style="margin-top:24px;display:flex;gap:16px;justify-content:center;flex-wrap:wrap;">
+      <a href="https://wa.me/77011239999" style="display:inline-block;background:#25D366;color:#fff;font-weight:700;padding:14px 28px;border-radius:12px;text-decoration:none;font-size:14px;">WhatsApp Платону</a>
+      <a href="tel:+77011239999" style="display:inline-block;background:#F7941D;color:#fff;font-weight:700;padding:14px 28px;border-radius:12px;text-decoration:none;font-size:14px;">+7 701 123 99 99</a>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div>
+    <div class="footer-brand">Pl<span>lato</span>.</div>
+    <div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:4px;">ИП «STUDYSTORIES.APP»</div>
+  </div>
+  <div class="footer-links">
+    <div>pllato.kz</div>
+    <div>+7 701 123 99 99</div>
+    <div>Алматы · Казахстан</div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

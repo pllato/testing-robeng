@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>Pllato Demo · Грузоперевозки CRM</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#f2f3f7;--bg2:#fff;--bg3:#eceef5;
+  --t1:#1a1830;--t2:#4a4868;--t3:#9896b0;
+  --b1:#e8e6f0;--b2:#dad7e6;
+  --ac:#F7941D;--ac2:#6DC21B;
+  --gn:#22c55e;--rd:#ef4365;--am:#f59e0b;--tl:#3b82f6;
+  --r:12px;--sh:0 2px 12px rgba(26,24,48,.07);
+}
+html,body{height:100%;background:var(--bg);font-family:'Inter',sans-serif;color:var(--t1);font-size:14px;}
+button{font-family:inherit;cursor:pointer;border:none;outline:none;}
+input,select{font-family:inherit;outline:none;}
+
+/* ── APP SHELL ── */
+.app{display:flex;flex-direction:column;height:100vh;max-width:1100px;margin:0 auto;}
+
+/* HEADER */
+.hd{background:var(--bg2);border-bottom:1px solid var(--b1);padding:0 20px;display:flex;align-items:center;gap:16px;height:56px;flex-shrink:0;}
+.logo{display:flex;align-items:center;gap:8px;}
+.logo-mark{width:32px;height:32px;background:linear-gradient(135deg,#F7941D,#6DC21B);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:12px;}
+.logo-name{font-weight:800;font-size:15px;color:var(--t1);}
+.hd-sep{width:1px;height:24px;background:var(--b1);}
+.hd-title{font-size:13px;color:var(--t3);font-weight:600;}
+.hd-spacer{flex:1;}
+.demo-badge{background:#fff8ee;border:1px solid #fbd9aa;color:#F7941D;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;}
+
+/* TABS */
+.tabs{background:var(--bg2);border-bottom:1px solid var(--b1);display:flex;padding:0 16px;flex-shrink:0;}
+.tab{padding:12px 20px;font-size:13px;font-weight:600;color:var(--t3);border-bottom:2px solid transparent;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.tab.act{color:var(--ac);border-bottom-color:var(--ac);}
+.tab:hover:not(.act){color:var(--t2);}
+
+/* CONTENT */
+.content{flex:1;overflow:hidden;display:flex;flex-direction:column;}
+.view{display:none;flex:1;overflow:auto;padding:20px;}
+.view.act{display:flex;flex-direction:column;}
+
+/* ── VORONKA ── */
+.page-hd{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+.page-title{font-size:18px;font-weight:800;color:var(--t1);}
+.btn{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;}
+.btn-primary{background:var(--ac);color:#fff;}
+.btn-primary:hover{background:#e8860f;}
+.btn-sm{padding:5px 12px;font-size:12px;}
+.btn-ghost{background:transparent;color:var(--t2);border:1px solid var(--b2);}
+.btn-ghost:hover{background:var(--bg3);}
+
+.kanban{display:flex;gap:12px;overflow-x:auto;flex:1;padding-bottom:4px;}
+.col{min-width:220px;flex:1;background:var(--bg3);border-radius:var(--r);padding:12px;display:flex;flex-direction:column;gap:10px;}
+.col-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+.col-name{font-size:12px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;}
+.col-cnt{background:var(--bg2);color:var(--t3);font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;}
+
+.card{background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:12px;cursor:pointer;transition:all .15s;box-shadow:var(--sh);}
+.card:hover{border-color:var(--ac);transform:translateY(-1px);}
+.card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;}
+.card-name{font-weight:700;font-size:13px;color:var(--t1);}
+.card-type{font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;}
+.type-biz{background:#eff6ff;color:#3b82f6;}
+.type-phy{background:#f0fdf4;color:#22c55e;}
+.card-route{font-size:12px;color:var(--t3);margin-bottom:6px;display:flex;align-items:center;gap:4px;}
+.card-route span{color:var(--t2);}
+.card-meta{display:flex;gap:6px;flex-wrap:wrap;}
+.tag{font-size:11px;padding:2px 8px;border-radius:6px;background:var(--bg3);color:var(--t2);font-weight:500;}
+.tag-am{background:#fef3c7;color:#92400e;}
+.tag-gn{background:#f0fdf4;color:#15803d;}
+.tag-rd{background:#fff1f2;color:#9f1239;}
+
+/* ── ПУЛЬТ ── */
+.pulse-grid{display:grid;grid-template-columns:1fr 380px;gap:16px;flex:1;}
+.pulse-left{display:flex;flex-direction:column;gap:12px;}
+.pulse-right{display:flex;flex-direction:column;gap:12px;}
+
+.panel{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden;}
+.panel-hd{padding:12px 16px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;}
+.panel-title{font-size:13px;font-weight:700;color:var(--t1);}
+.panel-body{padding:12px 16px;}
+
+.order-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--b1);cursor:pointer;transition:background .1s;}
+.order-row:last-child{border-bottom:none;}
+.order-row:hover{background:#fafafa;margin:0 -16px;padding:10px 16px;}
+.order-status{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.st-wait{background:var(--am);}
+.st-way{background:var(--gn);}
+.st-done{background:var(--tl);}
+.st-new{background:var(--rd);}
+.order-info{flex:1;}
+.order-name{font-size:13px;font-weight:600;color:var(--t1);}
+.order-route{font-size:11px;color:var(--t3);}
+.order-time{font-size:11px;color:var(--t2);font-weight:600;text-align:right;}
+.order-assign{font-size:10px;color:var(--t3);}
+
+/* Stat cards */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.stat{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);padding:16px;}
+.stat-val{font-size:26px;font-weight:800;color:var(--t1);line-height:1;}
+.stat-label{font-size:11px;color:var(--t3);margin-top:4px;text-transform:uppercase;letter-spacing:.5px;font-weight:600;}
+.stat-sub{font-size:11px;margin-top:6px;font-weight:600;}
+.sub-gn{color:var(--gn);}
+.sub-rd{color:var(--rd);}
+.sub-am{color:var(--am);}
+
+/* Drivers */
+.drivers{display:flex;flex-direction:column;gap:8px;}
+.driver-row{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--b1);border-radius:10px;background:var(--bg2);}
+.driver-av{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;flex-shrink:0;}
+.av-gn{background:linear-gradient(135deg,#22c55e,#16a34a);}
+.av-am{background:linear-gradient(135deg,#f59e0b,#d97706);}
+.av-tl{background:linear-gradient(135deg,#3b82f6,#2563eb);}
+.av-rd{background:linear-gradient(135deg,#ef4365,#dc2626);}
+.driver-info{flex:1;}
+.driver-name{font-size:13px;font-weight:600;color:var(--t1);}
+.driver-status{font-size:11px;}
+.ds-free{color:var(--gn);}
+.ds-busy{color:var(--am);}
+.ds-off{color:var(--t3);}
+.driver-action{font-size:12px;font-weight:600;padding:5px 10px;border-radius:8px;cursor:pointer;}
+
+/* Alert */
+.alert{background:#fff8ee;border:1px solid #fbd9aa;border-radius:10px;padding:12px 14px;display:flex;gap:10px;align-items:flex-start;}
+.alert-icon{font-size:18px;flex-shrink:0;}
+.alert-text{font-size:12px;color:#92400e;line-height:1.5;}
+.alert-text strong{display:block;font-size:13px;margin-bottom:2px;}
+
+/* ── ВОДИТЕЛЬ ── */
+.driver-view{max-width:380px;margin:0 auto;width:100%;display:flex;flex-direction:column;gap:16px;}
+.driver-hd{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);padding:20px;}
+.driver-hd-name{font-size:18px;font-weight:800;color:var(--t1);margin-bottom:4px;}
+.driver-hd-sub{font-size:13px;color:var(--t3);}
+
+.order-card{background:var(--bg2);border:2px solid var(--ac);border-radius:var(--r);padding:20px;}
+.oc-label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--ac);margin-bottom:10px;}
+.oc-route{font-size:16px;font-weight:700;color:var(--t1);margin-bottom:4px;}
+.oc-addr{font-size:13px;color:var(--t2);margin-bottom:14px;}
+.oc-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
+.oc-client{font-size:13px;color:var(--t2);}
+.oc-client strong{color:var(--t1);}
+.oc-phone{display:flex;align-items:center;gap:8px;margin-top:8px;}
+.phone-btn{background:var(--gn);color:#fff;font-weight:700;padding:8px 16px;border-radius:8px;font-size:13px;display:flex;align-items:center;gap:6px;}
+
+.status-steps{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);padding:20px;}
+.steps-title{font-size:13px;font-weight:700;color:var(--t2);margin-bottom:16px;text-transform:uppercase;letter-spacing:.5px;}
+.step-row{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.step-row:last-child{margin-bottom:0;}
+.step-dot{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.step-dot.done{background:#f0fdf4;border:1px solid #bbf7d0;}
+.step-dot.active{background:var(--ac);box-shadow:0 0 0 4px rgba(247,148,29,0.2);}
+.step-dot.pending{background:var(--bg3);border:1px solid var(--b1);}
+.step-body{flex:1;}
+.step-name{font-size:13px;font-weight:600;}
+.step-name.done{color:var(--gn);}
+.step-name.active{color:var(--ac);}
+.step-name.pending{color:var(--t3);}
+.step-time{font-size:11px;color:var(--t3);}
+
+.big-btn{width:100%;padding:18px;border-radius:14px;font-size:16px;font-weight:800;cursor:pointer;border:none;transition:all .15s;letter-spacing:-.3px;}
+.big-btn-ac{background:var(--ac);color:#fff;box-shadow:0 4px 20px rgba(247,148,29,0.35);}
+.big-btn-ac:hover{background:#e8860f;}
+.big-btn-gn{background:var(--gn);color:#fff;box-shadow:0 4px 20px rgba(34,197,94,0.3);}
+
+.timer-box{background:var(--t1);border-radius:var(--r);padding:16px;text-align:center;}
+.timer-val{font-size:36px;font-weight:900;color:#fff;letter-spacing:-1px;font-variant-numeric:tabular-nums;}
+.timer-label{font-size:11px;color:rgba(255,255,255,.5);margin-top:4px;text-transform:uppercase;letter-spacing:1px;font-weight:600;}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(26,24,48,.5);display:none;align-items:center;justify-content:center;z-index:100;padding:20px;}
+.modal-overlay.open{display:flex;}
+.modal{background:#fff;border-radius:20px;padding:28px;max-width:480px;width:100%;max-height:90vh;overflow-y:auto;}
+.modal-title{font-size:18px;font-weight:800;color:var(--t1);margin-bottom:20px;}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:12px;font-weight:700;color:var(--t2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;}
+.field input,.field select,.field textarea{width:100%;padding:10px 14px;border:1px solid var(--b2);border-radius:8px;font-size:14px;color:var(--t1);background:#fff;transition:border-color .15s;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--ac);}
+.field textarea{resize:none;height:72px;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.modal-footer{display:flex;gap:10px;margin-top:20px;}
+.modal-footer button{flex:1;}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--t1);color:#fff;padding:12px 20px;border-radius:12px;font-size:13px;font-weight:600;opacity:0;transition:all .3s;z-index:200;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+@media(max-width:700px){
+.pulse-grid{grid-template-columns:1fr;}
+.pulse-right{display:none;}
+.stats{grid-template-columns:1fr 1fr;}
+.kanban{flex-direction:column;}
+.col{min-width:unset;}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- HEADER -->
+  <div class="hd">
+    <div class="logo">
+      <div class="logo-mark">Pl</div>
+      <div class="logo-name">Pllato.</div>
+    </div>
+    <div class="hd-sep"></div>
+    <div class="hd-title">ГрузоТакси CRM</div>
+    <div class="hd-spacer"></div>
+    <div class="demo-badge">🎯 Демо-версия</div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="tab act" onclick="switchTab('voronka',this)">🗂 Воронка заявок</div>
+    <div class="tab" onclick="switchTab('pult',this)">🎛 Пульт оператора</div>
+    <div class="tab" onclick="switchTab('vodit',this)">🚐 Кабинет водителя</div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- ── ВОРОНКА ── -->
+    <div class="view act" id="v-voronka">
+      <div class="page-hd">
+        <div class="page-title">Заявки</div>
+        <button class="btn btn-ghost btn-sm">🔍 Поиск</button>
+        <div style="flex:1;"></div>
+        <button class="btn btn-primary btn-sm" onclick="openModal()">+ Новая заявка</button>
+      </div>
+      <div class="kanban" id="kanban">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+
+    <!-- ── ПУЛЬТ ── -->
+    <div class="view" id="v-pult">
+      <div class="page-hd">
+        <div class="page-title">Пульт оператора</div>
+        <div style="font-size:12px;color:var(--t3);">Обновлено: <span id="pult-time"></span></div>
+      </div>
+
+      <div class="stats" style="margin-bottom:16px;">
+        <div class="stat">
+          <div class="stat-val">12</div>
+          <div class="stat-label">Заявок сегодня</div>
+          <div class="stat-sub sub-gn">↑ +3 vs вчера</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val">4</div>
+          <div class="stat-label">В работе</div>
+          <div class="stat-sub sub-am">2 газели, 4 грузчика</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val">7</div>
+          <div class="stat-label">Выполнено</div>
+          <div class="stat-sub sub-gn">Без отмен</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val" id="pult-revenue">184 000 ₸</div>
+          <div class="stat-label">Выручка сегодня</div>
+          <div class="stat-sub sub-gn">↑ +12%</div>
+        </div>
+      </div>
+
+      <div class="pulse-grid">
+        <div class="pulse-left">
+          <!-- ALERT -->
+          <div class="alert">
+            <div class="alert-icon">⚠️</div>
+            <div class="alert-text">
+              <strong>Заявка #19 не обработана 18 минут</strong>
+              Клиент Dina Seitkali ждёт подтверждения переезда на 14:00. Назначьте водителя.
+              <div style="margin-top:8px;"><button class="btn btn-primary btn-sm" onclick="toast('Водитель назначен — Ержан М.')">Назначить</button></div>
+            </div>
+          </div>
+
+          <!-- ACTIVE ORDERS -->
+          <div class="panel">
+            <div class="panel-hd">
+              <div class="panel-title">Активные заказы</div>
+              <span class="tag tag-am">4 в работе</span>
+            </div>
+            <div class="panel-body">
+              <div class="order-row">
+                <div class="order-status st-way"></div>
+                <div class="order-info">
+                  <div class="order-name">Переезд #17 · Nurzhan A.</div>
+                  <div class="order-route">ул. Сыганак 12 → мкр. Нурсат</div>
+                </div>
+                <div style="text-align:right;">
+                  <div class="order-time">В пути</div>
+                  <div class="order-assign">Ержан М.</div>
+                </div>
+              </div>
+              <div class="order-row">
+                <div class="order-status st-wait"></div>
+                <div class="order-info">
+                  <div class="order-name">Офис #18 · ТОО «Астана Маркет»</div>
+                  <div class="order-route">пр. Туран 24 → Алматы р-н</div>
+                </div>
+                <div style="text-align:right;">
+                  <div class="order-time">Грузят</div>
+                  <div class="order-assign">Айдос К.</div>
+                </div>
+              </div>
+              <div class="order-row">
+                <div class="order-status st-new"></div>
+                <div class="order-info">
+                  <div class="order-name">Груз #19 · Dina S.</div>
+                  <div class="order-route">Байтерек → Есиль р-н · 14:00</div>
+                </div>
+                <div style="text-align:right;">
+                  <div class="order-time" style="color:var(--rd);">⚠ Ждёт</div>
+                  <div class="order-assign">Не назначен</div>
+                </div>
+              </div>
+              <div class="order-row">
+                <div class="order-status st-way"></div>
+                <div class="order-info">
+                  <div class="order-name">Дача #20 · Bolat T.</div>
+                  <div class="order-route">ул. Момышулы → Пригород</div>
+                </div>
+                <div style="text-align:right;">
+                  <div class="order-time">В пути</div>
+                  <div class="order-assign">Серик Б.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pulse-right">
+          <!-- DRIVERS -->
+          <div class="panel">
+            <div class="panel-hd">
+              <div class="panel-title">Водители</div>
+              <span class="tag tag-gn">3 свободны</span>
+            </div>
+            <div class="panel-body">
+              <div class="drivers">
+                <div class="driver-row">
+                  <div class="driver-av av-gn">Е</div>
+                  <div class="driver-info">
+                    <div class="driver-name">Ержан Махметов</div>
+                    <div class="driver-status ds-busy">🚐 В работе · заказ #17</div>
+                  </div>
+                </div>
+                <div class="driver-row">
+                  <div class="driver-av av-am">А</div>
+                  <div class="driver-info">
+                    <div class="driver-name">Айдос Қасымов</div>
+                    <div class="driver-status ds-busy">🚐 Грузит · заказ #18</div>
+                  </div>
+                </div>
+                <div class="driver-row">
+                  <div class="driver-av av-tl">С</div>
+                  <div class="driver-info">
+                    <div class="driver-name">Серик Бекенов</div>
+                    <div class="driver-status ds-busy">🚐 В пути · заказ #20</div>
+                  </div>
+                </div>
+                <div class="driver-row" style="border-color:var(--gn);">
+                  <div class="driver-av av-gn">Д</div>
+                  <div class="driver-info">
+                    <div class="driver-name">Даниял Омаров</div>
+                    <div class="driver-status ds-free">✅ Свободен · Астана</div>
+                  </div>
+                  <button class="btn btn-primary btn-sm driver-action" onclick="toast('Даниял назначен на заказ #19')">Назначить</button>
+                </div>
+                <div class="driver-row" style="border-color:var(--gn);">
+                  <div class="driver-av av-rd">Р</div>
+                  <div class="driver-info">
+                    <div class="driver-name">Руслан Нурмагамбетов</div>
+                    <div class="driver-status ds-free">✅ Свободен · Есиль</div>
+                  </div>
+                  <button class="btn btn-primary btn-sm driver-action" onclick="toast('Руслан назначен на заказ #19')">Назначить</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ВОДИТЕЛЬ ── -->
+    <div class="view" id="v-vodit">
+      <div class="driver-view">
+        <div class="driver-hd">
+          <div class="driver-hd-name">👋 Ержан Махметов</div>
+          <div class="driver-hd-sub">Водитель · Газель · АА 123 ВВ</div>
+        </div>
+
+        <div class="order-card">
+          <div class="oc-label">📦 Активный заказ #17</div>
+          <div class="oc-route">ул. Сыганак 12 → мкр. Нурсат</div>
+          <div class="oc-addr">Квартирный переезд · 2-комнатная</div>
+          <div class="oc-tags">
+            <span class="tag">1 газель</span>
+            <span class="tag">2 грузчика</span>
+            <span class="tag">3–4 ч</span>
+            <span class="tag tag-gn">Юр. лицо</span>
+          </div>
+          <div class="oc-client"><strong>Nurzhan Akhmetov</strong> · ТОО «Стройкомп»</div>
+          <div class="oc-phone">
+            <button class="phone-btn" onclick="toast('Звоним клиенту...')">📞 Позвонить клиенту</button>
+          </div>
+        </div>
+
+        <div class="status-steps">
+          <div class="steps-title">Статус заказа</div>
+          <div class="step-row">
+            <div class="step-dot done">✅</div>
+            <div class="step-body">
+              <div class="step-name done">Заказ принят</div>
+              <div class="step-time">08:42</div>
+            </div>
+          </div>
+          <div class="step-row">
+            <div class="step-dot done">✅</div>
+            <div class="step-body">
+              <div class="step-name done">Выехал</div>
+              <div class="step-time">09:05</div>
+            </div>
+          </div>
+          <div class="step-row">
+            <div class="step-dot active" id="step3dot">▶</div>
+            <div class="step-body">
+              <div class="step-name active" id="step3name">На месте — идёт погрузка</div>
+              <div class="step-time" id="step3time">09:31 · сейчас</div>
+            </div>
+          </div>
+          <div class="step-row">
+            <div class="step-dot pending" id="step4dot">⟳</div>
+            <div class="step-body">
+              <div class="step-name pending" id="step4name">В пути к адресу доставки</div>
+              <div class="step-time" id="step4time">ожидает</div>
+            </div>
+          </div>
+          <div class="step-row">
+            <div class="step-dot pending" id="step5dot">⟳</div>
+            <div class="step-body">
+              <div class="step-name pending" id="step5name">Работа завершена</div>
+              <div class="step-time" id="step5time">ожидает</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="timer-box">
+          <div class="timer-val" id="timer">01:24:37</div>
+          <div class="timer-label">Время на объекте</div>
+        </div>
+
+        <button class="big-btn big-btn-ac" id="main-action-btn" onclick="nextStep()">
+          📦 Загрузили — Выезжаем
+        </button>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL НОВАЯ ЗАЯВКА -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-title">Новая заявка</div>
+    <div class="field">
+      <label>Тип клиента</label>
+      <select id="m-type">
+        <option>Физическое лицо</option>
+        <option>Юридическое лицо</option>
+      </select>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Имя / Компания</label>
+        <input type="text" placeholder="Нурлан Абенов" id="m-name"/>
+      </div>
+      <div class="field">
+        <label>Телефон</label>
+        <input type="tel" placeholder="+7 777 123 4567" id="m-phone"/>
+      </div>
+    </div>
+    <div class="field">
+      <label>Откуда (адрес забора)</label>
+      <input type="text" placeholder="ул. Сыганак 12, кв. 45" id="m-from"/>
+    </div>
+    <div class="field">
+      <label>Куда (адрес доставки)</label>
+      <input type="text" placeholder="мкр. Нурсат, ул. Қорғалжын 8" id="m-to"/>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Дата и время</label>
+        <input type="datetime-local" id="m-date"/>
+      </div>
+      <div class="field">
+        <label>Тип услуги</label>
+        <select id="m-service">
+          <option>Квартирный переезд</option>
+          <option>Офисный переезд</option>
+          <option>Перевозка груза</option>
+          <option>Дача / пригород</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Газели</label>
+        <select id="m-car">
+          <option>1 газель</option>
+          <option>2 газели</option>
+          <option>3+ газели</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Грузчики</label>
+        <select id="m-loaders">
+          <option>Без грузчиков</option>
+          <option>1 грузчик</option>
+          <option>2 грузчика</option>
+          <option>3 грузчика</option>
+          <option>4+ грузчика</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label>Комментарий</label>
+      <textarea placeholder="Пианино, хрупкие вещи, нужна упаковка..."></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Отмена</button>
+      <button class="btn btn-primary" onclick="addOrder()">Создать заявку</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── DATA ──
+const STATUSES = ['new','qualify','confirm','process','done'];
+const STATUS_LABELS = {new:'Новая',qualify:'Квалификация',confirm:'Подтверждена',process:'В работе',done:'Завершена'};
+const STATUS_COLORS = {new:'tag-rd',qualify:'tag-am',confirm:'tag-gn',process:'tag-am',done:'tag-gn'};
+
+let orders = [
+  {id:14,name:'Bolat Temirov',type:'biz',company:'ТОО «Астана-Лидер»',from:'пр. Туран, 24',to:'ул. Иманова, 11',time:'08:00',service:'Офисный переезд',cars:'2 газели',loaders:'4 грузчика',status:'done',driver:'Ержан М.'},
+  {id:15,name:'Ainur Bekova',type:'phy',from:'мкр. Батыс 2',to:'мкр. Нурсат',time:'10:00',service:'Квартирный переезд',cars:'1 газель',loaders:'2 грузчика',status:'done',driver:'Айдос К.'},
+  {id:16,name:'Kairat Seilov',type:'biz',company:'ООО «Строй Сервис»',from:'ул. Кенесары, 40',to:'ул. Достык, 13',time:'11:30',service:'Перевозка груза',cars:'1 газель',loaders:'Без грузчиков',status:'process',driver:'Серик Б.'},
+  {id:17,name:'Nurzhan Akhmetov',type:'biz',company:'ТОО «Стройкомп»',from:'ул. Сыганак, 12',to:'мкр. Нурсат',time:'09:00',service:'Квартирный переезд',cars:'1 газель',loaders:'2 грузчика',status:'process',driver:'Ержан М.'},
+  {id:18,name:'Marzhan Kim',type:'phy',from:'ул. Жибек жолы, 5',to:'ул. Алматы, 31',time:'12:00',service:'Дача / пригород',cars:'1 газель',loaders:'1 грузчик',status:'confirm',driver:''},
+  {id:19,name:'Dina Seitkali',type:'phy',from:'Байтерек, ул. Маңғылық Ел',to:'Есиль р-н, Достык',time:'14:00',service:'Квартирный переезд',cars:'1 газель',loaders:'2 грузчика',status:'qualify',driver:''},
+  {id:20,name:'Ruslan Nurgali',type:'biz',company:'ИП Нургали',from:'ул. Момышулы, 14',to:'Пригород, Косшы',time:'15:00',service:'Перевозка груза',cars:'1 газель',loaders:'Без грузчиков',status:'new',driver:''},
+];
+
+// ── TABS ──
+function switchTab(id, el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('act'));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('act'));
+  el.classList.add('act');
+  document.getElementById('v-'+id).classList.add('act');
+}
+
+// ── KANBAN ──
+function renderKanban(){
+  const kb = document.getElementById('kanban');
+  kb.innerHTML = '';
+  STATUSES.forEach(st => {
+    const col = document.createElement('div');
+    col.className = 'col';
+    const ords = orders.filter(o=>o.status===st);
+    col.innerHTML = `
+      <div class="col-hd">
+        <div class="col-name">${STATUS_LABELS[st]}</div>
+        <div class="col-cnt">${ords.length}</div>
+      </div>
+    `;
+    ords.forEach(o => {
+      const c = document.createElement('div');
+      c.className = 'card';
+      c.innerHTML = `
+        <div class="card-top">
+          <div class="card-name">${o.name}</div>
+          <div class="card-type ${o.type==='biz'?'type-biz':'type-phy'}">${o.type==='biz'?'Юр':'Физ'}</div>
+        </div>
+        <div class="card-route">📍 <span>${o.from}</span></div>
+        <div class="card-route">🏁 <span>${o.to}</span></div>
+        <div class="card-meta" style="margin-top:8px;">
+          <span class="tag">🕐 ${o.time}</span>
+          <span class="tag">${o.cars}</span>
+          <span class="tag">${o.loaders}</span>
+          ${o.driver?`<span class="tag tag-gn">👤 ${o.driver}</span>`:''}
+        </div>
+      `;
+      c.onclick = () => advanceOrder(o);
+      col.appendChild(c);
+    });
+    kb.appendChild(col);
+  });
+}
+
+function advanceOrder(o){
+  const idx = STATUSES.indexOf(o.status);
+  if(idx < STATUSES.length - 1){
+    o.status = STATUSES[idx+1];
+    renderKanban();
+    toast(`Заявка #${o.id} → ${STATUS_LABELS[o.status]}`);
+  } else {
+    toast(`Заявка #${o.id} уже завершена`);
+  }
+}
+
+// ── MODAL ──
+function openModal(){document.getElementById('modal').classList.add('open');}
+function closeModal(){document.getElementById('modal').classList.remove('open');}
+function addOrder(){
+  const name = document.getElementById('m-name').value || 'Новый клиент';
+  const from = document.getElementById('m-from').value || 'Адрес не указан';
+  const to = document.getElementById('m-to').value || 'Адрес не указан';
+  const type = document.getElementById('m-type').value.includes('Юр') ? 'biz' : 'phy';
+  const cars = document.getElementById('m-car').value;
+  const loaders = document.getElementById('m-loaders').value;
+  const service = document.getElementById('m-service').value;
+  const newId = Math.max(...orders.map(o=>o.id)) + 1;
+  orders.unshift({id:newId,name,type,from,to,time:'—',service,cars,loaders,status:'new',driver:''});
+  renderKanban();
+  closeModal();
+  toast(`Заявка #${newId} создана`);
+  document.getElementById('m-name').value='';
+  document.getElementById('m-from').value='';
+  document.getElementById('m-to').value='';
+}
+
+// ── ПУЛЬТ TIME ──
+function updatePultTime(){
+  const now = new Date();
+  document.getElementById('pult-time').textContent = now.toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+setInterval(updatePultTime, 1000);
+updatePultTime();
+
+// ── TIMER (водитель) ──
+let timerSec = 5077; // 1:24:37
+let timerRunning = true;
+setInterval(()=>{
+  if(!timerRunning) return;
+  timerSec++;
+  const h = Math.floor(timerSec/3600);
+  const m = Math.floor((timerSec%3600)/60);
+  const s = timerSec % 60;
+  document.getElementById('timer').textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}, 1000);
+
+// ── DRIVER STEPS ──
+let driverStep = 3; // 1-5
+const stepActions = ['','','','📦 Загрузили — Выезжаем','✅ Прибыли — Начинаем выгрузку','🎉 Работа завершена'];
+const stepNames = {
+  4: {name:'В пути к адресу доставки', active:true},
+  5: {name:'Работа завершена', active:false}
+};
+
+function nextStep(){
+  const btn = document.getElementById('main-action-btn');
+  if(driverStep === 3){
+    driverStep = 4;
+    document.getElementById('step3dot').textContent = '✅';
+    document.getElementById('step3dot').className = 'step-dot done';
+    document.getElementById('step3name').className = 'step-name done';
+    document.getElementById('step3time').textContent = 'завершено';
+    document.getElementById('step4dot').textContent = '▶';
+    document.getElementById('step4dot').className = 'step-dot active';
+    document.getElementById('step4name').className = 'step-name active';
+    document.getElementById('step4time').textContent = 'сейчас';
+    btn.textContent = '✅ Прибыли — Начинаем выгрузку';
+    btn.className = 'big-btn big-btn-gn';
+    toast('Статус обновлён: В пути к доставке');
+    timerRunning = false;
+    document.getElementById('timer').textContent = '01:24:37';
+  } else if(driverStep === 4){
+    driverStep = 5;
+    document.getElementById('step4dot').textContent = '✅';
+    document.getElementById('step4dot').className = 'step-dot done';
+    document.getElementById('step4name').className = 'step-name done';
+    document.getElementById('step5dot').textContent = '✅';
+    document.getElementById('step5dot').className = 'step-dot done';
+    document.getElementById('step5name').className = 'step-name done';
+    document.getElementById('step5name').textContent = 'Работа завершена 🎉';
+    document.getElementById('step5time').textContent = 'сейчас';
+    btn.textContent = '✅ Заказ выполнен!';
+    btn.className = 'big-btn';
+    btn.style.cssText = 'background:#f0fdf4;color:#166534;border:2px solid #bbf7d0;width:100%;padding:18px;border-radius:14px;font-size:16px;font-weight:800;cursor:default;';
+    toast('🎉 Заказ #17 завершён! Клиент получит запрос на отзыв.');
+  }
+}
+
+// ── TOAST ──
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 3000);
+}
+
+// ── INIT ──
+renderKanban();
+document.getElementById('modal').addEventListener('click', function(e){if(e.target===this)closeModal();});
+</script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Pllato · КП и Демо</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',sans-serif;background:#f5f5f7;color:#1a1830;min-height:100vh;}
+.wrap{max-width:720px;margin:0 auto;padding:48px 24px;}
+.logo{display:flex;align-items:center;gap:10px;margin-bottom:40px;}
+.logo-mark{width:36px;height:36px;background:linear-gradient(135deg,#F7941D,#6DC21B);border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:13px;}
+.logo-name{font-weight:800;font-size:17px;}
+h1{font-size:28px;font-weight:800;letter-spacing:-1px;margin-bottom:8px;}
+.sub{font-size:15px;color:#6a6888;margin-bottom:32px;}
+.section-label{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#9896b0;margin-bottom:12px;}
+.cards{display:flex;flex-direction:column;gap:10px;margin-bottom:32px;}
+.card{background:#fff;border:1px solid #e8e6f0;border-radius:14px;padding:20px 24px;display:flex;align-items:center;gap:16px;text-decoration:none;color:inherit;transition:all .15s;}
+.card:hover{border-color:#F7941D;transform:translateY(-1px);box-shadow:0 4px 16px rgba(26,24,48,.08);}
+.card-icon{font-size:28px;flex-shrink:0;}
+.card-body{flex:1;}
+.card-title{font-weight:700;font-size:15px;margin-bottom:3px;}
+.card-sub{font-size:12px;color:#9896b0;}
+.card-arrow{font-size:18px;color:#dad7e6;}
+.badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;display:inline-block;margin-left:8px;}
+.badge-kp{background:#fff4e3;color:#F7941D;}
+.badge-demo{background:#eff6ff;color:#3b82f6;}
+.footer-note{font-size:12px;color:#b0aec8;margin-top:40px;border-top:1px solid #eee;padding-top:20px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">
+    <div class="logo-mark">Pl</div>
+    <div class="logo-name">Pllato.</div>
+  </div>
+  <h1>КП и Демо-порталы</h1>
+  <p class="sub">Коммерческие предложения и интерактивные демо для клиентов Pllato.</p>
+
+  <div class="section-label">Грузоперевозки · Астана</div>
+  <div class="cards">
+    <a class="card" href="kp-gruzotaxi.html">
+      <div class="card-icon">📄</div>
+      <div class="card-body">
+        <div class="card-title">КП — CRM для грузоперевозок <span class="badge badge-kp">КП</span></div>
+        <div class="card-sub">Бахытжан, Айгерим · $3 000 · 2–3 недели · Астана</div>
+      </div>
+      <div class="card-arrow">→</div>
+    </a>
+    <a class="card" href="demo-gruzotaxi.html">
+      <div class="card-icon">🎯</div>
+      <div class="card-body">
+        <div class="card-title">Демо — Воронка + Пульт + Водитель <span class="badge badge-demo">ДЕМО</span></div>
+        <div class="card-sub">Интерактивный прототип CRM и пульта оператора</div>
+      </div>
+      <div class="card-arrow">→</div>
+    </a>
+  </div>
+
+  <div class="footer-note">pllato.kz · ИП «STUDYSTORIES.APP» · +7 701 123 99 99</div>
+</div>
+</body>
+</html>
