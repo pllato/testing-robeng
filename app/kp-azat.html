@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>КП — Pllato CRM для Азата Есқали</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #fff;
+      color: #1a1830;
+      line-height: 1.6;
+    }
+
+    /* ─── LAYOUT ─────────────────────────────────────────── */
+    .content {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ─── LOGO ───────────────────────────────────────────── */
+    .logo-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo-box {
+      width: 72px;
+      height: 72px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #F7941D 0%, #6DC21B 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -2px;
+      flex-shrink: 0;
+      box-shadow: 0 8px 24px rgba(247,148,29,0.35);
+    }
+    .logo-text {
+      font-size: 32px;
+      font-weight: 700;
+      color: #1a1830;
+      letter-spacing: -1px;
+    }
+
+    /* ─── COVER ──────────────────────────────────────────── */
+    .cover {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      background: #fff;
+    }
+    .cover-strip {
+      height: 8px;
+      background: linear-gradient(90deg, #F7941D 0%, #6DC21B 100%);
+      width: 100%;
+    }
+    .cover-body {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .cover-inner {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 60px 24px;
+      width: 100%;
+    }
+    .cover-logo-row {
+      margin-bottom: 64px;
+    }
+    .cover-title {
+      font-size: 52px;
+      font-weight: 900;
+      color: #1a1830;
+      line-height: 1.1;
+      margin-bottom: 20px;
+      letter-spacing: -2px;
+    }
+    .cover-title span {
+      background: linear-gradient(90deg, #F7941D, #6DC21B);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .cover-subtitle {
+      font-size: 20px;
+      color: #6a6888;
+      font-weight: 500;
+      max-width: 600px;
+      margin-bottom: 56px;
+      line-height: 1.5;
+    }
+    .cover-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .cover-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 18px;
+      color: #1a1830;
+    }
+    .cover-meta-item strong {
+      font-weight: 700;
+    }
+    .cover-meta-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #F7941D, #6DC21B);
+      flex-shrink: 0;
+    }
+    .cover-footer-strip {
+      height: 8px;
+      background: linear-gradient(90deg, #6DC21B 0%, #F7941D 100%);
+      width: 100%;
+    }
+    .cover-decorative {
+      position: absolute;
+      right: -60px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 400px;
+      height: 400px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(247,148,29,0.08) 0%, rgba(109,194,27,0.08) 100%);
+      pointer-events: none;
+    }
+
+    /* ─── SECTIONS ───────────────────────────────────────── */
+    section {
+      padding: 72px 0;
+    }
+    section + section {
+      border-top: 1px solid #f0f0f0;
+    }
+
+    .section-label {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #F7941D;
+      margin-bottom: 10px;
+    }
+    .section-title {
+      font-size: 36px;
+      font-weight: 800;
+      color: #1a1830;
+      line-height: 1.15;
+      margin-bottom: 12px;
+      letter-spacing: -1px;
+    }
+    .section-desc {
+      font-size: 17px;
+      color: #6a6888;
+      max-width: 580px;
+      margin-bottom: 40px;
+    }
+
+    /* ─── COMPARISON CARDS ───────────────────────────────── */
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 20px;
+    }
+    .cmp-card {
+      border-radius: 20px;
+      padding: 32px 28px;
+      position: relative;
+      overflow: hidden;
+    }
+    .cmp-card.amo {
+      background: #fff5f0;
+      border: 1.5px solid #ffd4b8;
+    }
+    .cmp-card.pllato {
+      background: #f2fbeb;
+      border: 1.5px solid #b8e89a;
+    }
+    .cmp-card.savings {
+      background: linear-gradient(135deg, #1a1830 0%, #2d2b50 100%);
+      color: #fff;
+      border: none;
+    }
+    .cmp-badge {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      border-radius: 100px;
+      padding: 4px 12px;
+      margin-bottom: 16px;
+    }
+    .cmp-card.amo .cmp-badge {
+      background: #ffe0cc;
+      color: #d45a00;
+    }
+    .cmp-card.pllato .cmp-badge {
+      background: #d0f0b0;
+      color: #3a8200;
+    }
+    .cmp-card.savings .cmp-badge {
+      background: rgba(109,194,27,0.25);
+      color: #8ee84a;
+    }
+    .cmp-label {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: inherit;
+    }
+    .cmp-card.amo .cmp-label { color: #6a6888; }
+    .cmp-card.pllato .cmp-label { color: #6a6888; }
+    .cmp-formula {
+      font-size: 14px;
+      color: #6a6888;
+      margin-bottom: 12px;
+      line-height: 1.6;
+    }
+    .cmp-card.savings .cmp-formula { color: rgba(255,255,255,0.6); }
+    .cmp-price {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -1px;
+      margin-top: 8px;
+    }
+    .cmp-card.amo .cmp-price { color: #d45a00; }
+    .cmp-card.pllato .cmp-price { color: #3a8200; }
+    .cmp-card.savings .cmp-price { color: #6DC21B; font-size: 32px; }
+    .cmp-sub {
+      font-size: 13px;
+      margin-top: 4px;
+      font-weight: 500;
+    }
+    .cmp-card.amo .cmp-sub { color: #b05000; }
+    .cmp-card.pllato .cmp-sub { color: #5a9900; }
+    .cmp-card.savings .cmp-sub { color: rgba(255,255,255,0.55); }
+    .cmp-extra {
+      margin-top: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #8ee84a;
+    }
+
+    /* ─── FEATURE GRID ───────────────────────────────────── */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    .feature-card {
+      background: #fafafa;
+      border: 1.5px solid #f0f0f0;
+      border-radius: 20px;
+      padding: 28px 24px;
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .feature-card:hover {
+      box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+      transform: translateY(-2px);
+    }
+    .feature-icon {
+      font-size: 36px;
+      margin-bottom: 14px;
+      display: block;
+    }
+    .feature-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #1a1830;
+      margin-bottom: 8px;
+    }
+    .feature-desc {
+      font-size: 14px;
+      color: #6a6888;
+      line-height: 1.6;
+    }
+
+    /* ─── WHY LEAVE ──────────────────────────────────────── */
+    .why-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .why-pair {
+      display: contents;
+    }
+    .why-card {
+      border-radius: 16px;
+      padding: 24px 22px;
+      border-left: 4px solid;
+    }
+    .why-card.problem {
+      background: #fff8f0;
+      border-color: #F7941D;
+    }
+    .why-card.solution {
+      background: #f2fbeb;
+      border-color: #6DC21B;
+    }
+    .why-tag {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .why-card.problem .why-tag { color: #d45a00; }
+    .why-card.solution .why-tag { color: #3a8200; }
+    .why-text {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1a1830;
+      line-height: 1.55;
+    }
+
+    /* ─── PAYMENT STAGES ─────────────────────────────────── */
+    .stages-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+    .stage-card {
+      background: #fafafa;
+      border: 1.5px solid #f0f0f0;
+      border-radius: 20px;
+      padding: 28px 24px;
+      position: relative;
+    }
+    .stage-num {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #F7941D, #6DC21B);
+      color: #fff;
+      font-size: 16px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+    .stage-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: #6a6888;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .stage-price {
+      font-size: 30px;
+      font-weight: 900;
+      color: #1a1830;
+      letter-spacing: -1px;
+      margin-bottom: 10px;
+    }
+    .stage-desc {
+      font-size: 14px;
+      color: #6a6888;
+      line-height: 1.6;
+    }
+    .total-box {
+      background: linear-gradient(135deg, #1a1830 0%, #2d2b50 100%);
+      border-radius: 20px;
+      padding: 32px 36px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+    .total-left {}
+    .total-label {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.5);
+      margin-bottom: 6px;
+    }
+    .total-price {
+      font-size: 44px;
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: -2px;
+    }
+    .total-price span {
+      color: #6DC21B;
+    }
+    .total-right {
+      background: rgba(109,194,27,0.15);
+      border: 1.5px solid rgba(109,194,27,0.35);
+      border-radius: 14px;
+      padding: 16px 22px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .total-discount-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.5);
+      margin-bottom: 4px;
+    }
+    .total-discount-val {
+      font-size: 20px;
+      font-weight: 800;
+      color: #6DC21B;
+    }
+    .total-original {
+      font-size: 13px;
+      color: rgba(255,255,255,0.4);
+      text-decoration: line-through;
+    }
+
+    /* ─── TIMELINE ───────────────────────────────────────── */
+    .timeline-info {
+      background: #f8f8fc;
+      border-radius: 16px;
+      padding: 24px 28px;
+      margin-bottom: 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .timeline-info-icon {
+      font-size: 32px;
+      flex-shrink: 0;
+    }
+    .timeline-info-text strong {
+      font-size: 18px;
+      font-weight: 800;
+      color: #1a1830;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .timeline-info-text span {
+      font-size: 15px;
+      color: #6a6888;
+    }
+    .timeline-flow {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+    }
+    .tl-step {
+      flex: 1;
+      background: #fafafa;
+      border: 1.5px solid #f0f0f0;
+      border-radius: 16px;
+      padding: 24px 20px;
+      text-align: center;
+      position: relative;
+    }
+    .tl-step + .tl-step {
+      margin-left: 12px;
+    }
+    .tl-step::after {
+      content: '→';
+      position: absolute;
+      right: -18px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 20px;
+      color: #6a6888;
+      font-weight: 700;
+      z-index: 2;
+    }
+    .tl-step:last-child::after { display: none; }
+    .tl-week {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #F7941D;
+      margin-bottom: 8px;
+    }
+    .tl-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1a1830;
+    }
+
+    /* ─── SUPPORT ────────────────────────────────────────── */
+    .support-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    .support-card {
+      border-radius: 20px;
+      padding: 30px 26px;
+      text-align: center;
+    }
+    .support-card:nth-child(1) {
+      background: #f2fbeb;
+      border: 1.5px solid #b8e89a;
+    }
+    .support-card:nth-child(2) {
+      background: #fff8f0;
+      border: 1.5px solid #ffd4b8;
+    }
+    .support-card:nth-child(3) {
+      background: #f0f2ff;
+      border: 1.5px solid #cdd1ff;
+    }
+    .support-icon {
+      font-size: 40px;
+      margin-bottom: 14px;
+      display: block;
+    }
+    .support-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #1a1830;
+      margin-bottom: 8px;
+    }
+    .support-desc {
+      font-size: 14px;
+      color: #6a6888;
+    }
+    .support-price {
+      font-size: 20px;
+      font-weight: 800;
+      margin-top: 12px;
+    }
+    .support-card:nth-child(1) .support-price { color: #3a8200; }
+    .support-card:nth-child(2) .support-price { color: #d45a00; }
+    .support-card:nth-child(3) .support-price { color: #3535cc; }
+
+    /* ─── TEAM ───────────────────────────────────────────── */
+    .team-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    .team-card {
+      background: #fafafa;
+      border: 1.5px solid #f0f0f0;
+      border-radius: 20px;
+      padding: 32px 24px;
+      text-align: center;
+    }
+    .team-avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #F7941D 0%, #6DC21B 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 800;
+      color: #fff;
+      margin: 0 auto 16px;
+      box-shadow: 0 6px 20px rgba(247,148,29,0.3);
+    }
+    .team-name {
+      font-size: 20px;
+      font-weight: 800;
+      color: #1a1830;
+      margin-bottom: 6px;
+    }
+    .team-role {
+      font-size: 14px;
+      color: #6a6888;
+      line-height: 1.55;
+    }
+
+    /* ─── CTA ────────────────────────────────────────────── */
+    .cta-box {
+      background: linear-gradient(135deg, #F7941D 0%, #6DC21B 100%);
+      border-radius: 24px;
+      padding: 52px 48px;
+      text-align: center;
+      color: #fff;
+      box-shadow: 0 16px 48px rgba(247,148,29,0.3);
+    }
+    .cta-title {
+      font-size: 26px;
+      font-weight: 800;
+      line-height: 1.35;
+      margin-bottom: 32px;
+      max-width: 640px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .cta-contacts {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 32px;
+      flex-wrap: wrap;
+    }
+    .cta-contact-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      text-decoration: none;
+      background: rgba(255,255,255,0.2);
+      border-radius: 50px;
+      padding: 12px 22px;
+      backdrop-filter: blur(4px);
+      transition: background 0.2s;
+    }
+    .cta-contact-item:hover {
+      background: rgba(255,255,255,0.35);
+    }
+    .cta-contact-icon {
+      font-size: 20px;
+    }
+
+    /* ─── FOOTER ─────────────────────────────────────────── */
+    footer {
+      background: #1a1830;
+      color: rgba(255,255,255,0.5);
+      text-align: center;
+      padding: 28px 24px;
+      font-size: 14px;
+    }
+    footer strong {
+      color: rgba(255,255,255,0.85);
+    }
+
+    /* ─── PRINT ──────────────────────────────────────────── */
+    @media print {
+      .cover { page-break-after: always; }
+      section, .card, .feature-card, .cmp-card, .stage-card, .team-card, .support-card { page-break-inside: avoid; }
+    }
+
+    /* ─── RESPONSIVE ─────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .comparison-grid { grid-template-columns: 1fr; }
+      .feature-grid { grid-template-columns: 1fr 1fr; }
+      .why-grid { grid-template-columns: 1fr; }
+      .stages-grid { grid-template-columns: 1fr; }
+      .support-grid { grid-template-columns: 1fr; }
+      .team-grid { grid-template-columns: 1fr; }
+      .cover-title { font-size: 36px; }
+      .total-box { flex-direction: column; }
+      .timeline-flow { flex-direction: column; gap: 12px; }
+      .tl-step::after { display: none; }
+    }
+    @media (max-width: 480px) {
+      .feature-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════
+     COVER
+══════════════════════════════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-strip"></div>
+
+  <div class="cover-body">
+    <div class="cover-inner">
+      <div class="cover-logo-row">
+        <div class="logo-wrap">
+          <div class="logo-box">Pl</div>
+          <span class="logo-text">llato.</span>
+        </div>
+      </div>
+
+      <div class="cover-title">
+        Коммерческое<br /><span>предложение</span>
+      </div>
+      <div class="cover-subtitle">
+        Индивидуальная CRM-система для компании по подготовке к магистратуре
+      </div>
+
+      <div class="cover-meta">
+        <div class="cover-meta-item">
+          <div class="cover-meta-dot"></div>
+          <div><strong>Клиент:</strong> Азат Есқали</div>
+        </div>
+        <div class="cover-meta-item">
+          <div class="cover-meta-dot"></div>
+          <div><strong>Дата:</strong> 01 июля 2026</div>
+        </div>
+        <div class="cover-meta-item">
+          <div class="cover-meta-dot"></div>
+          <div><strong>Подготовлено:</strong> Команда Pllato</div>
+        </div>
+      </div>
+
+      <div class="cover-decorative"></div>
+    </div>
+  </div>
+
+  <div class="cover-footer-strip"></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SECTION 1 — ТЕКУЩИЕ РАСХОДЫ
+══════════════════════════════════════════════════════════ -->
+<section>
+  <div class="content">
+    <div class="section-label">Финансы</div>
+    <div class="section-title">💸 Ваши текущие расходы</div>
+    <div class="section-desc">Сравните затраты на AmoCRM и инвестицию в собственную CRM от Pllato.</div>
+
+    <div class="comparison-grid">
+      <!-- AmoCRM -->
+      <div class="cmp-card amo">
+        <div class="cmp-badge">AmoCRM</div>
+        <div class="cmp-label">Текущая подписка</div>
+        <div class="cmp-formula">
+          15 пользователей<br />
+          × 10 000 тг/мес<br />
+          × 12 месяцев
+        </div>
+        <div class="cmp-price">1 800 000 тг</div>
+        <div class="cmp-sub">в год, и это повторяется ежегодно</div>
+      </div>
+
+      <!-- Pllato -->
+      <div class="cmp-card pllato">
+        <div class="cmp-badge">Pllato CRM</div>
+        <div class="cmp-label">Единоразовая разработка</div>
+        <div class="cmp-formula">
+          Ваша CRM<br />
+          навсегда<br />
+          без подписок
+        </div>
+        <div class="cmp-price">1 350 000 тг</div>
+        <div class="cmp-sub">единоразово, сервер бесплатно</div>
+      </div>
+
+      <!-- Savings -->
+      <div class="cmp-card savings">
+        <div class="cmp-badge">🏆 Выгода</div>
+        <div class="cmp-label" style="color:rgba(255,255,255,0.7)">Ваша экономия</div>
+        <div class="cmp-formula">
+          В первый год вы уже<br />
+          экономите, а с&nbsp;каждым<br />
+          следующим годом&nbsp;— больше
+        </div>
+        <div class="cmp-price">450 000+ тг</div>
+        <div class="cmp-sub">экономия в первый же год</div>
+        <div class="cmp-extra">→ 1 800 000 тг ежегодно начиная со 2-го года</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     SECTION 2 — ЧТО МЫ ПРЕДЛАГАЕМ
+══════════════════════════════════════════════════════════ -->
+<section>
+  <div class="content">
+    <div class="section-label">Возможности</div>
+    <div class="section-title">🚀 Что мы предлагаем</div>
+    <div class="section-desc">10 ключевых модулей, разработанных специально под ваш бизнес.</div>
+
+    <div class="feature-grid">
+
+      <div class="feature-card">
+        <span class="feature-icon">🎯</span>
+        <div class="feature-title">Воронки лидов и сделок</div>
+        <div class="feature-desc">Настраиваемые этапы под ваш процесс: от первого обращения до зачисления студента.</div>
+      </div>
+
+      <div class="feature-card">
+        <span class="feature-icon">💬</span>
+        <div class="feature-title">WhatsApp GreenAPI</div>
+        <div class="feature-desc">Несколько номеров одновременно, полная история чатов, умная скорость рассылок — без банов.</div>
+      </div>
+
+      <div class="feature-card">
+        <span class="feature-icon">✅</span>
+        <div class="feature-title">WhatsApp WABA</div>
+        <div class="feature-desc">Официальный бизнес-аккаунт WhatsApp, массовые рассылки, шаблонные сообщения.</div>
+      </div>
+
+      <div class="feature-card">
+        <span class="feature-icon">🤖</span>
+        <div class="feature-title">Автороботы</div>
+        <div class="feature-desc">Автозадачи, умные напоминания, автоперераспределение лидов между менеджерами.</div>
+      </div>
+
+      <div class="feature-card">
+        <span class="feature-icon">📋</span>
+        <div class="feature-title">Канбан задач</div>
+        <div class="feature-desc">Личные и командные задачи с дедлайнами, приоритетами и статусами выполнения.</div>
+      </div>
+
+      <div class="feature-card">
+        <span class="feature-icon">👥</span>
+        <div class="feature-title">Роли и права</div>
+        <div class="feature-desc">Менеджер не видит финансы, стажёр ограничен в действиях — гибкая система доступов.</div>
+      </div>
+
+      <div class="feature-card">
+        <span class="feature-icon">📊</span>
+        <div class="feature-title">Дашборды KPI</div>
+        <div class="feature-desc">Конверсия воронки, ТОП менеджеров, источники лидов — всё в одном экране.</div>
+      </div>
+
+      <div class="feature-card">
+        <span class="feature-icon">🔗</span>
+        <div class="feature-title">Интеграции</div>
+        <div class="feature-desc">Тильда, SipUni, Автоюнар, перенос данных из AmoCRM — готовые коннекторы.</div>
+      </div>
+
+      <div class="feature-card">
+        <span class="feature-icon">📱</span>
+        <div class="feature-title">PWA-приложение</div>
+        <div class="feature-desc">Иконка на рабочем столе телефона, push-уведомления — работает как мобильное приложение.</div>
+      </div>
+
+      <div class="feature-card" style="background: linear-gradient(135deg, #f2fbeb, #fff8f0); border-color: #c8e8a0;">
+        <span class="feature-icon">💾</span>
+        <div class="feature-title">Исходный код</div>
+        <div class="feature-desc">Передаём полный исходный код клиенту. Сервер Pllato — <strong style="color:#3a8200">бесплатно</strong>.</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     SECTION 3 — ПОЧЕМУ УЙТИ ОТ AMOCRM
+══════════════════════════════════════════════════════════ -->
+<section>
+  <div class="content">
+    <div class="section-label">Сравнение</div>
+    <div class="section-title">⚠️ Почему уйти от AmoCRM</div>
+    <div class="section-desc">Реальные проблемы, с которыми сталкивается ваша команда, и как Pllato их решает.</div>
+
+    <div class="why-grid">
+      <!-- Pair 1 -->
+      <div class="why-card problem">
+        <div class="why-tag">❌ Проблема</div>
+        <div class="why-text">Платите за каждого пользователя — 30 аккаунтов обходятся в 300 000 тг/мес</div>
+      </div>
+      <div class="why-card solution">
+        <div class="why-tag">✅ Решение Pllato</div>
+        <div class="why-text">Безлимит до 50 пользователей включён в стоимость — никакой доплаты</div>
+      </div>
+
+      <!-- Pair 2 -->
+      <div class="why-card problem">
+        <div class="why-tag">❌ Проблема</div>
+        <div class="why-text">Один WhatsApp номер на 15 менеджеров — аккаунты постоянно банили</div>
+      </div>
+      <div class="why-card solution">
+        <div class="why-tag">✅ Решение Pllato</div>
+        <div class="why-text">Мультиканальность: до 15 номеров, умная скорость рассылок, ноль банов</div>
+      </div>
+
+      <!-- Pair 3 -->
+      <div class="why-card problem">
+        <div class="why-tag">❌ Проблема</div>
+        <div class="why-text">Нет централизованной истории чатов — переписки теряются и дублируются</div>
+      </div>
+      <div class="why-card solution">
+        <div class="why-tag">✅ Решение Pllato</div>
+        <div class="why-text">Все чаты привязаны к карточке клиента, история не теряется никогда</div>
+      </div>
+
+      <!-- Pair 4 -->
+      <div class="why-card problem">
+        <div class="why-tag">❌ Проблема</div>
+        <div class="why-text">Лишние функции, не нужные вашему бизнесу — платите за то, чем не пользуетесь</div>
+      </div>
+      <div class="why-card solution">
+        <div class="why-tag">✅ Решение Pllato</div>
+        <div class="why-text">CRM «под себя» — только то, что нужно вашей команде, ничего лишнего</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     SECTION 4 — ЭТАПНОСТЬ И ОПЛАТА
+══════════════════════════════════════════════════════════ -->
+<section>
+  <div class="content">
+    <div class="section-label">Оплата</div>
+    <div class="section-title">💳 Этапность и оплата</div>
+    <div class="section-desc">Прозрачная схема оплаты в три этапа — платите только за результат.</div>
+
+    <div class="stages-grid">
+      <div class="stage-card">
+        <div class="stage-num">1</div>
+        <div class="stage-name">Предоплата</div>
+        <div class="stage-price">150 000 тг</div>
+        <div class="stage-desc">Pllato начинает работу. Выставляется официальный счёт. Старт разработки макета.</div>
+      </div>
+      <div class="stage-card">
+        <div class="stage-num">2</div>
+        <div class="stage-name">Этап 2</div>
+        <div class="stage-price">600 000 тг</div>
+        <div class="stage-desc">Готовый макет системы передаётся на согласование. Принимаем правки и замечания.</div>
+      </div>
+      <div class="stage-card">
+        <div class="stage-num">3</div>
+        <div class="stage-name">Этап 3</div>
+        <div class="stage-price">600 000 тг</div>
+        <div class="stage-desc">Финальная разработка, деплой на сервер, передача исходного кода. Система запущена.</div>
+      </div>
+    </div>
+
+    <div class="total-box">
+      <div class="total-left">
+        <div class="total-label">Итоговая стоимость</div>
+        <div class="total-price">1 350 000 <span>тг</span></div>
+      </div>
+      <div class="total-right">
+        <div class="total-discount-label">Скидка 10%</div>
+        <div class="total-discount-val">−150 000 тг</div>
+        <div class="total-original">1 500 000 тг</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     SECTION 5 — СРОКИ
+══════════════════════════════════════════════════════════ -->
+<section>
+  <div class="content">
+    <div class="section-label">График</div>
+    <div class="section-title">⏱ Сроки</div>
+
+    <div class="timeline-info">
+      <div class="timeline-info-icon">🗓️</div>
+      <div class="timeline-info-text">
+        <strong>4–6 недель с момента предоплаты</strong>
+        <span>Уже к следующему учебному сезону система будет готова и полностью запущена.</span>
+      </div>
+    </div>
+
+    <div class="timeline-flow">
+      <div class="tl-step">
+        <div class="tl-week">Неделя 1–2</div>
+        <div class="tl-name">🎨 Дизайн и макет</div>
+      </div>
+      <div class="tl-step">
+        <div class="tl-week">Неделя 2–4</div>
+        <div class="tl-name">⚙️ Разработка</div>
+      </div>
+      <div class="tl-step">
+        <div class="tl-week">Неделя 4–6</div>
+        <div class="tl-name">🔗 Интеграции + тест</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     SECTION 6 — ПОДДЕРЖКА ПОСЛЕ СДАЧИ
+══════════════════════════════════════════════════════════ -->
+<section>
+  <div class="content">
+    <div class="section-label">Поддержка</div>
+    <div class="section-title">🛠 Поддержка после сдачи</div>
+    <div class="section-desc">Мы не исчезаем после запуска — вы всегда можете рассчитывать на нашу поддержку.</div>
+
+    <div class="support-grid">
+      <div class="support-card">
+        <span class="support-icon">🐛</span>
+        <div class="support-title">Баги и ошибки</div>
+        <div class="support-desc">Любые технические ошибки и баги в рамках разработанного функционала устраняем без доплаты.</div>
+        <div class="support-price">Бесплатно</div>
+      </div>
+      <div class="support-card">
+        <span class="support-icon">✨</span>
+        <div class="support-title">Доработки и новые функции</div>
+        <div class="support-desc">Хотите добавить новый модуль или изменить логику? Работаем почасово по прозрачной ставке.</div>
+        <div class="support-price">2 000 тг / час</div>
+      </div>
+      <div class="support-card">
+        <span class="support-icon">⚡</span>
+        <div class="support-title">Скорость реакции</div>
+        <div class="support-desc">Гарантируем ответ и первичную реакцию на любой запрос в течение рабочего дня.</div>
+        <div class="support-price">До 24 часов</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     SECTION 7 — О КОМАНДЕ
+══════════════════════════════════════════════════════════ -->
+<section>
+  <div class="content">
+    <div class="section-label">Команда</div>
+    <div class="section-title">👨‍💻 О команде Pllato</div>
+    <div class="section-desc">Опытная команда, которая уже запустила несколько CRM-систем для бизнеса в Казахстане.</div>
+
+    <div class="team-grid">
+      <div class="team-card">
+        <div class="team-avatar">ПЛ</div>
+        <div class="team-name">Платон</div>
+        <div class="team-role">Основатель<br />Продажи и стратегия</div>
+      </div>
+      <div class="team-card">
+        <div class="team-avatar">ИР</div>
+        <div class="team-name">Ирина</div>
+        <div class="team-role">Менеджер проекта<br />Координация и контроль</div>
+      </div>
+      <div class="team-card">
+        <div class="team-avatar">ЕР</div>
+        <div class="team-name">Ернар</div>
+        <div class="team-role">Главный разработчик<br />+ команда 5 разработчиков</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     SECTION 8 — СЛЕДУЮЩИЙ ШАГ
+══════════════════════════════════════════════════════════ -->
+<section>
+  <div class="content">
+    <div class="section-label">Действие</div>
+    <div class="section-title">✅ Следующий шаг</div>
+    <div class="section-desc">Готовы двигаться? Одно действие запускает весь процесс.</div>
+
+    <div class="cta-box">
+      <div class="cta-title">
+        Оплатите предоплату <strong>150 000 тг</strong> — и через 1–2 недели вы получите демо-макет на согласование
+      </div>
+      <div class="cta-contacts">
+        <a class="cta-contact-item" href="tel:+77011239999">
+          <span class="cta-contact-icon">📞</span>
+          +7 701 123 99 99
+        </a>
+        <a class="cta-contact-item" href="https://pllato.kz" target="_blank">
+          <span class="cta-contact-icon">🌐</span>
+          pllato.kz
+        </a>
+        <a class="cta-contact-item" href="https://wa.me/77011239999" target="_blank">
+          <span class="cta-contact-icon">💬</span>
+          WhatsApp
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     FOOTER
+══════════════════════════════════════════════════════════ -->
+<footer>
+  <strong>pllato.kz</strong> · ИП «STUDYSTORIES.APP» · г. Алматы · +7 701 123 99 99
+</footer>
+
+</body>
+</html>
