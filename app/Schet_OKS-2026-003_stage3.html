@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Счёт OKS-2026-003 · Этап 3 из 3</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',sans-serif;color:#1a1830;background:#f5f5f7;font-size:14px;line-height:1.6;}
+.page{max-width:800px;margin:0 auto;background:#fff;}
+
+/* PAGE 1 */
+.p1{padding:52px 64px;min-height:100vh;display:flex;flex-direction:column;gap:32px;}
+.p2{padding:52px 64px;page-break-before:always;display:flex;flex-direction:column;gap:28px;}
+
+/* HEADER */
+.hd{display:flex;align-items:flex-start;justify-content:space-between;padding-bottom:28px;border-bottom:2px solid #f0eef6;}
+.logo-block{}
+.logo-row{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+.logo-mark{width:36px;height:36px;background:linear-gradient(135deg,#F7941D,#6DC21B);border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:13px;}
+.logo-name{font-weight:900;font-size:18px;letter-spacing:-.5px;}
+.logo-sub{font-size:11px;color:#9896b0;margin-left:46px;}
+.doc-info{text-align:right;}
+.stage-badge{display:inline-block;background:#fff4e3;color:#F7941D;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:4px 12px;border-radius:20px;margin-bottom:8px;}
+.doc-title{font-size:22px;font-weight:900;letter-spacing:-.5px;color:#1a1830;}
+.doc-num{font-size:13px;color:#9896b0;margin-top:4px;}
+.doc-num strong{color:#1a1830;}
+.doc-valid{font-size:11px;color:#b0aec8;margin-top:4px;}
+
+/* PARTIES */
+.parties{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+.party{background:#fafafa;border:1px solid #eee;border-radius:14px;padding:20px 22px;}
+.party-label{font-size:9px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:#9896b0;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.party-label span{flex:1;height:1px;background:#e8e6f0;}
+.party-name{font-size:14px;font-weight:800;color:#1a1830;margin-bottom:6px;}
+.party-detail{font-size:12px;color:#6a6888;line-height:1.7;}
+
+/* BASIS */
+.basis{background:#fff8ee;border:1px solid #fbd9aa;border-radius:14px;padding:20px 24px;}
+.basis-label{font-size:9px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:#F7941D;margin-bottom:10px;}
+.basis-text{font-size:12px;color:#6a6888;line-height:1.7;}
+
+/* ITEMS TABLE */
+.tbl-wrap{}
+.tbl-label{font-size:9px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:#9896b0;margin-bottom:10px;}
+table{width:100%;border-collapse:collapse;}
+thead th{padding:10px 14px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#9896b0;border-bottom:2px solid #f0eef6;text-align:left;}
+thead th:last-child,thead th:nth-last-child(2){text-align:right;}
+tbody td{padding:14px;font-size:13px;color:#4a4868;border-bottom:1px solid #f8f6fc;vertical-align:top;}
+tbody td:first-child{width:32px;color:#9896b0;font-weight:700;}
+tbody td:last-child,tbody td:nth-last-child(1){text-align:right;font-weight:700;white-space:nowrap;}
+.td-usd{text-align:right!important;font-weight:700!important;color:#1a1830!important;white-space:nowrap;}
+.td-kzt{text-align:right!important;font-size:12px!important;color:#9896b0!important;white-space:nowrap;}
+.item-title{font-weight:700;font-size:13px;color:#1a1830;margin-bottom:5px;}
+.item-desc{font-size:12px;color:#6a6888;line-height:1.6;}
+
+/* TOTALS */
+.totals{border-top:2px solid #f0eef6;padding-top:16px;}
+.total-row{display:flex;justify-content:space-between;padding:8px 14px;font-size:13px;color:#6a6888;}
+.total-row.main{background:#1a1830;border-radius:10px;color:#fff;font-weight:800;font-size:15px;margin-top:8px;padding:14px 18px;}
+.total-row.main .tv{color:#F7941D;font-size:18px;}
+.total-note{font-size:12px;color:#9896b0;padding:10px 14px;line-height:1.6;}
+
+/* PROGRESS */
+.progress{}
+.prog-label{font-size:9px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:#9896b0;margin-bottom:12px;}
+.prog-steps{display:flex;gap:0;}
+.prog-step{flex:1;padding:12px 14px;font-size:12px;border:1px solid #eee;border-right:none;}
+.prog-step:first-child{border-radius:10px 0 0 10px;}
+.prog-step:last-child{border-radius:0 10px 10px 0;border-right:1px solid #eee;}
+.ps-label{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#9896b0;margin-bottom:4px;}
+.ps-val{font-weight:800;font-size:14px;}
+.ps-sub{font-size:10px;color:#9896b0;margin-top:2px;}
+.prog-step.paid{background:#f0fdf4;border-color:#bbf7d0;}
+.prog-step.paid .ps-val{color:#16a34a;}
+.prog-step.paid .ps-label{color:#16a34a;}
+.prog-step.current{background:#fff8ee;border-color:#fbd9aa;}
+.prog-step.current .ps-val{color:#F7941D;}
+.prog-step.current .ps-label{color:#F7941D;}
+
+/* PAGE 2 HEADER */
+.p2-hd{display:flex;align-items:center;justify-content:space-between;padding-bottom:20px;border-bottom:2px solid #f0eef6;}
+.p2-badge{background:#1a1830;color:#fff;font-size:11px;font-weight:700;padding:6px 14px;border-radius:20px;letter-spacing:.5px;}
+.p2-title{font-size:18px;font-weight:900;color:#1a1830;}
+.p2-amount{font-size:14px;color:#F7941D;font-weight:700;margin-top:2px;}
+
+/* PAYMENT BLOCK */
+.pay-block{background:#1a1830;border-radius:16px;padding:24px 28px;color:#fff;}
+.pay-label{font-size:9px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:16px;}
+.pay-amount{font-size:32px;font-weight:900;letter-spacing:-1px;color:#fff;margin-bottom:4px;}
+.pay-amount span{color:#F7941D;}
+.pay-kzt{font-size:14px;color:rgba(255,255,255,.5);margin-bottom:20px;}
+.pay-words{font-size:12px;color:rgba(255,255,255,.6);border-top:1px solid rgba(255,255,255,.1);padding-top:14px;line-height:1.6;}
+
+/* REQS */
+.req-block{border:1px solid #e8e6f0;border-radius:14px;overflow:hidden;}
+.req-block-hd{background:#fafafa;padding:12px 20px;font-size:9px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:#9896b0;border-bottom:1px solid #e8e6f0;}
+.req-rows{}
+.req-row{display:flex;gap:16px;padding:11px 20px;border-bottom:1px solid #f5f3fc;font-size:13px;}
+.req-row:last-child{border-bottom:none;}
+.req-key{color:#9896b0;flex-shrink:0;width:180px;}
+.req-val{color:#1a1830;font-weight:600;word-break:break-all;}
+.req-val.mono{font-family:monospace;font-size:13px;letter-spacing:.5px;}
+.purpose-box{background:#fff8ee;border:1px solid #fbd9aa;border-radius:10px;padding:14px 18px;font-size:12px;color:#92400e;line-height:1.6;}
+.purpose-label{font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#F7941D;margin-bottom:6px;}
+
+/* RATE BOX */
+.rate-box{background:#fafafa;border:1px solid #eee;border-radius:12px;padding:16px 20px;font-size:12px;color:#6a6888;line-height:1.7;}
+.rate-label{font-weight:700;color:#1a1830;margin-bottom:6px;}
+
+/* SIGN */
+.sign-row{display:flex;align-items:flex-end;justify-content:space-between;padding-top:20px;border-top:1px solid #f0eef6;}
+.sign-block{font-size:12px;color:#6a6888;}
+.sign-block strong{display:block;color:#1a1830;font-size:13px;margin-bottom:4px;}
+.sign-line{border-bottom:1px solid #1a1830;width:200px;margin-bottom:4px;padding-bottom:24px;}
+.sign-name{font-size:11px;color:#9896b0;}
+.sign-meta{text-align:right;font-size:11px;color:#9896b0;line-height:1.8;}
+.sign-meta strong{color:#1a1830;font-size:13px;}
+
+/* FOOTER */
+.pg-footer{border-top:1px solid #f0eef6;padding-top:14px;display:flex;justify-content:space-between;align-items:center;margin-top:auto;}
+.pf-brand{font-size:12px;color:#9896b0;font-weight:600;}
+.pf-brand span{color:#F7941D;}
+.pf-pg{font-size:11px;color:#b0aec8;}
+
+@media print{
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
+  body{background:#fff;}
+  .page{max-width:100%;}
+  .p1{min-height:100vh;page-break-after:always;}
+  .p2{page-break-before:always;}
+  .prog-step.paid{background:#f0fdf4!important;}
+  .prog-step.current{background:#fff8ee!important;}
+  .pay-block{background:#1a1830!important;}
+  .basis{background:#fff8ee!important;}
+  a{color:inherit;text-decoration:none;}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ═══════════════ СТРАНИЦА 1 ═══════════════ -->
+<div class="p1">
+
+  <!-- ШАПКА -->
+  <div class="hd">
+    <div class="logo-block">
+      <div class="logo-row">
+        <div class="logo-mark">Pl</div>
+        <div class="logo-name">Pllato.</div>
+      </div>
+      <div class="logo-sub">Партнёр по операционной оцифровке · pllato.kz</div>
+    </div>
+    <div class="doc-info">
+      <div class="stage-badge">ЭТАП 3 ИЗ 3 · ФИНАЛЬНЫЙ</div>
+      <div class="doc-title">Счёт на оплату</div>
+      <div class="doc-num">№ <strong>OKS-2026-003</strong></div>
+      <div class="doc-num">от <strong>1 июля 2026 г.</strong></div>
+      <div class="doc-valid">Действителен 7 банковских дней</div>
+    </div>
+  </div>
+
+  <!-- СТОРОНЫ -->
+  <div class="parties">
+    <div class="party">
+      <div class="party-label">П О С Т А В Щ И К <span></span> П О Л У Ч А Т Е Л Ь</div>
+      <div class="party-name">ИП «STUDYSTORIES.APP»</div>
+      <div class="party-detail">
+        БИН: 880607300110<br/>
+        Республика Казахстан, г. Алматы,<br/>
+        мкр. Орбита-4, д. 3, оф. 2<br/>
+        Email: uurraa@gmail.com<br/>
+        Тел.: +7 701 123 99 99<br/>
+        Директор: Цай Платон
+      </div>
+    </div>
+    <div class="party">
+      <div class="party-label">П Л А Т Е Л Ь Щ И К <span></span> З А К А З Ч И К</div>
+      <div class="party-name">ТОО «Зубная аптека»</div>
+      <div class="party-detail">
+        БИН: 240140038346<br/>
+        Республика Казахстан, г. Алматы,<br/>
+        Бостандыкский р-н, ул. Жарокова,<br/>
+        д. 169, кв. 28, индекс 050057<br/>
+        Директор: КАМЕНЕВ ВЯЧЕСЛАВ
+      </div>
+    </div>
+  </div>
+
+  <!-- ОСНОВАНИЕ -->
+  <div class="basis">
+    <div class="basis-label">О С Н О В А Н И Е · З А В Е Р Ш Е Н И Е Д О Г О В О Р А</div>
+    <div class="basis-text">
+      Финальный этап по уже заключённому договору. Договор на разработку CRM-системы заключён акцептом публичной оферты
+      pllato.kz/offer/custom-development/v2026-05-26/ (Редакция 1.0 от 26.05.2026) при оплате Этапа 1
+      (счёт № OKS-2026-001 от 26.05.2026). Объём работ — Техническое задание «CRM-система с интеграцией 1С Listki EG»,
+      версия 2.0 от 25.05.2026 (Приложение №1).<br/><br/>
+      Этапы 1 и 2 оплачены, система разработана и принята. Настоящий счёт — финальная оплата Этапа 3 на тех же условиях
+      Оферты и согласованного ТЗ. Дополнительных подписей не требуется; по запросу — подписанный экземпляр в PDF для бухгалтерии.
+    </div>
+  </div>
+
+  <!-- ПОЗИЦИИ -->
+  <div class="tbl-wrap">
+    <div class="tbl-label">Н А З Н А Ч Е Н И Е П Л А Т Е Ж А · Э Т А П 3 И З 3</div>
+    <table>
+      <thead>
+        <tr>
+          <th>№</th>
+          <th>Наименование работ</th>
+          <th>Сумма, USD</th>
+          <th>Сумма, KZT</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td>
+            <div class="item-title">Этап 3 — Финальная доработка, полировка и сдача CRM-системы.</div>
+            <div class="item-desc">
+              Система сдана в полном объёме согласно ТЗ v2.0 от 25.05.2026 (Приложение №1):
+              воронки B2C/B2B, карточки клиентов, задачи и роли; двусторонняя интеграция с 1С Listki EG;
+              5 каналов WhatsApp (GreenAPI), Instagram Direct, формы с Reliney.kg и Dental Pharmacy KG;
+              маркетинговый учёт, автоматизация повторных продаж, KPI продавцов и аналитика.
+              Пользовательское тестирование, устранение замечаний, обучение команды, передача кода и документации.
+              Финальная часть общей стоимости проекта согласно ТЗ v2.0 от 25.05.2026 (Приложение №1).
+            </div>
+          </td>
+          <td class="td-usd">1 370.00</td>
+          <td class="td-kzt">по курсу НБ РК<br/>на день оплаты</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ИТОГ -->
+  <div class="totals">
+    <div class="total-row main">
+      <div>К оплате по Этапу 3</div>
+      <div class="tv">$1 370.00</div>
+    </div>
+    <div class="total-note">
+      Общая стоимость проекта: 3 040 USD (со скидкой 5% от $3 200 = $3 040). Сумма в тенге — по курсу НБ РК на день оплаты.<br/>
+      Платёж по 3 этапам: Этап 1 — 300 USD (оплачен) · Этап 2 — 1 370 USD (оплачен) · Этап 3 — 1 370 USD (текущий счёт)
+    </div>
+  </div>
+
+  <!-- ПРОГРЕСС ЭТАПОВ -->
+  <div class="progress">
+    <div class="prog-label">Х О Д О П Л А Т Ы П Р О Е К Т А</div>
+    <div class="prog-steps">
+      <div class="prog-step paid">
+        <div class="ps-label">✓ Этап 1 — Оплачен</div>
+        <div class="ps-val">$300</div>
+        <div class="ps-sub">Старт · 26.05.2026</div>
+      </div>
+      <div class="prog-step paid">
+        <div class="ps-label">✓ Этап 2 — Оплачен</div>
+        <div class="ps-val">$1 370</div>
+        <div class="ps-sub">Разработка · 16.06.2026</div>
+      </div>
+      <div class="prog-step current">
+        <div class="ps-label">→ Этап 3 — К оплате</div>
+        <div class="ps-val">$1 370</div>
+        <div class="ps-sub">Финал · 01.07.2026</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pg-footer">
+    <div class="pf-brand">Pl<span>lato</span> · Счёт OKS-2026-003 · Этап 3 из 3 · стр. 1</div>
+    <div class="pf-pg">pllato.kz/offer/custom-development/v2026-05-26/</div>
+  </div>
+</div>
+
+<!-- ═══════════════ СТРАНИЦА 2 ═══════════════ -->
+<div class="p2">
+
+  <!-- ШАПКА П.2 -->
+  <div class="p2-hd">
+    <div>
+      <div class="p2-badge">ЭТАП 3 ИЗ 3 · ФИНАЛЬНЫЙ</div>
+      <div class="p2-title" style="margin-top:8px;">Счёт № OKS-2026-003 · реквизиты для оплаты</div>
+      <div class="p2-amount">К оплате: 1 370 USD (по курсу НБ РК на день оплаты в тенге)</div>
+    </div>
+    <div style="text-align:right;">
+      <div style="font-size:12px;color:#9896b0;">от 1 июля 2026 г.</div>
+      <div style="font-size:12px;color:#9896b0;">Срок: до 4 июля 2026 г.</div>
+    </div>
+  </div>
+
+  <!-- СУММА К ОПЛАТЕ -->
+  <div class="pay-block">
+    <div class="pay-label">К О П Л А Т Е П О Э Т А П У 3</div>
+    <div class="pay-amount">$<span>1 370</span>.00</div>
+    <div class="pay-kzt">≈ по курсу НБ РК на день оплаты</div>
+    <div class="pay-words">
+      Одна тысяча триста семьдесят долларов США 00 центов.<br/>
+      НДС не облагается (поставщик не является плательщиком НДС РК).
+    </div>
+  </div>
+
+  <!-- РЕКВИЗИТЫ ПОСТАВЩИКА -->
+  <div class="req-block">
+    <div class="req-block-hd">Реквизиты для оплаты · АО «Kaspi Bank»</div>
+    <div class="req-rows">
+      <div class="req-row"><div class="req-key">Получатель</div><div class="req-val">ИП «STUDYSTORIES.APP» (Цай Платон)</div></div>
+      <div class="req-row"><div class="req-key">БИН</div><div class="req-val">880607300110</div></div>
+      <div class="req-row"><div class="req-key">Адрес</div><div class="req-val">г. Алматы, мкр. Орбита-4, д. 3, оф. 2</div></div>
+      <div class="req-row"><div class="req-key">Банк</div><div class="req-val">АО «Kaspi Bank»</div></div>
+      <div class="req-row"><div class="req-key">IBAN / Счёт (KZT)</div><div class="req-val mono">KZ31722S000010366450</div></div>
+      <div class="req-row"><div class="req-key">БИК / SWIFT</div><div class="req-val">CASPKZKA</div></div>
+      <div class="req-row"><div class="req-key">КБе (бенефициара)</div><div class="req-val">19</div></div>
+    </div>
+  </div>
+
+  <!-- НАЗНАЧЕНИЕ -->
+  <div class="purpose-box">
+    <div class="purpose-label">Назначение платежа</div>
+    Оплата по счёту № OKS-2026-003 от 01.07.2026 г., финальный этап 3 разработки CRM-системы.
+    Акцепт оферты pllato.kz/offer/custom-development/v2026-05-26/. Без НДС.
+  </div>
+
+  <!-- РЕКВИЗИТЫ ПЛАТЕЛЬЩИКА -->
+  <div class="req-block">
+    <div class="req-block-hd">Реквизиты плательщика (для справки) · ТОО «Зубная аптека»</div>
+    <div class="req-rows">
+      <div class="req-row"><div class="req-key">Наименование</div><div class="req-val">Товарищество с ограниченной ответственностью «Зубная аптека»</div></div>
+      <div class="req-row"><div class="req-key">БИН</div><div class="req-val">240140038346</div></div>
+      <div class="req-row"><div class="req-key">Юр. адрес</div><div class="req-val">050057, г. Алматы, Бостандыкский р-н, ул. Жарокова, д. 169, кв. 28</div></div>
+      <div class="req-row"><div class="req-key">Директор</div><div class="req-val">КАМЕНЕВ ВЯЧЕСЛАВ</div></div>
+      <div class="req-row"><div class="req-key">Банк</div><div class="req-val">АО «Kaspi Bank»</div></div>
+      <div class="req-row"><div class="req-key">Счёт KZT</div><div class="req-val mono">KZ45722S000045651306</div></div>
+      <div class="req-row"><div class="req-key">Счёт RUB</div><div class="req-val mono">KZ63722S000045651564</div></div>
+      <div class="req-row"><div class="req-key">БИК</div><div class="req-val">CASPKZKA</div></div>
+    </div>
+  </div>
+
+  <!-- КУРС И УСЛОВИЯ -->
+  <div class="rate-box">
+    <div class="rate-label">Курс и условия</div>
+    Сумма в тенге — по официальному курсу НБ РК на день оплаты. Оплата в тенге (KZT). НДС не облагается (поставщик не плательщик НДС РК).
+    Срок оплаты — 3 банковских дня с даты приёмки финального продукта (п. 2.3 оферты).
+  </div>
+
+  <!-- ПОДПИСЬ -->
+  <div class="sign-row">
+    <div class="sign-block">
+      <strong>ПОСТАВЩИК</strong>
+      <div class="sign-line"></div>
+      <div class="sign-name">ИП «STUDYSTORIES.APP» / Цай П. / М.П. (при наличии)</div>
+    </div>
+    <div class="sign-meta">
+      <div>Счёт сформирован автоматически.</div>
+      <div>Дата выставления: <strong>01.07.2026</strong></div>
+      <div>Срок оплаты: до <strong>04.07.2026</strong></div>
+      <div style="margin-top:6px;font-size:13px;">К оплате: <strong style="color:#F7941D;">1 370 USD</strong></div>
+    </div>
+  </div>
+
+  <div class="pg-footer">
+    <div class="pf-brand">Pl<span>lato</span> · Счёт OKS-2026-003 · Этап 3 из 3 · стр. 2</div>
+    <div class="pf-pg">pllato.kz/offer/custom-development/v2026-05-26/</div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>
