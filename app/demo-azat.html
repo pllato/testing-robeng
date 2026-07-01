@@ -478,6 +478,40 @@ a{text-decoration:none;color:inherit}
 .stat-mini{text-align:center;padding:12px;background:var(--bg);border-radius:10px}
 .stat-mini b{font-size:22px;font-weight:800;display:block}
 .stat-mini span{font-size:11px;color:var(--text-muted)}
+/* ============================================================
+   КОНТЕНТ-ПЛАН
+============================================================ */
+.ct-day{padding:12px 8px;text-align:center;font-size:12px;font-weight:700;color:var(--text-muted);min-width:110px}
+.ct-task{font-size:11px;font-weight:500;padding:4px 8px;border-radius:6px;margin-bottom:4px;cursor:pointer;transition:all .15s;user-select:none}
+.ct-task.done{background:#dcfce7;color:#15803d}
+.ct-task.todo{background:#f1f5f9;color:#475569}
+.ct-task.todo:hover{background:#e2e8f0}
+.ct-task.overdue{background:#fee2e2;color:#dc2626}
+.ct-row:hover td{background:#f8fafc}
+/* ============================================================
+   СТУДЕНТЫ
+============================================================ */
+.badge-status{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px}
+.badge-status.active{background:#dcfce7;color:#16a34a}
+.badge-status.risk{background:#fee2e2;color:#dc2626}
+.badge-status.pause{background:#fef9c3;color:#a16207}
+.badge-status.grad{background:#eff6ff;color:#2563eb}
+/* ============================================================
+   KPI & ЗАРПЛАТЫ
+============================================================ */
+.kpi-row:hover{background:#f8fafc}
+/* ============================================================
+   РЕГЛАМЕНТЫ
+============================================================ */
+.reg-item{display:flex;align-items:center;gap:10px;padding:12px 16px;background:#fff;border:1px solid var(--border);border-radius:10px;transition:all .15s}
+.reg-item:hover{border-color:#c7d2fe;background:#f8faff}
+.reg-drag{font-size:16px;color:var(--border);cursor:grab}
+.reg-title{flex:1;font-size:13px;font-weight:600}
+.reg-freq{font-size:11px;color:var(--text-muted);background:var(--bg);padding:3px 8px;border-radius:6px;white-space:nowrap}
+.reg-kpi.kpi-on{font-size:11px;color:#16a34a;background:#dcfce7;padding:3px 8px;border-radius:6px;font-weight:700;white-space:nowrap}
+.reg-kpi.kpi-off{font-size:11px;color:var(--text-muted);background:var(--bg);padding:3px 8px;border-radius:6px;white-space:nowrap}
+.reg-edit,.reg-del{font-size:14px;opacity:.5;transition:opacity .15s;padding:4px}
+.reg-edit:hover,.reg-del:hover{opacity:1}
 </style>
 </head>
 <body>
@@ -485,29 +519,35 @@ a{text-decoration:none;color:inherit}
   <!-- ============ SIDEBAR ============ -->
   <aside class="sidebar">
     <div class="sidebar-logo">
-      <div class="mark">E</div>
-      <div class="txt"><b>EduCRM</b><span>Обучение за рубежом</span></div>
+      <div class="mark">М</div>
+      <div class="txt"><b>МагистрCRM</b><span>Образование · Казахстан</span></div>
     </div>
     <nav class="nav" id="nav">
       <div class="nav-group-label">Обзор</div>
-      <div class="nav-item active" data-sec="dashboard" onclick="nav('dashboard')"><span class="ico">📊</span> Дашборд</div>
-      <div class="nav-item" data-sec="leads" onclick="nav('leads')"><span class="ico">🎯</span> Воронка лидов</div>
+      <div class="nav-item active" data-sec="dashboard" onclick="nav('dashboard')"><span class="ico">🏠</span> Дашборд</div>
+      <div class="nav-group-label">Продажи</div>
+      <div class="nav-item" data-sec="leads" onclick="nav('leads')"><span class="ico">🎯</span> Воронка лидов <span class="badge">12</span></div>
       <div class="nav-item" data-sec="deals" onclick="nav('deals')"><span class="ico">💼</span> Сделки</div>
       <div class="nav-item" data-sec="contacts" onclick="nav('contacts')"><span class="ico">👥</span> Контакты</div>
-      <div class="nav-group-label">Коммуникации</div>
-      <div class="nav-item" data-sec="whatsapp" onclick="nav('whatsapp')"><span class="ico">💬</span> WhatsApp</div>
-      <div class="nav-item" data-sec="tasks" onclick="nav('tasks')"><span class="ico">✅</span> Задачи <span class="badge">8</span></div>
+      <div class="nav-group-label">Маркетинг</div>
+      <div class="nav-item" data-sec="content" onclick="nav('content')"><span class="ico">📅</span> Контент-план <span class="badge" style="background:#22c55e">NEW</span></div>
       <div class="nav-item" data-sec="broadcast" onclick="nav('broadcast')"><span class="ico">📢</span> Рассылки</div>
-      <div class="nav-group-label">Автоматизация</div>
+      <div class="nav-group-label">Сопровождение</div>
+      <div class="nav-item" data-sec="students" onclick="nav('students')"><span class="ico">🎓</span> Студенты <span class="badge">47</span></div>
+      <div class="nav-item" data-sec="tasks" onclick="nav('tasks')"><span class="ico">✅</span> Задачи <span class="badge">8</span></div>
+      <div class="nav-group-label">Команда</div>
+      <div class="nav-item" data-sec="kpi" onclick="nav('kpi')"><span class="ico">📈</span> KPI & Зарплаты <span class="badge" style="background:#22c55e">NEW</span></div>
+      <div class="nav-item" data-sec="reglaments" onclick="nav('reglaments')"><span class="ico">📋</span> Регламенты</div>
+      <div class="nav-item" data-sec="schedule" onclick="nav('schedule')"><span class="ico">🗓️</span> Расписание</div>
+      <div class="nav-group-label">Прочее</div>
+      <div class="nav-item" data-sec="whatsapp" onclick="nav('whatsapp')"><span class="ico">💬</span> WhatsApp <span class="badge">3</span></div>
       <div class="nav-item" data-sec="auto" onclick="nav('auto')"><span class="ico">🤖</span> Автороботы <span class="badge">7</span></div>
-      <div class="nav-item" data-sec="schedule" onclick="nav('schedule')"><span class="ico">📅</span> Расписание</div>
-      <div class="nav-group-label">Аналитика</div>
-      <div class="nav-item" data-sec="analytics" onclick="nav('analytics')"><span class="ico">📈</span> Аналитика</div>
+      <div class="nav-item" data-sec="analytics" onclick="nav('analytics')"><span class="ico">📊</span> Аналитика</div>
       <div class="nav-item" data-sec="settings" onclick="nav('settings')"><span class="ico">⚙️</span> Настройки</div>
     </nav>
     <div class="sidebar-footer">
-      <div class="av">АК</div>
-      <div class="info"><b>Айдана К.</b><span>Руководитель</span></div>
+      <div class="av">АЕ</div>
+      <div class="info"><b>Азат Есқали</b><span>Директор</span></div>
     </div>
   </aside>
 
@@ -2672,6 +2712,563 @@ a{text-decoration:none;color:inherit}
         </div>
       </section>
 
+      <!-- ======================================================
+           КОНТЕНТ-ПЛАН
+      ====================================================== -->
+      <section class="section" id="s-content">
+        <div class="sec-head">
+          <div><h2>Контент-план</h2><p>Еженедельный план отдела маркетинга</p></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-outline" onclick="contentWeek(-1)">← Пред. неделя</button>
+            <span id="contentWeekLabel" style="display:flex;align-items:center;font-weight:600;padding:0 12px">30 июн – 6 июл 2026</span>
+            <button class="btn btn-outline" onclick="contentWeek(1)">След. неделя →</button>
+            <button class="btn btn-primary" onclick="showToast('Задача добавлена в контент-план','success')">+ Добавить задачу</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:16px;align-items:flex-start">
+          <div style="flex:1;min-width:0">
+            <!-- Filter -->
+            <div style="display:flex;gap:8px;margin-bottom:16px">
+              <button class="pill active" onclick="filterContent(this,'all')">Все</button>
+              <button class="pill" onclick="filterContent(this,'aliya')">Алия</button>
+              <button class="pill" onclick="filterContent(this,'dana')">Дана</button>
+              <button class="pill" onclick="filterContent(this,'marat')">Марат</button>
+            </div>
+            <!-- Calendar table -->
+            <div style="background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden">
+              <table style="width:100%;border-collapse:collapse">
+                <thead>
+                  <tr style="background:#f8fafc">
+                    <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:700;color:var(--text-muted);width:130px">Сотрудник</th>
+                    <th class="ct-day">Пн<br><span style="font-weight:400;color:var(--text-muted)">30 июн</span></th>
+                    <th class="ct-day">Вт<br><span style="font-weight:400;color:var(--text-muted)">1 июл</span></th>
+                    <th class="ct-day">Ср<br><span style="font-weight:400;color:var(--text-muted)">2 июл</span></th>
+                    <th class="ct-day">Чт<br><span style="font-weight:400;color:var(--text-muted)">3 июл</span></th>
+                    <th class="ct-day">Пт<br><span style="font-weight:400;color:var(--text-muted)">4 июл</span></th>
+                    <th class="ct-day">Сб<br><span style="font-weight:400;color:var(--text-muted)">5 июл</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Алия -->
+                  <tr class="ct-row ct-row-aliya" style="border-top:1px solid var(--border)">
+                    <td style="padding:12px 16px">
+                      <div style="display:flex;align-items:center;gap:8px">
+                        <div style="width:32px;height:32px;border-radius:50%;background:#6366f1;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px">АД</div>
+                        <div><div style="font-weight:600;font-size:13px">Алия</div><div style="font-size:11px;color:var(--text-muted)">Контент</div></div>
+                      </div>
+                    </td>
+                    <td style="padding:8px"><div class="ct-task done" onclick="toggleCtTask(this)">✅ Пост Instagram</div><div class="ct-task done" onclick="toggleCtTask(this)">✅ Сторис ×3</div></td>
+                    <td style="padding:8px"><div class="ct-task done" onclick="toggleCtTask(this)">✅ Рилс</div><div class="ct-task done" onclick="toggleCtTask(this)">✅ Ответы на комм.</div></td>
+                    <td style="padding:8px"><div class="ct-task done" onclick="toggleCtTask(this)">✅ Пост Instagram</div><div class="ct-task done" onclick="toggleCtTask(this)">✅ Сторис ×3</div></td>
+                    <td style="padding:8px"><div class="ct-task todo" onclick="toggleCtTask(this)">⬜ Вебинар-анонс</div><div class="ct-task todo" onclick="toggleCtTask(this)">⬜ Email-рассылка</div></td>
+                    <td style="padding:8px"><div class="ct-task todo" onclick="toggleCtTask(this)">⬜ Пост Instagram</div><div class="ct-task overdue" onclick="toggleCtTask(this)">🔴 Отчёт по охватам</div></td>
+                    <td style="padding:8px"><div class="ct-task todo" onclick="toggleCtTask(this)">⬜ Сторис ×2</div></td>
+                  </tr>
+                  <!-- Дана -->
+                  <tr class="ct-row ct-row-dana" style="border-top:1px solid var(--border)">
+                    <td style="padding:12px 16px">
+                      <div style="display:flex;align-items:center;gap:8px">
+                        <div style="width:32px;height:32px;border-radius:50%;background:#f59e0b;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px">ДМ</div>
+                        <div><div style="font-weight:600;font-size:13px">Дана</div><div style="font-size:11px;color:var(--text-muted)">SMM</div></div>
+                      </div>
+                    </td>
+                    <td style="padding:8px"><div class="ct-task done" onclick="toggleCtTask(this)">✅ Таргет запуск</div></td>
+                    <td style="padding:8px"><div class="ct-task done" onclick="toggleCtTask(this)">✅ Отчёт по рекламе</div><div class="ct-task done" onclick="toggleCtTask(this)">✅ Корр. аудитории</div></td>
+                    <td style="padding:8px"><div class="ct-task todo" onclick="toggleCtTask(this)">⬜ A/B тест</div><div class="ct-task overdue" onclick="toggleCtTask(this)">🔴 Бюджет-отчёт</div></td>
+                    <td style="padding:8px"><div class="ct-task done" onclick="toggleCtTask(this)">✅ Пост таргет</div><div class="ct-task todo" onclick="toggleCtTask(this)">⬜ Анализ конкур.</div></td>
+                    <td style="padding:8px"><div class="ct-task todo" onclick="toggleCtTask(this)">⬜ Аналитика недели</div></td>
+                    <td style="padding:8px"><div class="ct-task todo" onclick="toggleCtTask(this)">⬜ Отчёт директору</div></td>
+                  </tr>
+                  <!-- Марат -->
+                  <tr class="ct-row ct-row-marat" style="border-top:1px solid var(--border)">
+                    <td style="padding:12px 16px">
+                      <div style="display:flex;align-items:center;gap:8px">
+                        <div style="width:32px;height:32px;border-radius:50%;background:#14b8a6;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px">МБ</div>
+                        <div><div style="font-weight:600;font-size:13px">Марат</div><div style="font-size:11px;color:var(--text-muted)">Дизайн</div></div>
+                      </div>
+                    </td>
+                    <td style="padding:8px"><div class="ct-task done" onclick="toggleCtTask(this)">✅ Баннер лендинг</div><div class="ct-task done" onclick="toggleCtTask(this)">✅ Иконки соц.сети</div></td>
+                    <td style="padding:8px"><div class="ct-task done" onclick="toggleCtTask(this)">✅ Шаблоны сторис</div></td>
+                    <td style="padding:8px"><div class="ct-task done" onclick="toggleCtTask(this)">✅ Дизайн email</div><div class="ct-task done" onclick="toggleCtTask(this)">✅ Инфографика</div></td>
+                    <td style="padding:8px"><div class="ct-task todo" onclick="toggleCtTask(this)">⬜ Презентация</div><div class="ct-task todo" onclick="toggleCtTask(this)">⬜ Брендбук ред.</div></td>
+                    <td style="padding:8px"><div class="ct-task done" onclick="toggleCtTask(this)">✅ Иконки</div></td>
+                    <td style="padding:8px"><div class="ct-task todo" onclick="toggleCtTask(this)">⬜ Резерв</div></td>
+                  </tr>
+                  <!-- KPI Row -->
+                  <tr style="border-top:2px solid var(--border);background:#f8fafc">
+                    <td style="padding:12px 16px;font-size:12px;font-weight:700;color:var(--text-muted)">KPI недели</td>
+                    <td colspan="6" style="padding:12px 16px">
+                      <div style="display:flex;gap:24px">
+                        <div style="flex:1"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:12px;font-weight:600">Алия</span><span id="ct-pct-aliya" style="font-size:12px;font-weight:700;color:#6366f1">75%</span></div><div style="height:6px;background:#e2e8f0;border-radius:4px"><div id="ct-bar-aliya" style="height:100%;width:75%;background:#6366f1;border-radius:4px;transition:.3s"></div></div></div>
+                        <div style="flex:1"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:12px;font-weight:600">Дана</span><span id="ct-pct-dana" style="font-size:12px;font-weight:700;color:#f59e0b">60%</span></div><div style="height:6px;background:#e2e8f0;border-radius:4px"><div id="ct-bar-dana" style="height:100%;width:60%;background:#f59e0b;border-radius:4px;transition:.3s"></div></div></div>
+                        <div style="flex:1"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:12px;font-weight:600">Марат</span><span id="ct-pct-marat" style="font-size:12px;font-weight:700;color:#14b8a6">80%</span></div><div style="height:6px;background:#e2e8f0;border-radius:4px"><div id="ct-bar-marat" style="height:100%;width:80%;background:#14b8a6;border-radius:4px;transition:.3s"></div></div></div>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <!-- Right widget -->
+          <div style="width:200px;flex-shrink:0">
+            <div class="card" style="text-align:center">
+              <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:12px">ПЛАН НЕДЕЛИ</div>
+              <svg viewBox="0 0 80 80" width="80" height="80" style="margin:0 auto 12px;display:block">
+                <circle cx="40" cy="40" r="30" fill="none" stroke="#e2e8f0" stroke-width="10"/>
+                <circle cx="40" cy="40" r="30" fill="none" stroke="#6366f1" stroke-width="10" stroke-dasharray="133 188" stroke-linecap="round" transform="rotate(-90 40 40)"/>
+                <text x="40" y="45" text-anchor="middle" font-size="14" font-weight="800" fill="#0f172a">71%</text>
+              </svg>
+              <div style="font-size:22px;font-weight:800;color:#0f172a">22/31</div>
+              <div style="font-size:12px;color:var(--text-muted)">задач выполнено</div>
+            </div>
+            <div class="card" style="margin-top:12px">
+              <div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:8px">СТАТУС</div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:12px">✅ Выполнено</span><span style="font-weight:700;color:#22c55e">22</span></div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:12px">⬜ В плане</span><span style="font-weight:700;color:#6366f1">6</span></div>
+              <div style="display:flex;justify-content:space-between"><span style="font-size:12px">🔴 Просрочено</span><span style="font-weight:700;color:#ef4444">3</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================================================
+           СТУДЕНТЫ (Сопровождение)
+      ====================================================== -->
+      <section class="section" id="s-students">
+        <div class="sec-head">
+          <div><h2>Студенты</h2><p>Отдел сопровождения · 47 активных студентов</p></div>
+          <button class="btn btn-primary" onclick="showToast('Студент добавлен','success')">+ Добавить студента</button>
+        </div>
+        <!-- Stats -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px">
+          <div class="card" style="padding:16px;text-align:center"><div style="font-size:28px;font-weight:800;color:#6366f1">47</div><div style="font-size:12px;color:var(--text-muted)">Всего студентов</div></div>
+          <div class="card" style="padding:16px;text-align:center"><div style="font-size:28px;font-weight:800;color:#22c55e">35</div><div style="font-size:12px;color:var(--text-muted)">Активных</div></div>
+          <div class="card" style="padding:16px;text-align:center"><div style="font-size:28px;font-weight:800;color:#ef4444">8</div><div style="font-size:12px;color:var(--text-muted)">В зоне риска</div></div>
+          <div class="card" style="padding:16px;text-align:center"><div style="font-size:28px;font-weight:800;color:#3b82f6">4</div><div style="font-size:12px;color:var(--text-muted)">Выпускники</div></div>
+        </div>
+        <!-- Filter -->
+        <div style="display:flex;gap:8px;margin-bottom:16px">
+          <button class="pill active" onclick="filterStudents(this,'all')">Все</button>
+          <button class="pill" onclick="filterStudents(this,'active')">Активные</button>
+          <button class="pill" onclick="filterStudents(this,'risk')">В риске</button>
+          <button class="pill" onclick="filterStudents(this,'graduate')">Выпускники</button>
+        </div>
+        <!-- Table -->
+        <div class="card" style="padding:0;overflow:hidden">
+          <table style="width:100%;border-collapse:collapse">
+            <thead>
+              <tr style="background:#f8fafc;border-bottom:1px solid var(--border)">
+                <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:700;color:var(--text-muted)">#</th>
+                <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:700;color:var(--text-muted)">Студент</th>
+                <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:700;color:var(--text-muted)">Куратор</th>
+                <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:700;color:var(--text-muted)">Курс</th>
+                <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:700;color:var(--text-muted)">Прогресс</th>
+                <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:700;color:var(--text-muted)">Следующий контакт</th>
+                <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:700;color:var(--text-muted)">Статус</th>
+                <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:700;color:var(--text-muted)">Оплата</th>
+              </tr>
+            </thead>
+            <tbody id="studentsTable">
+              <tr class="trow stu-active" onclick="openStudentModal(1)" style="cursor:pointer;border-bottom:1px solid var(--border)">
+                <td style="padding:12px 16px;color:var(--text-muted)">1</td>
+                <td style="padding:12px 16px"><div style="font-weight:600">Аружан Сейткали</div><div style="font-size:12px;color:var(--text-muted)">arujan@mail.kz</div></td>
+                <td style="padding:12px 16px;font-size:13px">Жанара</td>
+                <td style="padding:12px 16px;font-size:13px">Магистратура КБТУ</td>
+                <td style="padding:12px 16px"><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:6px;background:#e2e8f0;border-radius:4px"><div style="height:100%;width:65%;background:#22c55e;border-radius:4px"></div></div><span style="font-size:12px;font-weight:600">65%</span></div></td>
+                <td style="padding:12px 16px;font-size:13px">02.07.2026</td>
+                <td style="padding:12px 16px"><span class="badge-status active">Активный</span></td>
+                <td style="padding:12px 16px"><span style="color:#22c55e;font-weight:600">✅ Оплачено</span></td>
+              </tr>
+              <tr class="trow stu-risk" onclick="openStudentModal(2)" style="cursor:pointer;border-bottom:1px solid var(--border)">
+                <td style="padding:12px 16px;color:var(--text-muted)">2</td>
+                <td style="padding:12px 16px"><div style="font-weight:600">Бекзат Нурмаганбет</div><div style="font-size:12px;color:var(--text-muted)">bekzat@mail.kz</div></td>
+                <td style="padding:12px 16px;font-size:13px">Гульнара</td>
+                <td style="padding:12px 16px;font-size:13px">MBA онлайн</td>
+                <td style="padding:12px 16px"><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:6px;background:#e2e8f0;border-radius:4px"><div style="height:100%;width:40%;background:#ef4444;border-radius:4px"></div></div><span style="font-size:12px;font-weight:600">40%</span></div></td>
+                <td style="padding:12px 16px;font-size:13px;color:#ef4444;font-weight:600">03.07.2026 ⚠️</td>
+                <td style="padding:12px 16px"><span class="badge-status risk">В риске</span></td>
+                <td style="padding:12px 16px"><span style="color:#f59e0b;font-weight:600">⚠️ Задержка</span></td>
+              </tr>
+              <tr class="trow stu-active" onclick="openStudentModal(3)" style="cursor:pointer;border-bottom:1px solid var(--border)">
+                <td style="padding:12px 16px;color:var(--text-muted)">3</td>
+                <td style="padding:12px 16px"><div style="font-weight:600">Дина Ахметова</div><div style="font-size:12px;color:var(--text-muted)">dina@mail.kz</div></td>
+                <td style="padding:12px 16px;font-size:13px">Жанара</td>
+                <td style="padding:12px 16px;font-size:13px">Магистратура ЕНУ</td>
+                <td style="padding:12px 16px"><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:6px;background:#e2e8f0;border-radius:4px"><div style="height:100%;width:80%;background:#22c55e;border-radius:4px"></div></div><span style="font-size:12px;font-weight:600">80%</span></div></td>
+                <td style="padding:12px 16px;font-size:13px">05.07.2026</td>
+                <td style="padding:12px 16px"><span class="badge-status active">Активный</span></td>
+                <td style="padding:12px 16px"><span style="color:#22c55e;font-weight:600">✅ Оплачено</span></td>
+              </tr>
+              <tr class="trow stu-risk" onclick="openStudentModal(4)" style="cursor:pointer;border-bottom:1px solid var(--border)">
+                <td style="padding:12px 16px;color:var(--text-muted)">4</td>
+                <td style="padding:12px 16px"><div style="font-weight:600">Ерлан Касымов</div><div style="font-size:12px;color:var(--text-muted)">erlan@mail.kz</div></td>
+                <td style="padding:12px 16px;font-size:13px">Гульнара</td>
+                <td style="padding:12px 16px;font-size:13px">PhD подготовка</td>
+                <td style="padding:12px 16px"><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:6px;background:#e2e8f0;border-radius:4px"><div style="height:100%;width:55%;background:#f59e0b;border-radius:4px"></div></div><span style="font-size:12px;font-weight:600">55%</span></div></td>
+                <td style="padding:12px 16px;font-size:13px;color:#ef4444;font-weight:600">01.07.2026 🔴</td>
+                <td style="padding:12px 16px"><span class="badge-status risk">В риске</span></td>
+                <td style="padding:12px 16px"><span style="color:#ef4444;font-weight:600">❌ Не оплатил</span></td>
+              </tr>
+              <tr class="trow stu-graduate" onclick="openStudentModal(5)" style="cursor:pointer;border-bottom:1px solid var(--border)">
+                <td style="padding:12px 16px;color:var(--text-muted)">5</td>
+                <td style="padding:12px 16px"><div style="font-weight:600">Зарина Иманова</div><div style="font-size:12px;color:var(--text-muted)">zarina@mail.kz</div></td>
+                <td style="padding:12px 16px;font-size:13px">Жанара</td>
+                <td style="padding:12px 16px;font-size:13px">MBA очно</td>
+                <td style="padding:12px 16px"><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:6px;background:#e2e8f0;border-radius:4px"><div style="height:100%;width:100%;background:#3b82f6;border-radius:4px"></div></div><span style="font-size:12px;font-weight:600">100%</span></div></td>
+                <td style="padding:12px 16px;font-size:13px">Выпускник</td>
+                <td style="padding:12px 16px"><span class="badge-status grad">Выпускник</span></td>
+                <td style="padding:12px 16px"><span style="color:#22c55e;font-weight:600">✅ Оплачено</span></td>
+              </tr>
+              <tr class="trow stu-active" onclick="openStudentModal(6)" style="cursor:pointer;border-bottom:1px solid var(--border)">
+                <td style="padding:12px 16px;color:var(--text-muted)">6</td>
+                <td style="padding:12px 16px"><div style="font-weight:600">Куаныш Жакупов</div><div style="font-size:12px;color:var(--text-muted)">kuanish@mail.kz</div></td>
+                <td style="padding:12px 16px;font-size:13px">Гульнара</td>
+                <td style="padding:12px 16px;font-size:13px">Магистратура МУИТ</td>
+                <td style="padding:12px 16px"><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:6px;background:#e2e8f0;border-radius:4px"><div style="height:100%;width:30%;background:#f59e0b;border-radius:4px"></div></div><span style="font-size:12px;font-weight:600">30%</span></div></td>
+                <td style="padding:12px 16px;font-size:13px">02.07.2026</td>
+                <td style="padding:12px 16px"><span class="badge-status pause">Пауза</span></td>
+                <td style="padding:12px 16px"><span style="color:#22c55e;font-weight:600">✅ Оплачено</span></td>
+              </tr>
+              <tr class="trow stu-active" onclick="openStudentModal(7)" style="cursor:pointer;border-bottom:1px solid var(--border)">
+                <td style="padding:12px 16px;color:var(--text-muted)">7</td>
+                <td style="padding:12px 16px"><div style="font-weight:600">Лаура Смагулова</div><div style="font-size:12px;color:var(--text-muted)">laura@mail.kz</div></td>
+                <td style="padding:12px 16px;font-size:13px">Жанара</td>
+                <td style="padding:12px 16px;font-size:13px">Магистратура КазНУ</td>
+                <td style="padding:12px 16px"><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:6px;background:#e2e8f0;border-radius:4px"><div style="height:100%;width:70%;background:#22c55e;border-radius:4px"></div></div><span style="font-size:12px;font-weight:600">70%</span></div></td>
+                <td style="padding:12px 16px;font-size:13px">04.07.2026</td>
+                <td style="padding:12px 16px"><span class="badge-status active">Активный</span></td>
+                <td style="padding:12px 16px"><span style="color:#22c55e;font-weight:600">✅ Оплачено</span></td>
+              </tr>
+              <tr class="trow stu-risk" onclick="openStudentModal(8)" style="cursor:pointer;border-bottom:1px solid var(--border)">
+                <td style="padding:12px 16px;color:var(--text-muted)">8</td>
+                <td style="padding:12px 16px"><div style="font-weight:600">Мирас Балтаев</div><div style="font-size:12px;color:var(--text-muted)">miras@mail.kz</div></td>
+                <td style="padding:12px 16px;font-size:13px">Гульнара</td>
+                <td style="padding:12px 16px;font-size:13px">MBA онлайн</td>
+                <td style="padding:12px 16px"><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:6px;background:#e2e8f0;border-radius:4px"><div style="height:100%;width:25%;background:#ef4444;border-radius:4px"></div></div><span style="font-size:12px;font-weight:600">25%</span></div></td>
+                <td style="padding:12px 16px;font-size:13px;color:#ef4444;font-weight:600">02.07.2026 ⚠️</td>
+                <td style="padding:12px 16px"><span class="badge-status risk">В риске</span></td>
+                <td style="padding:12px 16px"><span style="color:#f59e0b;font-weight:600">⚠️ Задержка</span></td>
+              </tr>
+              <tr class="trow stu-active" onclick="openStudentModal(9)" style="cursor:pointer;border-bottom:1px solid var(--border)">
+                <td style="padding:12px 16px;color:var(--text-muted)">9</td>
+                <td style="padding:12px 16px"><div style="font-weight:600">Назгуль Сериккали</div><div style="font-size:12px;color:var(--text-muted)">nazgul@mail.kz</div></td>
+                <td style="padding:12px 16px;font-size:13px">Жанара</td>
+                <td style="padding:12px 16px;font-size:13px">PhD подготовка</td>
+                <td style="padding:12px 16px"><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:6px;background:#e2e8f0;border-radius:4px"><div style="height:100%;width:85%;background:#22c55e;border-radius:4px"></div></div><span style="font-size:12px;font-weight:600">85%</span></div></td>
+                <td style="padding:12px 16px;font-size:13px">08.07.2026</td>
+                <td style="padding:12px 16px"><span class="badge-status active">Активный</span></td>
+                <td style="padding:12px 16px"><span style="color:#22c55e;font-weight:600">✅ Оплачено</span></td>
+              </tr>
+              <tr class="trow stu-active" onclick="openStudentModal(10)" style="cursor:pointer">
+                <td style="padding:12px 16px;color:var(--text-muted)">10</td>
+                <td style="padding:12px 16px"><div style="font-weight:600">Олжас Темиров</div><div style="font-size:12px;color:var(--text-muted)">olzhas@mail.kz</div></td>
+                <td style="padding:12px 16px;font-size:13px">Гульнара</td>
+                <td style="padding:12px 16px;font-size:13px">Магистратура МУИТ</td>
+                <td style="padding:12px 16px"><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:6px;background:#e2e8f0;border-radius:4px"><div style="height:100%;width:45%;background:#6366f1;border-radius:4px"></div></div><span style="font-size:12px;font-weight:600">45%</span></div></td>
+                <td style="padding:12px 16px;font-size:13px">03.07.2026</td>
+                <td style="padding:12px 16px"><span class="badge-status active">Активный</span></td>
+                <td style="padding:12px 16px"><span style="color:#22c55e;font-weight:600">✅ Оплачено</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ======================================================
+           KPI & ЗАРПЛАТЫ
+      ====================================================== -->
+      <section class="section" id="s-kpi">
+        <div class="sec-head">
+          <div><h2>KPI & Зарплаты</h2><p>Автоматический расчёт зарплат на основе KPI · Июль 2026</p></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-outline">← Июнь</button>
+            <span style="display:flex;align-items:center;font-weight:600;padding:0 12px">Июль 2026</span>
+            <button class="btn btn-outline">Август →</button>
+            <button class="btn btn-primary" onclick="showToast('Выгрузка в Excel сформирована','success')">📥 Выгрузить</button>
+          </div>
+        </div>
+
+        <!-- Formula card -->
+        <div class="card" style="margin-bottom:24px;background:linear-gradient(135deg,#f8faff,#eff0ff);border-color:#c7d2fe">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div style="font-size:13px;font-weight:700;color:#4338ca">⚡ Формула расчёта зарплаты</div>
+            <button class="btn btn-outline" style="font-size:12px" onclick="showToast('Формула сохранена','success')">Сохранить формулу</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px">
+            <span style="font-weight:600">Зарплата</span>
+            <span style="color:var(--text-muted)">=</span>
+            <span>Базовая ставка</span>
+            <span style="color:var(--text-muted)">×</span>
+            <span style="background:#fff;border:1px solid #c7d2fe;border-radius:6px;padding:4px 8px">( Результат сделок <input id="koef1" type="number" value="90" min="0" max="100" style="width:40px;border:none;background:none;font-weight:700;color:#6366f1;text-align:center">% </span>
+            <span style="color:var(--text-muted)">+</span>
+            <span style="background:#fff;border:1px solid #c7d2fe;border-radius:6px;padding:4px 8px">Качество CRM <input id="koef2" type="number" value="5" min="0" max="100" style="width:32px;border:none;background:none;font-weight:700;color:#6366f1;text-align:center">%</span>
+            <span style="color:var(--text-muted)">+</span>
+            <span style="background:#fff;border:1px solid #c7d2fe;border-radius:6px;padding:4px 8px">Посещаемость <input id="koef3" type="number" value="5" min="0" max="100" style="width:32px;border:none;background:none;font-weight:700;color:#6366f1;text-align:center">% )</span>
+            <button class="btn btn-outline" style="font-size:12px" onclick="showToast('Метрика добавлена','success')">+ Метрика</button>
+          </div>
+          <div style="margin-top:10px;font-size:12px;color:var(--text-muted)">💡 Сотрудник получает бонус когда правильно заполняет CRM и приходит вовремя. Неправильное заполнение = недополучает до 5% зарплаты.</div>
+        </div>
+
+        <!-- KPI Table -->
+        <div class="card" style="padding:0;overflow:hidden;margin-bottom:20px">
+          <table style="width:100%;border-collapse:collapse">
+            <thead>
+              <tr style="background:#0f172a">
+                <th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase">Сотрудник</th>
+                <th style="padding:12px 10px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase">Отдел</th>
+                <th style="padding:12px 10px;text-align:center;font-size:11px;font-weight:700;color:#94a3b8">Сделок</th>
+                <th style="padding:12px 10px;text-align:center;font-size:11px;font-weight:700;color:#94a3b8">Конверсия</th>
+                <th style="padding:12px 10px;text-align:center;font-size:11px;font-weight:700;color:#94a3b8">CRM %</th>
+                <th style="padding:12px 10px;text-align:center;font-size:11px;font-weight:700;color:#94a3b8">Посещ. %</th>
+                <th style="padding:12px 10px;text-align:center;font-size:11px;font-weight:700;color:#94a3b8">KPI итог</th>
+                <th style="padding:12px 10px;text-align:center;font-size:11px;font-weight:700;color:#94a3b8">Бонус</th>
+                <th style="padding:12px 10px;text-align:right;font-size:11px;font-weight:700;color:#94a3b8">К выплате</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="trow kpi-row" onclick="openKpiDetail('Нурлан Сейтжан','97','Продажи','185000')" style="cursor:pointer;border-bottom:1px solid var(--border)">
+                <td style="padding:12px 16px"><div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:50%;background:#6366f1;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px">НС</div><div><div style="font-weight:600">Нурлан Сейтжан</div><div style="font-size:11px;color:var(--text-muted)">Старший менеджер</div></div></div></td>
+                <td style="padding:12px 10px;text-align:center"><span style="font-size:12px;background:#eff0ff;color:#6366f1;padding:2px 8px;border-radius:6px;font-weight:600">Продажи</span></td>
+                <td style="padding:12px 10px;text-align:center;font-weight:700">18</td>
+                <td style="padding:12px 10px;text-align:center">38%</td>
+                <td style="padding:12px 10px;text-align:center">96%</td>
+                <td style="padding:12px 10px;text-align:center">100%</td>
+                <td style="padding:12px 10px;text-align:center"><span style="background:#dcfce7;color:#16a34a;font-weight:800;padding:4px 10px;border-radius:8px">97%</span></td>
+                <td style="padding:12px 10px;text-align:center;color:#22c55e;font-weight:600">+₸15,000</td>
+                <td style="padding:12px 10px;text-align:right;font-weight:800;font-size:15px">₸185,000</td>
+              </tr>
+              <tr class="trow kpi-row" onclick="openKpiDetail('Асель Нурланова','93','Продажи','172000')" style="cursor:pointer;border-bottom:1px solid var(--border)">
+                <td style="padding:12px 16px"><div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:50%;background:#14b8a6;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px">АН</div><div><div style="font-weight:600">Асель Нурланова</div><div style="font-size:11px;color:var(--text-muted)">Менеджер</div></div></div></td>
+                <td style="padding:12px 10px;text-align:center"><span style="font-size:12px;background:#eff0ff;color:#6366f1;padding:2px 8px;border-radius:6px;font-weight:600">Продажи</span></td>
+                <td style="padding:12px 10px;text-align:center;font-weight:700">15</td>
+                <td style="padding:12px 10px;text-align:center">34%</td>
+                <td style="padding:12px 10px;text-align:center">94%</td>
+                <td style="padding:12px 10px;text-align:center">98%</td>
+                <td style="padding:12px 10px;text-align:center"><span style="background:#dcfce7;color:#16a34a;font-weight:800;padding:4px 10px;border-radius:8px">93%</span></td>
+                <td style="padding:12px 10px;text-align:center;color:#22c55e;font-weight:600">+₸12,000</td>
+                <td style="padding:12px 10px;text-align:right;font-weight:800;font-size:15px">₸172,000</td>
+              </tr>
+              <tr class="trow kpi-row" onclick="openKpiDetail('Айгерим Тасова','82','Продажи','158000')" style="cursor:pointer;border-bottom:1px solid var(--border)">
+                <td style="padding:12px 16px"><div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:50%;background:#f59e0b;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px">АТ</div><div><div style="font-weight:600">Айгерим Тасова</div><div style="font-size:11px;color:var(--text-muted)">Менеджер</div></div></div></td>
+                <td style="padding:12px 10px;text-align:center"><span style="font-size:12px;background:#eff0ff;color:#6366f1;padding:2px 8px;border-radius:6px;font-weight:600">Продажи</span></td>
+                <td style="padding:12px 10px;text-align:center;font-weight:700">12</td>
+                <td style="padding:12px 10px;text-align:center">29%</td>
+                <td style="padding:12px 10px;text-align:center">88%</td>
+                <td style="padding:12px 10px;text-align:center">95%</td>
+                <td style="padding:12px 10px;text-align:center"><span style="background:#fef9c3;color:#a16207;font-weight:800;padding:4px 10px;border-radius:8px">82%</span></td>
+                <td style="padding:12px 10px;text-align:center;color:#22c55e;font-weight:600">+₸8,000</td>
+                <td style="padding:12px 10px;text-align:right;font-weight:800;font-size:15px">₸158,000</td>
+              </tr>
+              <tr class="trow kpi-row" onclick="openKpiDetail('Медет Алтынбеков','68','Продажи','140000')" style="cursor:pointer;border-bottom:1px solid var(--border);background:#fffbeb">
+                <td style="padding:12px 16px"><div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:50%;background:#94a3b8;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px">МА</div><div><div style="font-weight:600">Медет Алтынбеков</div><div style="font-size:11px;color:#f59e0b;font-weight:600">⚠️ Требует внимания</div></div></div></td>
+                <td style="padding:12px 10px;text-align:center"><span style="font-size:12px;background:#eff0ff;color:#6366f1;padding:2px 8px;border-radius:6px;font-weight:600">Продажи</span></td>
+                <td style="padding:12px 10px;text-align:center;font-weight:700">8</td>
+                <td style="padding:12px 10px;text-align:center">21%</td>
+                <td style="padding:12px 10px;text-align:center;color:#f59e0b;font-weight:600">72%</td>
+                <td style="padding:12px 10px;text-align:center">90%</td>
+                <td style="padding:12px 10px;text-align:center"><span style="background:#fee2e2;color:#dc2626;font-weight:800;padding:4px 10px;border-radius:8px">68%</span></td>
+                <td style="padding:12px 10px;text-align:center;color:var(--text-muted)">₸0</td>
+                <td style="padding:12px 10px;text-align:right;font-weight:800;font-size:15px">₸140,000</td>
+              </tr>
+              <tr class="trow kpi-row" onclick="openKpiDetail('Берик Омаров','49','Продажи','113000')" style="cursor:pointer;border-bottom:1px solid var(--border);background:#fff5f5">
+                <td style="padding:12px 16px"><div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:50%;background:#ef4444;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px">БО</div><div><div style="font-weight:600">Берик Омаров</div><div style="font-size:11px;color:#ef4444;font-weight:600">🔴 Низкий KPI</div></div></div></td>
+                <td style="padding:12px 10px;text-align:center"><span style="font-size:12px;background:#eff0ff;color:#6366f1;padding:2px 8px;border-radius:6px;font-weight:600">Продажи</span></td>
+                <td style="padding:12px 10px;text-align:center;font-weight:700">5</td>
+                <td style="padding:12px 10px;text-align:center">15%</td>
+                <td style="padding:12px 10px;text-align:center;color:#ef4444;font-weight:600">61%</td>
+                <td style="padding:12px 10px;text-align:center;color:#f59e0b;font-weight:600">85%</td>
+                <td style="padding:12px 10px;text-align:center"><span style="background:#fee2e2;color:#dc2626;font-weight:800;padding:4px 10px;border-radius:8px">49%</span></td>
+                <td style="padding:12px 10px;text-align:center;color:#ef4444;font-weight:600">-₸7,000</td>
+                <td style="padding:12px 10px;text-align:right;font-weight:800;font-size:15px;color:#ef4444">₸113,000</td>
+              </tr>
+              <tr class="trow kpi-row" onclick="openKpiDetail('Алия Джексенова','83','Маркетинг','140000')" style="cursor:pointer;border-bottom:1px solid var(--border)">
+                <td style="padding:12px 16px"><div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:50%;background:#6366f1;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px">АД</div><div><div style="font-weight:600">Алия Джексенова</div><div style="font-size:11px;color:var(--text-muted)">Контент-мейкер</div></div></div></td>
+                <td style="padding:12px 10px;text-align:center"><span style="font-size:12px;background:#f0fdf4;color:#16a34a;padding:2px 8px;border-radius:6px;font-weight:600">Маркетинг</span></td>
+                <td style="padding:12px 10px;text-align:center;color:var(--text-muted)">—</td>
+                <td style="padding:12px 10px;text-align:center">план 80%</td>
+                <td style="padding:12px 10px;text-align:center">90%</td>
+                <td style="padding:12px 10px;text-align:center">100%</td>
+                <td style="padding:12px 10px;text-align:center"><span style="background:#fef9c3;color:#a16207;font-weight:800;padding:4px 10px;border-radius:8px">83%</span></td>
+                <td style="padding:12px 10px;text-align:center;color:#22c55e;font-weight:600">+₸5,000</td>
+                <td style="padding:12px 10px;text-align:right;font-weight:800;font-size:15px">₸140,000</td>
+              </tr>
+              <tr class="trow kpi-row" onclick="openKpiDetail('Дана Мусина','73','Маркетинг','125000')" style="cursor:pointer;border-bottom:1px solid var(--border)">
+                <td style="padding:12px 16px"><div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:50%;background:#f59e0b;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px">ДМ</div><div><div style="font-weight:600">Дана Мусина</div><div style="font-size:11px;color:var(--text-muted)">SMM-менеджер</div></div></div></td>
+                <td style="padding:12px 10px;text-align:center"><span style="font-size:12px;background:#f0fdf4;color:#16a34a;padding:2px 8px;border-radius:6px;font-weight:600">Маркетинг</span></td>
+                <td style="padding:12px 10px;text-align:center;color:var(--text-muted)">—</td>
+                <td style="padding:12px 10px;text-align:center">план 60%</td>
+                <td style="padding:12px 10px;text-align:center">85%</td>
+                <td style="padding:12px 10px;text-align:center">95%</td>
+                <td style="padding:12px 10px;text-align:center"><span style="background:#fef9c3;color:#a16207;font-weight:800;padding:4px 10px;border-radius:8px">73%</span></td>
+                <td style="padding:12px 10px;text-align:center;color:var(--text-muted)">₸0</td>
+                <td style="padding:12px 10px;text-align:right;font-weight:800;font-size:15px">₸125,000</td>
+              </tr>
+              <tr class="trow kpi-row" onclick="openKpiDetail('Жанара Бекова','97','Сопровождение','160000')" style="cursor:pointer">
+                <td style="padding:12px 16px"><div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:50%;background:#22c55e;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px">ЖБ</div><div><div style="font-weight:600">Жанара Бекова</div><div style="font-size:11px;color:var(--text-muted)">Куратор</div></div></div></td>
+                <td style="padding:12px 10px;text-align:center"><span style="font-size:12px;background:#eff6ff;color:#3b82f6;padding:2px 8px;border-radius:6px;font-weight:600">Сопровод.</span></td>
+                <td style="padding:12px 10px;text-align:center;color:var(--text-muted)">—</td>
+                <td style="padding:12px 10px;text-align:center">студ. 95%</td>
+                <td style="padding:12px 10px;text-align:center">98%</td>
+                <td style="padding:12px 10px;text-align:center">100%</td>
+                <td style="padding:12px 10px;text-align:center"><span style="background:#dcfce7;color:#16a34a;font-weight:800;padding:4px 10px;border-radius:8px">97%</span></td>
+                <td style="padding:12px 10px;text-align:center;color:#22c55e;font-weight:600">+₸10,000</td>
+                <td style="padding:12px 10px;text-align:right;font-weight:800;font-size:15px">₸160,000</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Summary -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+          <div class="card" style="background:linear-gradient(135deg,#0f172a,#1e293b);color:#fff">
+            <div style="font-size:11px;font-weight:700;color:#94a3b8;margin-bottom:8px">ИТОГО К ВЫПЛАТЕ</div>
+            <div style="font-size:32px;font-weight:800">₸1,193,000</div>
+            <div style="font-size:12px;color:#94a3b8;margin-top:4px">vs прошлый месяц +3.2%</div>
+          </div>
+          <div class="card">
+            <div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:8px">СРЕДНИЙ KPI КОМАНДЫ</div>
+            <div style="font-size:32px;font-weight:800;color:#6366f1">76%</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:4px">Лучший: Нурлан Сейтжан (97%)</div>
+          </div>
+          <div class="card" style="border-color:#fca5a5;background:#fff5f5">
+            <div style="font-size:11px;font-weight:700;color:#ef4444;margin-bottom:8px">⚠️ ТРЕБУЕТ ВНИМАНИЯ</div>
+            <div style="font-size:16px;font-weight:700;color:#ef4444">Берик Омаров</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:4px">KPI 49% — Рекомендуем беседу</div>
+          </div>
+        </div>
+
+        <!-- KPI Detail Panel -->
+        <div id="kpiDetailPanel" style="display:none;margin-top:20px">
+          <div class="card" style="border-color:#6366f1">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+              <div>
+                <div style="font-size:16px;font-weight:700" id="kpiDetailName">Нурлан Сейтжан</div>
+                <div style="font-size:12px;color:var(--text-muted)" id="kpiDetailDept">Продажи · Старший менеджер</div>
+              </div>
+              <button onclick="document.getElementById('kpiDetailPanel').style.display='none'" style="font-size:20px;cursor:pointer;color:var(--text-muted)">✕</button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+              <!-- Radar chart SVG -->
+              <div>
+                <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:12px">ПРОФИЛЬ ЭФФЕКТИВНОСТИ</div>
+                <svg viewBox="0 0 200 200" width="200" height="200" style="display:block;margin:0 auto">
+                  <polygon points="100,20 170,65 145,145 55,145 30,65" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+                  <polygon points="100,50 148,75 132,135 68,135 52,75" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+                  <polygon points="100,80 126,90 118,120 82,120 74,90" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+                  <polygon id="radarPoly" points="100,25 168,68 140,140 60,140 32,68" fill="rgba(99,102,241,.25)" stroke="#6366f1" stroke-width="2"/>
+                  <text x="100" y="14" text-anchor="middle" font-size="10" fill="#64748b">Сделки</text>
+                  <text x="178" y="68" text-anchor="start" font-size="10" fill="#64748b">Конверсия</text>
+                  <text x="150" y="158" text-anchor="middle" font-size="10" fill="#64748b">CRM</text>
+                  <text x="50" y="158" text-anchor="middle" font-size="10" fill="#64748b">Посещ.</text>
+                  <text x="22" y="68" text-anchor="end" font-size="10" fill="#64748b">Бонус</text>
+                </svg>
+              </div>
+              <!-- Salary breakdown -->
+              <div>
+                <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:12px">РАСЧЁТ ЗАРПЛАТЫ</div>
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <div style="display:flex;justify-content:space-between"><span style="font-size:13px">Базовая ставка</span><span style="font-weight:600">₸150,000</span></div>
+                  <div style="display:flex;justify-content:space-between;color:#22c55e"><span style="font-size:13px">+ Бонус за сделки</span><span style="font-weight:600">+₸30,000</span></div>
+                  <div style="display:flex;justify-content:space-between;color:#22c55e"><span style="font-size:13px">+ Бонус CRM качество</span><span style="font-weight:600">+₸5,000</span></div>
+                  <div style="display:flex;justify-content:space-between;color:#22c55e"><span style="font-size:13px">+ Посещаемость 100%</span><span style="font-weight:600">+₸0</span></div>
+                  <div style="border-top:1px solid var(--border);padding-top:8px;display:flex;justify-content:space-between"><span style="font-size:14px;font-weight:700">Итого к выплате</span><span id="kpiDetailPay" style="font-size:16px;font-weight:800;color:#6366f1">₸185,000</span></div>
+                </div>
+                <!-- Activity heatmap -->
+                <div style="margin-top:16px">
+                  <div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:8px">АКТИВНОСТЬ ЗА МЕСЯЦ</div>
+                  <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">
+                    ${Array.from({length:28},(_,i)=>`<div style="width:100%;aspect-ratio:1;border-radius:3px;background:${['#dcfce7','#86efac','#22c55e','#16a34a'][Math.floor(Math.random()*4)]}"></div>`).join('')}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================================================
+           РЕГЛАМЕНТЫ
+      ====================================================== -->
+      <section class="section" id="s-reglaments">
+        <div class="sec-head">
+          <div><h2>Регламенты</h2><p>Стандарты работы по ролям · редактируйте под себя</p></div>
+          <button class="btn btn-primary" onclick="showToast('Регламенты сохранены','success')">💾 Сохранить изменения</button>
+        </div>
+        <!-- Role tabs -->
+        <div style="display:flex;gap:8px;margin-bottom:24px">
+          <button class="pill active" onclick="switchRegTab(this,'sales')">💼 Менеджер продаж</button>
+          <button class="pill" onclick="switchRegTab(this,'content')">📣 Контент-мейкер</button>
+          <button class="pill" onclick="switchRegTab(this,'curator')">🎓 Куратор</button>
+        </div>
+
+        <!-- Sales -->
+        <div id="reg-sales" class="reg-tab">
+          <div class="card">
+            <div style="font-size:13px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between">
+              <span>Ежедневные & еженедельные регламенты</span>
+              <span style="font-size:12px;color:var(--text-muted)">Влияет на KPI</span>
+            </div>
+            <div id="regs-sales" style="display:flex;flex-direction:column;gap:8px">
+              <div class="reg-item"><span class="reg-drag">≡</span><input type="checkbox" checked onchange="showToast('Регламент обновлён','success')"><span class="reg-title">Проверять входящие лиды</span><span class="reg-freq">Ежедневно 9:00</span><span class="reg-kpi kpi-on">KPI ✓</span><button class="reg-edit" onclick="showToast('Редактирование...','info')">✏️</button><button class="reg-del" onclick="deleteRegItem(this)">🗑️</button></div>
+              <div class="reg-item"><span class="reg-drag">≡</span><input type="checkbox" checked onchange="showToast('Регламент обновлён','success')"><span class="reg-title">Звонить новым лидам в течение 15 мин</span><span class="reg-freq">Ежедневно · SLA 15 мин</span><span class="reg-kpi kpi-on">KPI ✓</span><button class="reg-edit" onclick="showToast('Редактирование...','info')">✏️</button><button class="reg-del" onclick="deleteRegItem(this)">🗑️</button></div>
+              <div class="reg-item"><span class="reg-drag">≡</span><input type="checkbox" checked onchange="showToast('Регламент обновлён','success')"><span class="reg-title">Обновлять статусы сделок в CRM</span><span class="reg-freq">Ежедневно</span><span class="reg-kpi kpi-on">KPI ✓</span><button class="reg-edit" onclick="showToast('Редактирование...','info')">✏️</button><button class="reg-del" onclick="deleteRegItem(this)">🗑️</button></div>
+              <div class="reg-item"><span class="reg-drag">≡</span><input type="checkbox" checked onchange="showToast('Регламент обновлён','success')"><span class="reg-title">Отправлять еженедельный отчёт по продажам</span><span class="reg-freq">Еженедельно · Пятница</span><span class="reg-kpi kpi-on">KPI ✓</span><button class="reg-edit" onclick="showToast('Редактирование...','info')">✏️</button><button class="reg-del" onclick="deleteRegItem(this)">🗑️</button></div>
+              <div class="reg-item"><span class="reg-drag">≡</span><input type="checkbox" onchange="showToast('Регламент обновлён','success')"><span class="reg-title">Записывать звонки в CRM</span><span class="reg-freq">Ежедневно</span><span class="reg-kpi kpi-on">KPI ✓</span><button class="reg-edit" onclick="showToast('Редактирование...','info')">✏️</button><button class="reg-del" onclick="deleteRegItem(this)">🗑️</button></div>
+            </div>
+            <div style="margin-top:16px;border:2px dashed var(--border);border-radius:8px;padding:12px">
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <input id="newRegSales" type="text" placeholder="Название задачи..." style="flex:1;min-width:180px;border:1px solid var(--border);border-radius:6px;padding:7px 10px">
+                <select style="border:1px solid var(--border);border-radius:6px;padding:7px 10px"><option>Ежедневно</option><option>Еженедельно</option><option>Ежемесячно</option><option>По требованию</option></select>
+                <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" checked> Влияет на KPI</label>
+                <button class="btn btn-primary" onclick="addRegItem('sales')">+ Добавить</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Content -->
+        <div id="reg-content" class="reg-tab" style="display:none">
+          <div class="card">
+            <div style="font-size:13px;font-weight:700;margin-bottom:16px">Регламенты контент-мейкера</div>
+            <div id="regs-content" style="display:flex;flex-direction:column;gap:8px">
+              <div class="reg-item"><span class="reg-drag">≡</span><input type="checkbox" checked><span class="reg-title">Публикация поста в Instagram</span><span class="reg-freq">Ежедневно 10:00</span><span class="reg-kpi kpi-on">KPI ✓</span><button class="reg-edit" onclick="showToast('Редактирование...','info')">✏️</button><button class="reg-del" onclick="deleteRegItem(this)">🗑️</button></div>
+              <div class="reg-item"><span class="reg-drag">≡</span><input type="checkbox" checked><span class="reg-title">Сторис ×3 в день</span><span class="reg-freq">Ежедневно</span><span class="reg-kpi kpi-on">KPI ✓</span><button class="reg-edit" onclick="showToast('Редактирование...','info')">✏️</button><button class="reg-del" onclick="deleteRegItem(this)">🗑️</button></div>
+              <div class="reg-item"><span class="reg-drag">≡</span><input type="checkbox" checked><span class="reg-title">Ответы на комментарии</span><span class="reg-freq">Ежедневно до 18:00</span><span class="reg-kpi kpi-on">KPI ✓</span><button class="reg-edit" onclick="showToast('Редактирование...','info')">✏️</button><button class="reg-del" onclick="deleteRegItem(this)">🗑️</button></div>
+              <div class="reg-item"><span class="reg-drag">≡</span><input type="checkbox" checked><span class="reg-title">Видео-рилс</span><span class="reg-freq">Еженедельно</span><span class="reg-kpi kpi-on">KPI ✓</span><button class="reg-edit" onclick="showToast('Редактирование...','info')">✏️</button><button class="reg-del" onclick="deleteRegItem(this)">🗑️</button></div>
+              <div class="reg-item"><span class="reg-drag">≡</span><input type="checkbox"><span class="reg-title">Отчёт по охватам и вовлечённости</span><span class="reg-freq">Еженедельно · Пятница</span><span class="reg-kpi kpi-on">KPI ✓</span><button class="reg-edit" onclick="showToast('Редактирование...','info')">✏️</button><button class="reg-del" onclick="deleteRegItem(this)">🗑️</button></div>
+            </div>
+            <div style="margin-top:16px;border:2px dashed var(--border);border-radius:8px;padding:12px">
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <input id="newRegContent" type="text" placeholder="Название задачи..." style="flex:1;min-width:180px;border:1px solid var(--border);border-radius:6px;padding:7px 10px">
+                <select style="border:1px solid var(--border);border-radius:6px;padding:7px 10px"><option>Ежедневно</option><option>Еженедельно</option><option>Ежемесячно</option></select>
+                <button class="btn btn-primary" onclick="addRegItem('content')">+ Добавить</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Curator -->
+        <div id="reg-curator" class="reg-tab" style="display:none">
+          <div class="card">
+            <div style="font-size:13px;font-weight:700;margin-bottom:16px">Регламенты куратора</div>
+            <div id="regs-curator" style="display:flex;flex-direction:column;gap:8px">
+              <div class="reg-item"><span class="reg-drag">≡</span><input type="checkbox" checked><span class="reg-title">Звонок каждому студенту раз в неделю</span><span class="reg-freq">Еженедельно</span><span class="reg-kpi kpi-on">KPI ✓</span><button class="reg-edit" onclick="showToast('Редактирование...','info')">✏️</button><button class="reg-del" onclick="deleteRegItem(this)">🗑️</button></div>
+              <div class="reg-item"><span class="reg-drag">≡</span><input type="checkbox" checked><span class="reg-title">Проверка домашних заданий</span><span class="reg-freq">По расписанию</span><span class="reg-kpi kpi-on">KPI ✓</span><button class="reg-edit" onclick="showToast('Редактирование...','info')">✏️</button><button class="reg-del" onclick="deleteRegItem(this)">🗑️</button></div>
+              <div class="reg-item"><span class="reg-drag">≡</span><input type="checkbox" checked><span class="reg-title">Отправка учебных материалов</span><span class="reg-freq">Еженедельно</span><span class="reg-kpi kpi-on">KPI ✓</span><button class="reg-edit" onclick="showToast('Редактирование...','info')">✏️</button><button class="reg-del" onclick="deleteRegItem(this)">🗑️</button></div>
+              <div class="reg-item"><span class="reg-drag">≡</span><input type="checkbox"><span class="reg-title">Ежемесячный отчёт по прогрессу студентов</span><span class="reg-freq">Ежемесячно</span><span class="reg-kpi kpi-on">KPI ✓</span><button class="reg-edit" onclick="showToast('Редактирование...','info')">✏️</button><button class="reg-del" onclick="deleteRegItem(this)">🗑️</button></div>
+              <div class="reg-item"><span class="reg-drag">≡</span><input type="checkbox"><span class="reg-title">Мотивационные беседы с отстающими</span><span class="reg-freq">Еженедельно</span><span class="reg-kpi kpi-off">— без KPI</span><button class="reg-edit" onclick="showToast('Редактирование...','info')">✏️</button><button class="reg-del" onclick="deleteRegItem(this)">🗑️</button></div>
+            </div>
+            <div style="margin-top:16px;border:2px dashed var(--border);border-radius:8px;padding:12px">
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <input id="newRegCurator" type="text" placeholder="Название задачи..." style="flex:1;min-width:180px;border:1px solid var(--border);border-radius:6px;padding:7px 10px">
+                <select style="border:1px solid var(--border);border-radius:6px;padding:7px 10px"><option>Ежедневно</option><option>Еженедельно</option><option>Ежемесячно</option></select>
+                <button class="btn btn-primary" onclick="addRegItem('curator')">+ Добавить</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
     </div>
   </div>
 </div>
@@ -3007,7 +3604,7 @@ a{text-decoration:none;color:inherit}
 /* ============================================================
    NAVIGATION
 ============================================================ */
-const SECTION_TITLES={dashboard:'Дашборд',leads:'Воронка лидов',deals:'Сделки',contacts:'Контакты',whatsapp:'WhatsApp',tasks:'Задачи',broadcast:'Рассылки',auto:'Автороботы',schedule:'Расписание',analytics:'Аналитика',settings:'Настройки'};
+const SECTION_TITLES={dashboard:'Дашборд',leads:'Воронка лидов',deals:'Сделки',contacts:'Контакты',whatsapp:'WhatsApp',tasks:'Задачи',broadcast:'Рассылки',auto:'Автороботы',schedule:'Расписание',analytics:'Аналитика',settings:'Настройки',content:'Контент-план',students:'Студенты',kpi:'KPI & Зарплаты',reglaments:'Регламенты'};
 function nav(id){
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   document.getElementById('s-'+id).classList.add('active');
@@ -3337,8 +3934,156 @@ window.addEventListener('DOMContentLoaded',()=>{
   setTimeout(()=>{document.querySelectorAll('.chart-pt').forEach(p=>p.style.opacity='1');},600);
   const dl=document.getElementById('ntDeadline');
   if(dl)dl.value='2026-07-05';
-  console.log('EduCRM demo loaded — 11 sections ready');
+  console.log('МагистрCRM demo loaded — 15 sections ready');
 });
+
+/* ============================================================
+   КОНТЕНТ-ПЛАН
+============================================================ */
+function toggleCtTask(el){
+  if(el.classList.contains('done')){
+    el.classList.remove('done');el.classList.add('todo');
+    el.textContent=el.textContent.replace('✅','⬜');
+  } else if(el.classList.contains('todo')){
+    el.classList.remove('todo');el.classList.add('done');
+    el.textContent=el.textContent.replace('⬜','✅');
+  }
+  recalcCtKpi();
+  showToast('Статус задачи обновлён','success');
+}
+function recalcCtKpi(){
+  ['aliya','dana','marat'].forEach(who=>{
+    const rows=document.querySelectorAll('.ct-row-'+who+' .ct-task');
+    const done=[...rows].filter(t=>t.classList.contains('done')).length;
+    const total=rows.length;
+    const pct=total?Math.round(done/total*100):0;
+    const el=document.getElementById('ct-pct-'+who);
+    const bar=document.getElementById('ct-bar-'+who);
+    if(el)el.textContent=pct+'%';
+    if(bar)bar.style.width=pct+'%';
+  });
+}
+function filterContent(btn,who){
+  document.querySelectorAll('#s-content .pill').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.ct-row').forEach(r=>{
+    r.style.display=(who==='all'||r.classList.contains('ct-row-'+who))?'':'none';
+  });
+}
+function contentWeek(dir){
+  showToast(dir>0?'Следующая неделя':'Предыдущая неделя','info');
+}
+
+/* ============================================================
+   СТУДЕНТЫ
+============================================================ */
+function filterStudents(btn,filter){
+  document.querySelectorAll('#s-students .pill').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('#studentsTable .trow').forEach(r=>{
+    if(filter==='all')r.style.display='';
+    else r.style.display=r.classList.contains('stu-'+filter)?'':'none';
+  });
+}
+function openStudentModal(id){
+  const names=['','Аружан Сейткали','Бекзат Нурмаганбет','Дина Ахметова','Ерлан Касымов','Зарина Иманова','Куаныш Жакупов','Лаура Смагулова','Мирас Балтаев','Назгуль Сериккали','Олжас Темиров'];
+  const curators=['','Жанара','Гульнара','Жанара','Гульнара','Жанара','Гульнара','Жанара','Гульнара','Жанара','Гульнара'];
+  const courses=['','Магистратура КБТУ','MBA онлайн','Магистратура ЕНУ','PhD подготовка','MBA очно','Магистратура МУИТ','Магистратура КазНУ','MBA онлайн','PhD подготовка','Магистратура МУИТ'];
+  const ov=document.getElementById('modal-student-overlay');
+  if(!ov){
+    const d=document.createElement('div');
+    d.id='modal-student-overlay';
+    d.style.cssText='position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:200;display:flex;align-items:center;justify-content:center';
+    d.innerHTML=`<div style="background:#fff;border-radius:16px;width:600px;max-height:80vh;overflow-y:auto;padding:28px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div><div style="font-size:18px;font-weight:800" id="sm-name"></div><div style="font-size:13px;color:#64748b" id="sm-sub"></div></div>
+        <button onclick="document.getElementById('modal-student-overlay').remove()" style="font-size:22px;cursor:pointer;color:#94a3b8">✕</button>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:20px" id="sm-tabs">
+        <button class="pill active" onclick="smTab(this,'tasks')">Задачи куратора</button>
+        <button class="pill" onclick="smTab(this,'calls')">История звонков</button>
+        <button class="pill" onclick="smTab(this,'pay')">Оплаты</button>
+      </div>
+      <div id="sm-tasks">
+        <div style="font-size:13px;font-weight:700;margin-bottom:12px">Регулярные задачи куратора</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <label class="reg-item" style="cursor:pointer"><input type="checkbox" checked onchange="showToast('Задача обновлена','success')"> <span style="font-size:13px;flex:1">Позвонить студенту на этой неделе</span><span style="font-size:11px;color:#64748b">Еженедельно</span></label>
+          <label class="reg-item" style="cursor:pointer"><input type="checkbox" checked onchange="showToast('Задача обновлена','success')"> <span style="font-size:13px;flex:1">Отправить учебные материалы</span><span style="font-size:11px;color:#64748b">Еженедельно</span></label>
+          <label class="reg-item" style="cursor:pointer"><input type="checkbox" onchange="showToast('Задача обновлена','success')"> <span style="font-size:13px;flex:1">Проверить домашнее задание</span><span style="font-size:11px;color:#64748b">По заданию</span></label>
+          <label class="reg-item" style="cursor:pointer"><input type="checkbox" onchange="showToast('Задача обновлена','success')"> <span style="font-size:13px;flex:1">Провести мотивационную беседу</span><span style="font-size:11px;color:#64748b">При необходимости</span></label>
+          <label class="reg-item" style="cursor:pointer"><input type="checkbox" checked onchange="showToast('Задача обновлена','success')"> <span style="font-size:13px;flex:1">Обновить прогресс в CRM</span><span style="font-size:11px;color:#64748b">Еженедельно</span></label>
+        </div>
+      </div>
+      <div id="sm-calls" style="display:none">
+        <div style="font-size:13px;font-weight:700;margin-bottom:12px">История звонков</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="padding:12px;background:#f8fafc;border-radius:8px"><div style="display:flex;justify-content:space-between"><span style="font-weight:600">28.06.2026 · 14:30</span><span style="font-size:12px;color:#64748b">10 мин</span></div><p style="font-size:13px;margin-top:4px;color:#475569">Обсудили прогресс, студент доволен. Следующий шаг — подготовка к экзамену.</p></div>
+          <div style="padding:12px;background:#f8fafc;border-radius:8px"><div style="display:flex;justify-content:space-between"><span style="font-weight:600">21.06.2026 · 11:00</span><span style="font-size:12px;color:#64748b">7 мин</span></div><p style="font-size:13px;margin-top:4px;color:#475569">Напомнила о сдаче ДЗ. Студент планирует выполнить до четверга.</p></div>
+        </div>
+      </div>
+      <div id="sm-pay" style="display:none">
+        <div style="font-size:13px;font-weight:700;margin-bottom:12px">График оплат</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between;padding:10px;background:#f8fafc;border-radius:8px"><span>Предоплата</span><span style="color:#22c55e;font-weight:600">✅ ₸50,000 оплачено</span></div>
+          <div style="display:flex;justify-content:space-between;padding:10px;background:#f8fafc;border-radius:8px"><span>Транш 2 (01.07.2026)</span><span style="color:#22c55e;font-weight:600">✅ ₸50,000 оплачено</span></div>
+          <div style="display:flex;justify-content:space-between;padding:10px;background:#fff5f5;border-radius:8px"><span>Транш 3 (01.08.2026)</span><span style="color:#f59e0b;font-weight:600">⏳ ₸50,000 ожидается</span></div>
+        </div>
+      </div>
+    </div>`;
+    document.body.appendChild(d);
+    d.addEventListener('click',e=>{if(e.target===d)d.remove();});
+  }
+  document.getElementById('sm-name').textContent=names[id]||'Студент';
+  document.getElementById('sm-sub').textContent=(curators[id]||'')+'  ·  '+(courses[id]||'');
+}
+function smTab(btn,tab){
+  document.querySelectorAll('#sm-tabs .pill').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  ['tasks','calls','pay'].forEach(t=>{
+    const el=document.getElementById('sm-'+t);
+    if(el)el.style.display=t===tab?'':'none';
+  });
+}
+
+/* ============================================================
+   KPI & ЗАРПЛАТЫ
+============================================================ */
+function openKpiDetail(name,kpi,dept,pay){
+  const panel=document.getElementById('kpiDetailPanel');
+  panel.style.display='block';
+  document.getElementById('kpiDetailName').textContent=name;
+  document.getElementById('kpiDetailDept').textContent=dept+' · KPI '+kpi+'%';
+  document.getElementById('kpiDetailPay').textContent='₸'+parseInt(pay).toLocaleString('ru');
+  panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+/* ============================================================
+   РЕГЛАМЕНТЫ
+============================================================ */
+function switchRegTab(btn,tab){
+  document.querySelectorAll('#s-reglaments .pill').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.reg-tab').forEach(t=>t.style.display='none');
+  const el=document.getElementById('reg-'+tab);
+  if(el)el.style.display='';
+}
+function addRegItem(role){
+  const inp=document.getElementById('newReg'+role.charAt(0).toUpperCase()+role.slice(1));
+  const title=inp?inp.value.trim():'';
+  if(!title){showToast('Введите название задачи','error');return;}
+  const container=document.getElementById('regs-'+role);
+  if(!container)return;
+  const div=document.createElement('div');
+  div.className='reg-item';
+  div.innerHTML='<span class="reg-drag">≡</span><input type="checkbox" checked onchange="showToast(\'Регламент обновлён\',\'success\')"><span class="reg-title">'+title+'</span><span class="reg-freq">Ежедневно</span><span class="reg-kpi kpi-on">KPI ✓</span><button class="reg-edit" onclick="showToast(\'Редактирование...\',\'info\')">✏️</button><button class="reg-del" onclick="deleteRegItem(this)">🗑️</button>';
+  container.appendChild(div);
+  if(inp)inp.value='';
+  showToast('Регламент добавлен','success');
+}
+function deleteRegItem(btn){
+  btn.closest('.reg-item').remove();
+  showToast('Регламент удалён','info');
+}
 </script>
 </body>
 </html>
