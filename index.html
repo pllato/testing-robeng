@@ -7365,9 +7365,10 @@ function renderStarts(){
             <span style="font-size:10px;font-weight:600;color:${col};background:${col}22;border:1px solid ${col}44;padding:1px 7px;border-radius:8px">${mLbl}</span>
             ${stu?.parent?`<span>👤 ${stu.parent}</span>`:''}
           </div>
-          ${attDots.length?`<div class="att-dot-row" style="display:flex;gap:3px;flex-wrap:wrap;margin-top:5px;align-items:center">
-            ${attDots.map(d=>`<span title="${d.tooltip||d.d}" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;font-size:9px;font-weight:700;color:${d.type==='none'?'#9896b0':'#fff'};background:${d.col};cursor:default">${d.lbl}</span>`).join('')}
-          </div>`:''}
+          <div class="att-dot-row" onclick="openFullAttendance(${e.id})" title="Открыть полный табель" style="display:flex;gap:3px;flex-wrap:wrap;margin-top:5px;align-items:center;cursor:pointer">
+            ${attDots.map(d=>`<span title="${d.tooltip||d.d}" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;font-size:9px;font-weight:700;color:${d.type==='none'?'#9896b0':'#fff'};background:${d.col}">${d.lbl}</span>`).join('')}
+            <span style="font-size:10px;color:var(--tl);margin-left:4px">📋 весь табель</span>
+          </div>
           ${isMissAlert?`<div style="margin-top:8px;padding:8px 10px;background:rgba(245,200,66,.1);border:1px solid rgba(245,200,66,.3);border-radius:8px">
             <div style="font-size:11px;font-weight:700;color:var(--am);margin-bottom:6px">⚠️ ${missCnt} пропуска подряд — нужно связаться и узнать причину</div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
@@ -7608,9 +7609,10 @@ function renderRenewals(){
             })()}
             ${stu?.parent?`<span>👤 ${stu.parent}</span>`:''}
           </div>
-          ${attDots.length?`<div class="att-dot-row" style="display:flex;gap:3px;flex-wrap:wrap;margin-top:5px;align-items:center">
-            ${attDots.map(d=>`<span title="${d.tooltip||d.d}" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;font-size:9px;font-weight:700;color:${d.type==='none'?'#9896b0':'#fff'};background:${d.col};cursor:default">${d.lbl}</span>`).join('')}
-          </div>`:''}
+          <div class="att-dot-row" onclick="openFullAttendance(${e.id})" title="Открыть полный табель" style="display:flex;gap:3px;flex-wrap:wrap;margin-top:5px;align-items:center;cursor:pointer">
+            ${attDots.map(d=>`<span title="${d.tooltip||d.d}" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;font-size:9px;font-weight:700;color:${d.type==='none'?'#9896b0':'#fff'};background:${d.col}">${d.lbl}</span>`).join('')}
+            <span style="font-size:10px;color:var(--tl);margin-left:4px">📋 весь табель</span>
+          </div>
           ${isMissAlert?`<div style="margin-top:8px;padding:8px 10px;background:rgba(245,200,66,.1);border:1px solid rgba(245,200,66,.3);border-radius:8px">
             <div style="font-size:11px;font-weight:700;color:var(--am);margin-bottom:6px">⚠️ ${missCnt} пропуска подряд — нужно связаться и узнать причину</div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
@@ -7628,6 +7630,7 @@ function renderRenewals(){
           </div>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start;flex-shrink:0">
+          <button class="btn btn-sm" onclick="openFullAttendance(${e.id})" style="font-size:11px">📋 Табель</button>
           <button class="btn btn-sm" onclick="setVacationUI(${e.id})" style="font-size:11px;background:rgba(56,189,248,.1);color:var(--tl)">🏖 Отпуск</button>
           <button class="btn btn-sm btn-a" onclick="renewEnrollUI(${e.id})" style="font-size:11px">🔄 Продлить</button>
           <button class="btn btn-sm" onclick="markDelayedUI(${e.id})" style="font-size:11px;background:rgba(245,200,66,.15);color:var(--am)">⏳ Оплата задерж.</button>
@@ -7639,6 +7642,119 @@ function renderRenewals(){
       </div>
     </div>`;
   }).join('');
+}
+
+// ── ПОЛНЫЙ ТАБЕЛЬ (все уроки от старта, нумерация 1..N) ──────────────
+// Все даты уроков по расписанию абонемента от dateStart до сегодня.
+function fullAttLessons(e){
+  const slotDays=[...new Set((e.slots||[]).map(s=>s.day))];
+  if(!slotDays.length)return [];
+  const start=e.dateStart||todayKZ();
+  const out=[];
+  let cur=new Date(start+'T00:00:00Z');
+  const end=new Date(todayKZ()+'T00:00:00Z');
+  let guard=0;
+  while(cur<=end && guard<3000){
+    const dow=(cur.getUTCDay()+6)%7;
+    if(slotDays.includes(dow)) out.push(cur.toISOString().slice(0,10));
+    cur=new Date(cur.getTime()+86400000);
+    guard++;
+  }
+  return out;
+}
+
+let _faEnrollId=null;
+function openFullAttendance(enrollId){
+  const e=(S.enrollments||[]).find(x=>x.id===enrollId);
+  if(!e){toast('Запись не найдена',true);return;}
+  _faEnrollId=enrollId;
+  let modal=document.getElementById('m-fullatt');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='m-fullatt';
+    modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1200;display:flex;align-items:center;justify-content:center;padding:16px';
+    modal.addEventListener('click',ev=>{if(ev.target===modal)modal.remove();});
+    document.body.appendChild(modal);
+  }
+  renderFullAttModal(enrollId);
+}
+
+function renderFullAttModal(enrollId){
+  const modal=document.getElementById('m-fullatt');if(!modal)return;
+  const e=(S.enrollments||[]).find(x=>x.id===enrollId);if(!e){modal.remove();return;}
+  const stu=student(e.studentId);
+  const lessons=fullAttLessons(e);
+  const att=S.attendance||{};
+  const DAYS_RU=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+  const MONTHS_RU=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+  const doneCnt=lessons.filter(ds=>att[e.id+'_'+ds]==='done').length;
+  const slotTime=e.slots&&e.slots[0]?TIMES[e.slots[0].ti]:'';
+  const dayStr=[...new Set((e.slots||[]).map(s=>DS[s.day]))].join(' · ');
+  const cells=lessons.map((ds,i)=>{
+    const val=att[e.id+'_'+ds];
+    const d=new Date(ds+'T00:00:00Z');
+    const dow=(d.getUTCDay()+6)%7;
+    const lbl=`${d.getUTCDate()} ${MONTHS_RU[d.getUTCMonth()]}`;
+    let col='#5e5c78',bg='var(--bg3)',mark='·';
+    if(val==='done'){col='#22c55e';bg='rgba(34,197,94,.15)';mark='✓';}
+    else if(val==='miss'){col='#f05975';bg='rgba(240,89,117,.12)';mark='✗';}
+    else if(val==='makeup'){col='#a87fff';bg='rgba(168,127,255,.12)';mark='↩';}
+    else if(val==='vacation'||val==='skip'){col='#38bdf8';bg='rgba(56,189,248,.12)';mark='🏖';}
+    return `<button onclick="toggleFullAtt(${e.id},'${ds}')" title="${DAYS_RU[dow]}, ${lbl}${slotTime?' · '+slotTime:''}"
+      style="display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 4px;border:1px solid var(--b2);border-radius:8px;background:${bg};cursor:pointer;font-family:var(--fb);min-width:52px">
+      <span style="font-size:9px;color:var(--t3)">№${i+1}</span>
+      <span style="font-size:15px;font-weight:700;color:${col}">${mark}</span>
+      <span style="font-size:9px;color:var(--t3)">${lbl}</span>
+    </button>`;
+  }).join('');
+  modal.innerHTML=`<div style="background:var(--bg2);border:1px solid var(--b1);border-radius:14px;padding:20px;max-width:700px;width:100%;max-height:88vh;display:flex;flex-direction:column">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">
+      <div>
+        <div style="font-size:15px;font-weight:700;color:var(--t1)">📋 Полный табель — ${stu?.name||'ученик'}</div>
+        <div style="font-size:12px;color:var(--t3);margin-top:2px">${dayStr}${slotTime?' · '+slotTime:''} · с ${fmtDateRu(e.dateStart)} · всего: ${lessons.length} · проведено: <b style="color:var(--gn)">${doneCnt}</b></div>
+      </div>
+      <button onclick="document.getElementById('m-fullatt').remove()" style="background:var(--bg3);border:1px solid var(--b2);border-radius:8px;color:var(--t2);cursor:pointer;font-size:15px;padding:2px 10px">✕</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--bg3);border:1px solid var(--b2);border-radius:10px;padding:10px 12px;margin:8px 0">
+      <span style="font-size:12px;color:var(--t2)">Отметить проведёнными с 1 по</span>
+      <input id="fa-bulk-n" type="number" min="1" max="${lessons.length}" value="${Math.min(41,lessons.length)||1}" style="width:70px;background:var(--bg2);border:1px solid var(--b2);border-radius:7px;color:var(--t1);padding:6px 8px;font-family:var(--fb);font-size:13px"/>
+      <button onclick="bulkMarkDone(${e.id})" style="padding:7px 16px;border-radius:8px;border:none;background:#22c55e;color:#04220f;cursor:pointer;font-family:var(--fb);font-size:13px;font-weight:700">✓ Отметить проведёнными</button>
+      <span style="font-size:11px;color:var(--t3)">клик по ячейке — переключить один урок</span>
+    </div>
+    <div style="overflow-y:auto;display:flex;flex-wrap:wrap;gap:6px;padding:4px 2px">${lessons.length?cells:'<div style="color:var(--t3);font-size:13px;padding:20px">Нет уроков по расписанию от даты старта до сегодня. Проверьте дни недели и дату начала абонемента.</div>'}</div>
+  </div>`;
+}
+
+function toggleFullAtt(enrollId,date){
+  const key=enrollId+'_'+date;
+  if(!S.attendance)S.attendance={};
+  if(S.attendance[key]==='done'){delete S.attendance[key];}
+  else{S.attendance[key]='done';}
+  saveAttCell(key);
+  renderFullAttModal(enrollId);
+  renderRenewals();
+}
+
+function bulkMarkDone(enrollId){
+  const e=(S.enrollments||[]).find(x=>x.id===enrollId);if(!e)return;
+  const n=parseInt(document.getElementById('fa-bulk-n')?.value)||0;
+  if(n<1){toast('Укажите номер урока',true);return;}
+  const lessons=fullAttLessons(e);
+  const upto=Math.min(n,lessons.length);
+  if(!upto){toast('Нет уроков для отметки',true);return;}
+  if(!S.attendance)S.attendance={};
+  const upd={};
+  for(let i=0;i<upto;i++){
+    const key=e.id+'_'+lessons[i];
+    S.attendance[key]='done';
+    upd['attendance/'+key]='done';
+  }
+  logAction('attendance',`Табель заполнен: ${student(e.studentId)?.name||'—'}`,`Уроки 1–${upto} отмечены проведёнными`);
+  upd['journal']=S.journal||[];
+  savePaths(upd);
+  renderFullAttModal(enrollId);
+  renderRenewals();
+  toast(`✓ Отмечено проведёнными: ${upto} уроков`);
 }
 
 function renderDelayed(){
