@@ -512,6 +512,86 @@ a{text-decoration:none;color:inherit}
 .reg-kpi.kpi-off{font-size:11px;color:var(--text-muted);background:var(--bg);padding:3px 8px;border-radius:6px;white-space:nowrap}
 .reg-edit,.reg-del{font-size:14px;opacity:.5;transition:opacity .15s;padding:4px}
 .reg-edit:hover,.reg-del:hover{opacity:1}
+/* ============================================================
+   CONTENT PLAN STYLES
+============================================================ */
+.cp-table{width:100%;border-collapse:collapse;table-layout:fixed}
+.cp-table th{background:var(--bg);font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);font-weight:600;padding:10px 8px;border:1px solid var(--border);text-align:center}
+.cp-table td{border:1px solid var(--border);padding:6px;vertical-align:top;min-height:70px}
+.cp-table .cp-person{font-weight:700;font-size:13px;display:flex;align-items:center;gap:8px;white-space:nowrap;padding:4px 0}
+.cp-chip{display:flex;align-items:center;gap:5px;padding:4px 8px;border-radius:7px;margin-bottom:4px;font-size:11.5px;font-weight:500;cursor:pointer;transition:all .12s;border:1px solid transparent}
+.cp-chip.done{background:rgba(34,197,94,.15);color:var(--green-dark);border-color:rgba(34,197,94,.3)}
+.cp-chip.todo{background:var(--bg);color:var(--text-muted);border-color:var(--border)}
+.cp-chip.overdue{background:rgba(239,68,68,.1);color:var(--red);border-color:rgba(239,68,68,.25)}
+.cp-chip input[type=checkbox]{width:13px;height:13px;accent-color:var(--green);cursor:pointer;flex-shrink:0}
+.cp-kpi-row{display:flex;align-items:center;gap:14px;padding:10px 14px;border-top:2px solid var(--border);background:var(--bg)}
+.cp-kpi-label{font-weight:600;font-size:13px;min-width:120px}
+.cp-kpi-bar{flex:1;height:10px;background:#e2e8f0;border-radius:6px;overflow:hidden}
+.cp-kpi-fill{height:100%;border-radius:6px;transition:width .5s}
+.cp-kpi-pct{font-weight:700;font-size:13px;min-width:36px;text-align:right}
+.cp-sidebar-widget{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:18px}
+/* ============================================================
+   STUDENTS STYLES
+============================================================ */
+.stud-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.stud-stat{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center;box-shadow:var(--shadow-sm)}
+.stud-stat b{font-size:26px;font-weight:800;display:block}
+.stud-stat span{font-size:11.5px;color:var(--text-muted)}
+.prog-bar-wrap{display:flex;align-items:center;gap:8px}
+.prog-bar{flex:1;height:7px;background:#e2e8f0;border-radius:4px;overflow:hidden}
+.prog-bar-fill{height:100%;border-radius:4px;background:var(--green)}
+.prog-bar-fill.risk{background:var(--red)}
+.prog-bar-fill.pause{background:var(--yellow)}
+.stud-modal-panel{position:fixed;top:0;right:-480px;width:480px;height:100vh;background:#fff;border-left:1px solid var(--border);box-shadow:var(--shadow-lg);z-index:200;transition:right .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden}
+.stud-modal-panel.open{right:0}
+.stud-panel-head{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.stud-panel-body{flex:1;overflow-y:auto;padding:20px 24px}
+.stud-checklist{list-style:none}
+.stud-checklist li{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-size:13.5px}
+.stud-checklist li:last-child{border-bottom:none}
+.stud-checklist input[type=checkbox]{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;flex-shrink:0}
+.stud-checklist .done-text{text-decoration:line-through;color:var(--text-muted)}
+/* ============================================================
+   KPI SALARY STYLES
+============================================================ */
+.kpi-sal-panel{position:fixed;top:0;right:-520px;width:520px;height:100vh;background:#fff;border-left:1px solid var(--border);box-shadow:var(--shadow-lg);z-index:200;transition:right .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden}
+.kpi-sal-panel.open{right:0}
+.kpi-green-cell{background:rgba(34,197,94,.12);color:var(--green-dark);font-weight:700;padding:4px 10px;border-radius:8px;font-size:12px;display:inline-block}
+.kpi-yellow-cell{background:rgba(234,179,8,.14);color:#a16207;font-weight:700;padding:4px 10px;border-radius:8px;font-size:12px;display:inline-block}
+.kpi-red-cell{background:rgba(239,68,68,.12);color:var(--red);font-weight:700;padding:4px 10px;border-radius:8px;font-size:12px;display:inline-block}
+.formula-card{background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.2);border-radius:var(--radius);padding:16px;margin-bottom:20px}
+.formula-card h4{font-size:13px;font-weight:700;margin-bottom:10px;color:var(--accent)}
+.formula-text{font-size:13px;color:var(--text);line-height:1.7}
+.coef-inputs{display:flex;gap:10px;margin-top:10px;align-items:center;flex-wrap:wrap}
+.coef-input-group{display:flex;flex-direction:column;gap:4px}
+.coef-input-group label{font-size:10.5px;color:var(--text-muted);font-weight:600}
+.coef-input-group input{width:70px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-weight:600;text-align:center}
+.heatmap-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:3px;margin-top:8px}
+.hm-cell{height:20px;border-radius:3px;background:#e2e8f0}
+.hm-cell.hm-high{background:#22c55e}
+.hm-cell.hm-mid{background:#86efac}
+.hm-cell.hm-low{background:#fef08a}
+.hm-cell.hm-none{background:#e2e8f0}
+.radar-svg{display:block;margin:0 auto}
+.sal-breakdown{margin-top:16px;background:var(--bg);border-radius:10px;padding:14px}
+.sal-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px}
+.sal-row:last-child{border:none;font-weight:700;font-size:14px}
+/* ============================================================
+   REGULATIONS STYLES
+============================================================ */
+.reg-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;background:#fff;transition:all .15s}
+.reg-item:hover{box-shadow:var(--shadow-sm);border-color:var(--accent-light)}
+.reg-drag{color:var(--text-light);cursor:grab;font-size:17px;flex-shrink:0}
+.reg-item input[type=checkbox]{width:16px;height:16px;accent-color:var(--green);cursor:pointer;flex-shrink:0}
+.reg-title{flex:1;font-size:13.5px;font-weight:500}
+.reg-freq{font-size:11px;font-weight:600;padding:3px 9px;border-radius:7px;background:rgba(59,130,246,.1);color:var(--blue);white-space:nowrap}
+.reg-kpi-badge{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:6px;background:rgba(99,102,241,.1);color:var(--accent)}
+.reg-actions{display:flex;gap:6px;flex-shrink:0}
+.reg-btn{padding:4px 8px;border-radius:6px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:#fff;color:var(--text-muted);transition:all .12s}
+.reg-btn:hover{background:var(--bg)}
+.reg-add-form{display:none;background:var(--bg);border-radius:10px;padding:14px;margin-top:8px;border:1px dashed var(--border)}
+.reg-add-form.open{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.badge-new{background:var(--green);color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:6px;margin-left:auto}
 </style>
 </head>
 <body>
