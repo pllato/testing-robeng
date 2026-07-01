@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>EduCRM — CRM для образовательной компании</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --sidebar:#0f172a;
+  --sidebar2:#1e293b;
+  --accent:#6366f1;
+  --accent2:#818cf8;
+  --green:#22c55e;
+  --yellow:#f59e0b;
+  --red:#ef4444;
+  --blue:#3b82f6;
+  --purple:#a855f7;
+  --bg:#f8fafc;
+  --card:#fff;
+  --border:#e2e8f0;
+  --text:#0f172a;
+  --muted:#64748b;
+  --light:#f1f5f9;
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);display:flex;height:100vh;overflow:hidden;}
+
+/* SIDEBAR */
+.sidebar{width:220px;background:var(--sidebar);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;}
+.sidebar-logo{padding:20px 16px 16px;border-bottom:1px solid #1e293b;}
+.sidebar-logo .brand{display:flex;align-items:center;gap:10px;}
+.brand-mark{width:32px;height:32px;background:linear-gradient(135deg,#6366f1,#a855f7);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:11px;flex-shrink:0;}
+.brand-name{font-weight:700;font-size:14px;color:#fff;}
+.brand-sub{font-size:10px;color:#94a3b8;margin-top:1px;}
+.sidebar-user{padding:12px 16px;border-bottom:1px solid #1e293b;display:flex;align-items:center;gap:10px;}
+.user-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#06b6d4);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff;flex-shrink:0;}
+.user-info .name{font-size:12px;font-weight:600;color:#f1f5f9;}
+.user-info .role{font-size:10px;color:#94a3b8;}
+.sidebar-nav{padding:12px 8px;flex:1;}
+.nav-section{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#475569;padding:8px 8px 4px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;color:#94a3b8;font-size:13px;font-weight:500;margin-bottom:2px;transition:all .15s;position:relative;}
+.nav-item:hover{background:#1e293b;color:#e2e8f0;}
+.nav-item.active{background:#312e81;color:#fff;}
+.nav-item .icon{font-size:16px;flex-shrink:0;}
+.nav-badge{margin-left:auto;background:#ef4444;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;}
+.nav-badge.green{background:#22c55e;}
+.sidebar-bottom{padding:12px 8px;border-top:1px solid #1e293b;}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.topbar{height:56px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;flex-shrink:0;}
+.topbar-title{font-weight:700;font-size:17px;flex:1;}
+.topbar-search{display:flex;align-items:center;gap:8px;background:var(--light);border-radius:8px;padding:7px 12px;width:260px;}
+.topbar-search input{border:none;background:none;outline:none;font-size:13px;color:var(--text);width:100%;}
+.topbar-search input::placeholder{color:var(--muted);}
+.topbar-actions{display:flex;gap:8px;align-items:center;}
+.btn{padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover{background:#4f46e5;}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text);}
+.btn-outline:hover{background:var(--light);}
+.notif-btn{width:36px;height:36px;border-radius:8px;background:var(--light);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;position:relative;}
+.notif-dot{position:absolute;top:6px;right:6px;width:8px;height:8px;background:#ef4444;border-radius:50%;border:2px solid var(--card);}
+.content{flex:1;overflow-y:auto;padding:24px;}
+
+/* SECTIONS */
+.section{display:none;}
+.section.active{display:block;}
+
+/* DASHBOARD */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;position:relative;overflow:hidden;}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.stat-card.blue::before{background:var(--blue);}
+.stat-card.green::before{background:var(--green);}
+.stat-card.yellow::before{background:var(--yellow);}
+.stat-card.purple::before{background:var(--purple);}
+.stat-label{font-size:12px;color:var(--muted);font-weight:500;margin-bottom:8px;}
+.stat-value{font-size:28px;font-weight:800;line-height:1;}
+.stat-change{font-size:12px;margin-top:6px;font-weight:500;}
+.stat-change.up{color:var(--green);}
+.stat-change.down{color:var(--red);}
+.stat-icon{position:absolute;right:16px;top:16px;font-size:24px;opacity:.4;}
+
+.dash-row{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:24px;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;}
+.card-title{font-size:14px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;}
+.card-title-sub{font-size:12px;color:var(--muted);font-weight:400;}
+
+/* FUNNEL CHART */
+.funnel-bars{display:flex;flex-direction:column;gap:8px;}
+.funnel-row{display:flex;align-items:center;gap:12px;}
+.funnel-label{font-size:12px;color:var(--muted);width:110px;flex-shrink:0;text-align:right;}
+.funnel-bar-wrap{flex:1;background:var(--light);border-radius:4px;height:24px;overflow:hidden;}
+.funnel-bar{height:100%;border-radius:4px;display:flex;align-items:center;padding-left:10px;font-size:11px;font-weight:700;color:#fff;transition:width .6s ease;}
+.funnel-count{width:36px;text-align:right;font-size:12px;font-weight:700;color:var(--text);}
+
+/* MANAGERS LEADERBOARD */
+.leader-list{display:flex;flex-direction:column;gap:10px;}
+.leader-item{display:flex;align-items:center;gap:12px;}
+.leader-rank{width:20px;font-size:11px;font-weight:700;color:var(--muted);}
+.leader-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff;flex-shrink:0;}
+.leader-name{flex:1;font-size:13px;font-weight:600;}
+.leader-deals{font-size:12px;color:var(--muted);}
+.leader-bar-wrap{width:80px;background:var(--light);border-radius:4px;height:6px;}
+.leader-bar{height:6px;border-radius:4px;background:var(--accent);}
+
+/* RECENT ACTIVITY */
+.activity-list{display:flex;flex-direction:column;gap:12px;}
+.activity-item{display:flex;gap:12px;align-items:flex-start;}
+.activity-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px;}
+.activity-text{font-size:13px;line-height:1.4;}
+.activity-time{font-size:11px;color:var(--muted);margin-top:2px;}
+
+/* KANBAN */
+.kanban-toolbar{display:flex;gap:12px;align-items:center;margin-bottom:20px;}
+.kanban-wrap{display:flex;gap:16px;overflow-x:auto;padding-bottom:16px;}
+.kanban-col{min-width:240px;max-width:240px;background:var(--light);border-radius:14px;padding:14px;}
+.kanban-col-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.kanban-col-title{font-size:13px;font-weight:700;}
+.kanban-col-count{background:#fff;border:1px solid var(--border);font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;color:var(--muted);}
+.kanban-cards{display:flex;flex-direction:column;gap:8px;min-height:60px;}
+.kcard{background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px;cursor:pointer;transition:all .15s;}
+.kcard:hover{border-color:var(--accent);box-shadow:0 2px 8px rgba(99,102,241,.12);}
+.kcard-name{font-size:13px;font-weight:700;margin-bottom:4px;}
+.kcard-sub{font-size:11px;color:var(--muted);margin-bottom:8px;}
+.kcard-tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;}
+.tag{font-size:10px;font-weight:600;padding:2px 7px;border-radius:6px;}
+.tag-blue{background:#eff6ff;color:#3b82f6;}
+.tag-green{background:#f0fdf4;color:#16a34a;}
+.tag-yellow{background:#fffbeb;color:#d97706;}
+.tag-purple{background:#faf5ff;color:#9333ea;}
+.tag-red{background:#fef2f2;color:#dc2626;}
+.kcard-footer{display:flex;align-items:center;justify-content:space-between;}
+.kcard-manager{font-size:11px;color:var(--muted);}
+.kcard-date{font-size:11px;color:var(--muted);}
+.kcard-advance{font-size:11px;font-weight:600;color:var(--accent);cursor:pointer;padding:3px 8px;border:1px solid var(--accent);border-radius:6px;background:none;transition:all .15s;}
+.kcard-advance:hover{background:var(--accent);color:#fff;}
+.add-card-btn{width:100%;padding:8px;border:1.5px dashed var(--border);border-radius:8px;background:none;font-size:12px;color:var(--muted);cursor:pointer;margin-top:8px;transition:all .15s;}
+.add-card-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+/* CONTACTS */
+.contacts-toolbar{display:flex;gap:12px;align-items:center;margin-bottom:20px;}
+.search-box{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 12px;flex:1;max-width:320px;}
+.search-box input{border:none;background:none;outline:none;font-size:13px;color:var(--text);}
+table{width:100%;border-collapse:collapse;background:var(--card);border-radius:14px;overflow:hidden;border:1px solid var(--border);}
+thead tr{background:var(--light);}
+th{padding:12px 16px;text-align:left;font-size:12px;font-weight:700;color:var(--muted);border-bottom:1px solid var(--border);}
+td{padding:12px 16px;font-size:13px;border-bottom:1px solid var(--border);}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:#fafafa;}
+.contact-name{font-weight:600;display:flex;align-items:center;gap:8px;}
+.contact-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;}
+.status-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+.status-active{background:#f0fdf4;color:#16a34a;}
+.status-new{background:#eff6ff;color:#2563eb;}
+.status-lost{background:#fef2f2;color:#dc2626;}
+.status-deal{background:#faf5ff;color:#9333ea;}
+
+/* WHATSAPP */
+.chat-layout{display:flex;height:calc(100vh - 140px);background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+.chat-list{width:300px;border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;}
+.chat-list-header{padding:16px;border-bottom:1px solid var(--border);font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:space-between;}
+.chat-search{padding:10px 16px;border-bottom:1px solid var(--border);}
+.chat-search input{width:100%;background:var(--light);border:none;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;}
+.chat-items{flex:1;overflow-y:auto;}
+.chat-item{padding:12px 16px;display:flex;gap:12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s;}
+.chat-item:hover,.chat-item.active{background:var(--light);}
+.chat-item-avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;flex-shrink:0;}
+.chat-item-info{flex:1;min-width:0;}
+.chat-item-name{font-size:13px;font-weight:600;margin-bottom:3px;display:flex;justify-content:space-between;}
+.chat-item-time{font-size:10px;color:var(--muted);}
+.chat-item-msg{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.unread-badge{background:var(--green);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-top:2px;}
+
+.chat-main{flex:1;display:flex;flex-direction:column;}
+.chat-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;}
+.chat-header-info .name{font-weight:700;font-size:14px;}
+.chat-header-info .sub{font-size:11px;color:var(--muted);}
+.chat-header-actions{margin-left:auto;display:flex;gap:8px;}
+.chat-messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px;background:#e5ddd5 url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3C/svg%3E");}
+.msg{max-width:70%;padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.5;position:relative;}
+.msg-in{background:#fff;border-radius:2px 12px 12px 12px;align-self:flex-start;}
+.msg-out{background:#dcf8c6;border-radius:12px 2px 12px 12px;align-self:flex-end;}
+.msg-time{font-size:10px;color:var(--muted);margin-top:4px;text-align:right;}
+.msg-date{text-align:center;font-size:11px;background:rgba(255,255,255,.6);padding:4px 12px;border-radius:10px;align-self:center;color:var(--muted);}
+.chat-input-area{padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:10px;align-items:center;}
+.chat-input-area input{flex:1;border:none;background:var(--light);border-radius:24px;padding:10px 16px;font-size:14px;outline:none;}
+.chat-send{width:40px;height:40px;border-radius:50%;background:var(--green);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;}
+
+/* TASKS */
+.tasks-toolbar{display:flex;gap:12px;align-items:center;margin-bottom:20px;}
+.task-kanban{display:flex;gap:16px;overflow-x:auto;padding-bottom:16px;}
+.task-col{min-width:260px;background:var(--light);border-radius:14px;padding:14px;}
+.task-col-header{margin-bottom:12px;}
+.task-col-title{font-size:13px;font-weight:700;margin-bottom:4px;}
+.task-col-meta{font-size:11px;color:var(--muted);}
+.tcard{background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;cursor:pointer;transition:all .15s;}
+.tcard:hover{border-color:var(--accent);}
+.tcard-title{font-size:13px;font-weight:600;margin-bottom:6px;}
+.tcard-lead{font-size:11px;color:var(--muted);margin-bottom:8px;}
+.tcard-footer{display:flex;align-items:center;justify-content:space-between;}
+.tcard-due{font-size:11px;}
+.tcard-due.overdue{color:var(--red);font-weight:600;}
+.tcard-due.today{color:var(--yellow);font-weight:600;}
+.tcard-due.ok{color:var(--green);}
+.tcard-assignee{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;}
+.priority-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;}
+
+/* ANALYTICS */
+.analytics-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;}
+.analytics-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;}
+.analytics-title{font-size:14px;font-weight:700;margin-bottom:16px;}
+
+/* SVG Charts */
+.chart-svg{width:100%;height:180px;}
+
+/* SETTINGS */
+.settings-tabs{display:flex;gap:4px;background:var(--light);padding:4px;border-radius:10px;margin-bottom:24px;width:fit-content;}
+.stab{padding:7px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;color:var(--muted);}
+.stab.active{background:#fff;color:var(--text);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+.settings-section{display:none;}
+.settings-section.active{display:block;}
+.roles-table{width:100%;border-collapse:collapse;background:var(--card);border-radius:14px;overflow:hidden;border:1px solid var(--border);}
+.roles-table th{background:var(--sidebar);color:#fff;padding:12px 16px;text-align:left;font-size:12px;font-weight:600;}
+.roles-table td{padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;}
+.perm{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;}
+.perm.yes{background:#f0fdf4;color:#16a34a;}
+.perm.no{background:#fef2f2;color:#ef4444;}
+.perm.part{background:#fffbeb;color:#d97706;}
+.stage-list{display:flex;flex-direction:column;gap:8px;}
+.stage-item{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 16px;}
+.stage-drag{cursor:grab;color:var(--muted);}
+.stage-color{width:14px;height:14px;border-radius:4px;flex-shrink:0;}
+.stage-name-input{flex:1;border:none;background:none;font-size:13px;font-weight:500;outline:none;color:var(--text);}
+.stage-del{background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:0 4px;}
+.stage-del:hover{color:var(--red);}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:#fff;border-radius:16px;padding:28px;width:500px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+.modal-title{font-size:17px;font-weight:700;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;}
+.modal-close{background:none;border:none;cursor:pointer;font-size:20px;color:var(--muted);}
+.form-group{margin-bottom:16px;}
+.form-label{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;display:block;}
+.form-input,.form-select,.form-textarea{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-size:14px;outline:none;font-family:inherit;transition:border-color .15s;}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--accent);}
+.form-textarea{resize:vertical;min-height:80px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:#1e293b;color:#fff;padding:12px 20px;border-radius:12px;font-size:14px;font-weight:500;z-index:2000;transform:translateY(80px);opacity:0;transition:all .3s;pointer-events:none;}
+.toast.show{transform:translateY(0);opacity:1;}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px;}
+
+/* NOTIFICATION PANEL */
+.notif-panel{display:none;position:fixed;right:16px;top:56px;width:340px;background:#fff;border:1px solid var(--border);border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.12);z-index:500;}
+.notif-panel.open{display:block;}
+.notif-header{padding:16px;border-bottom:1px solid var(--border);font-weight:700;font-size:14px;}
+.notif-item{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;gap:12px;cursor:pointer;}
+.notif-item:hover{background:var(--light);}
+.notif-icon{font-size:20px;}
+.notif-text{font-size:13px;line-height:1.4;}
+.notif-ntime{font-size:11px;color:var(--muted);margin-top:3px;}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">
+      <div class="brand-mark">Edu</div>
+      <div>
+        <div class="brand-name">EduCRM</div>
+        <div class="brand-sub">Powered by Pllato</div>
+      </div>
+    </div>
+  </div>
+  <div class="sidebar-user">
+    <div class="user-avatar">АЕ</div>
+    <div class="user-info">
+      <div class="name">Азат Есқали</div>
+      <div class="role">Директор</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Главное</div>
+    <div class="nav-item active" onclick="nav('dashboard')"><span class="icon">📊</span> Дашборд</div>
+    <div class="nav-item" onclick="nav('leads')"><span class="icon">🎯</span> Воронка лидов <span class="nav-badge">12</span></div>
+    <div class="nav-item" onclick="nav('deals')"><span class="icon">💼</span> Сделки</div>
+    <div class="nav-section">Работа</div>
+    <div class="nav-item" onclick="nav('contacts')"><span class="icon">👥</span> Контакты</div>
+    <div class="nav-item" onclick="nav('whatsapp')"><span class="icon">💬</span> WhatsApp <span class="nav-badge green">3</span></div>
+    <div class="nav-item" onclick="nav('tasks')"><span class="icon">✅</span> Задачи <span class="nav-badge">5</span></div>
+    <div class="nav-section">Аналитика</div>
+    <div class="nav-item" onclick="nav('analytics')"><span class="icon">📈</span> Аналитика</div>
+    <div class="nav-section">Система</div>
+    <div class="nav-item" onclick="nav('settings')"><span class="icon">⚙️</span> Настройки</div>
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="nav-item"><span class="icon">❓</span> Помощь</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="topbar-title">Дашборд</div>
+    <div class="topbar-search">
+      <span>🔍</span>
+      <input placeholder="Поиск по контактам, сделкам..."/>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-primary" onclick="openModal('lead')">+ Новый лид</button>
+      <button class="notif-btn" onclick="toggleNotif()">🔔<div class="notif-dot"></div></button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="section active" id="sec-dashboard">
+      <div class="stats-grid">
+        <div class="stat-card blue">
+          <div class="stat-icon">🎯</div>
+          <div class="stat-label">Новых лидов (июль)</div>
+          <div class="stat-value" id="cnt1">0</div>
+          <div class="stat-change up">↑ 23% к прошлому месяцу</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-icon">💼</div>
+          <div class="stat-label">Сделок закрыто</div>
+          <div class="stat-value" id="cnt2">0</div>
+          <div class="stat-change up">↑ 8 в июне</div>
+        </div>
+        <div class="stat-card yellow">
+          <div class="stat-icon">💰</div>
+          <div class="stat-label">Выручка (июль)</div>
+          <div class="stat-value" id="cnt3">0</div>
+          <div class="stat-change up">↑ 18% к плану</div>
+        </div>
+        <div class="stat-card purple">
+          <div class="stat-icon">📊</div>
+          <div class="stat-label">Конверсия воронки</div>
+          <div class="stat-value" id="cnt4">0%</div>
+          <div class="stat-change up">↑ 3% к прошлому</div>
+        </div>
+      </div>
+
+      <div class="dash-row">
+        <div class="card">
+          <div class="card-title">Воронка лидов <span class="card-title-sub">Июль 2026</span></div>
+          <div class="funnel-bars">
+            <div class="funnel-row">
+              <div class="funnel-label">Новый лид</div>
+              <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:100%;background:#3b82f6;">47</div></div>
+              <div class="funnel-count">47</div>
+            </div>
+            <div class="funnel-row">
+              <div class="funnel-label">Квалификация</div>
+              <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:72%;background:#8b5cf6;">34</div></div>
+              <div class="funnel-count">34</div>
+            </div>
+            <div class="funnel-row">
+              <div class="funnel-label">Консультация</div>
+              <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:55%;background:#06b6d4;">26</div></div>
+              <div class="funnel-count">26</div>
+            </div>
+            <div class="funnel-row">
+              <div class="funnel-label">Договор</div>
+              <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:34%;background:#f59e0b;">16</div></div>
+              <div class="funnel-count">16</div>
+            </div>
+            <div class="funnel-row">
+              <div class="funnel-label">Обучение</div>
+              <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:23%;background:#22c55e;">11</div></div>
+              <div class="funnel-count">11</div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">ТОП менеджеров</div>
+          <div class="leader-list">
+            <div class="leader-item">
+              <div class="leader-rank">1</div>
+              <div class="leader-avatar" style="background:#6366f1">АБ</div>
+              <div>
+                <div class="leader-name">Айгерим Б.</div>
+                <div class="leader-deals">14 сделок</div>
+              </div>
+              <div><div class="leader-bar-wrap"><div class="leader-bar" style="width:100%"></div></div></div>
+            </div>
+            <div class="leader-item">
+              <div class="leader-rank">2</div>
+              <div class="leader-avatar" style="background:#06b6d4">НМ</div>
+              <div>
+                <div class="leader-name">Нурлан М.</div>
+                <div class="leader-deals">11 сделок</div>
+              </div>
+              <div><div class="leader-bar-wrap"><div class="leader-bar" style="width:78%"></div></div></div>
+            </div>
+            <div class="leader-item">
+              <div class="leader-rank">3</div>
+              <div class="leader-avatar" style="background:#f59e0b">ДК</div>
+              <div>
+                <div class="leader-name">Дина К.</div>
+                <div class="leader-deals">9 сделок</div>
+              </div>
+              <div><div class="leader-bar-wrap"><div class="leader-bar" style="width:64%"></div></div></div>
+            </div>
+            <div class="leader-item">
+              <div class="leader-rank">4</div>
+              <div class="leader-avatar" style="background:#22c55e">АТ</div>
+              <div>
+                <div class="leader-name">Асель Т.</div>
+                <div class="leader-deals">7 сделок</div>
+              </div>
+              <div><div class="leader-bar-wrap"><div class="leader-bar" style="width:50%"></div></div></div>
+            </div>
+            <div class="leader-item">
+              <div class="leader-rank">5</div>
+              <div class="leader-avatar" style="background:#ef4444">БС</div>
+              <div>
+                <div class="leader-name">Болат С.</div>
+                <div class="leader-deals">5 сделок</div>
+              </div>
+              <div><div class="leader-bar-wrap"><div class="leader-bar" style="width:35%"></div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dash-row" style="grid-template-columns:1fr 1fr 1fr">
+        <div class="card">
+          <div class="card-title">Источники лидов</div>
+          <svg class="chart-svg" viewBox="0 0 200 140">
+            <!-- Pie chart SVG -->
+            <circle cx="70" cy="70" r="50" fill="none" stroke="#3b82f6" stroke-width="24" stroke-dasharray="94 220" stroke-dashoffset="0"/>
+            <circle cx="70" cy="70" r="50" fill="none" stroke="#6366f1" stroke-width="24" stroke-dasharray="66 220" stroke-dashoffset="-94"/>
+            <circle cx="70" cy="70" r="50" fill="none" stroke="#22c55e" stroke-width="24" stroke-dasharray="44 220" stroke-dashoffset="-160"/>
+            <circle cx="70" cy="70" r="50" fill="none" stroke="#f59e0b" stroke-width="24" stroke-dasharray="16 220" stroke-dashoffset="-204"/>
+            <text x="70" y="65" text-anchor="middle" font-size="11" font-weight="700" fill="#0f172a">Источники</text>
+            <text x="70" y="80" text-anchor="middle" font-size="10" fill="#64748b">июль 2026</text>
+            <g transform="translate(140,20)">
+              <circle cx="6" cy="6" r="5" fill="#3b82f6"/><text x="16" y="10" font-size="10" fill="#64748b">Тильда 43%</text>
+              <circle cx="6" cy="24" r="5" fill="#6366f1"/><text x="16" y="28" font-size="10" fill="#64748b">Instagram 30%</text>
+              <circle cx="6" cy="42" r="5" fill="#22c55e"/><text x="16" y="46" font-size="10" fill="#64748b">WhatsApp 20%</text>
+              <circle cx="6" cy="60" r="5" fill="#f59e0b"/><text x="16" y="64" font-size="10" fill="#64748b">Реферал 7%</text>
+            </g>
+          </svg>
+        </div>
+        <div class="card">
+          <div class="card-title">Лиды за 7 дней</div>
+          <svg class="chart-svg" viewBox="0 0 200 140">
+            <defs><linearGradient id="lg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6366f1" stop-opacity=".3"/><stop offset="100%" stop-color="#6366f1" stop-opacity="0"/></linearGradient></defs>
+            <polyline points="10,110 38,90 66,95 94,65 122,55 150,40 178,30" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <polygon points="10,110 38,90 66,95 94,65 122,55 150,40 178,30 178,130 10,130" fill="url(#lg1)"/>
+            <g fill="#64748b" font-size="9">
+              <text x="7" y="128">25</text><text x="35" y="128">26</text><text x="63" y="128">27</text><text x="91" y="128">28</text><text x="119" y="128">29</text><text x="147" y="128">30</text><text x="174" y="128">1</text>
+            </g>
+            <g fill="#6366f1">
+              <circle cx="10" cy="110" r="3"/><circle cx="38" cy="90" r="3"/><circle cx="66" cy="95" r="3"/><circle cx="94" cy="65" r="3"/><circle cx="122" cy="55" r="3"/><circle cx="150" cy="40" r="3"/><circle cx="178" cy="30" r="3"/>
+            </g>
+          </svg>
+        </div>
+        <div class="card">
+          <div class="card-title">Активность сегодня</div>
+          <div class="activity-list">
+            <div class="activity-item">
+              <div class="activity-dot" style="background:#22c55e"></div>
+              <div>
+                <div class="activity-text">Айгерим перевела лид <b>Дильнозу К.</b> → Договор</div>
+                <div class="activity-time">5 минут назад</div>
+              </div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-dot" style="background:#3b82f6"></div>
+              <div>
+                <div class="activity-text">Новый лид из Тильды: <b>Серик Ахметов</b></div>
+                <div class="activity-time">18 минут назад</div>
+              </div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-dot" style="background:#f59e0b"></div>
+              <div>
+                <div class="activity-text">WhatsApp: <b>+7 705 432 11 22</b> написал впервые</div>
+                <div class="activity-time">31 минута назад</div>
+              </div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-dot" style="background:#6366f1"></div>
+              <div>
+                <div class="activity-text">Задача «Перезвонить Акжан» выполнена</div>
+                <div class="activity-time">1 час назад</div>
+              </div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-dot" style="background:#ef4444"></div>
+              <div>
+                <div class="activity-text">Лид <b>Ерлан М.</b> просрочен 3 дня — перераспределён</div>
+                <div class="activity-time">2 часа назад</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEADS KANBAN -->
+    <div class="section" id="sec-leads">
+      <div class="kanban-toolbar">
+        <button class="btn btn-primary" onclick="openModal('lead')">+ Новый лид</button>
+        <button class="btn btn-outline">🔍 Фильтр</button>
+        <button class="btn btn-outline">👤 Мои лиды</button>
+        <span style="margin-left:auto;font-size:13px;color:var(--muted)">Всего лидов: <b>47</b> · Открытых: <b>36</b></span>
+      </div>
+      <div class="kanban-wrap" id="leads-kanban"></div>
+    </div>
+
+    <!-- DEALS KANBAN -->
+    <div class="section" id="sec-deals">
+      <div class="kanban-toolbar">
+        <button class="btn btn-primary" onclick="openModal('lead')">+ Новая сделка</button>
+        <button class="btn btn-outline">🔍 Фильтр</button>
+        <span style="margin-left:auto;font-size:13px;color:var(--muted)">Сумма в работе: <b>4 250 000 ₸</b></span>
+      </div>
+      <div class="kanban-wrap" id="deals-kanban"></div>
+    </div>
+
+    <!-- CONTACTS -->
+    <div class="section" id="sec-contacts">
+      <div class="contacts-toolbar">
+        <div class="search-box">
+          <span>🔍</span>
+          <input id="contacts-search" placeholder="Поиск контакта..." oninput="filterContacts(this.value)"/>
+        </div>
+        <button class="btn btn-outline">Импорт CSV</button>
+        <button class="btn btn-outline">Импорт из AmoCRM</button>
+        <button class="btn btn-primary" onclick="openModal('contact')">+ Добавить контакт</button>
+        <span style="margin-left:auto;font-size:13px;color:var(--muted)" id="contacts-count">Всего: 0</span>
+      </div>
+      <table id="contacts-table">
+        <thead>
+          <tr>
+            <th>Имя</th>
+            <th>Телефон</th>
+            <th>Программа</th>
+            <th>Менеджер</th>
+            <th>Статус</th>
+            <th>Дата добавления</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="contacts-tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- WHATSAPP -->
+    <div class="section" id="sec-whatsapp">
+      <div class="chat-layout">
+        <div class="chat-list">
+          <div class="chat-list-header">
+            WhatsApp
+            <span style="font-size:12px;color:var(--muted);font-weight:400">+7 727 xxx xx xx</span>
+          </div>
+          <div class="chat-search"><input placeholder="Поиск чата..."/></div>
+          <div class="chat-items" id="chat-list"></div>
+        </div>
+        <div class="chat-main">
+          <div class="chat-header" id="chat-header">
+            <div style="width:40px;height:40px;border-radius:50%;background:#6366f1;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff" id="chat-avatar">АБ</div>
+            <div class="chat-header-info">
+              <div class="name" id="chat-name">Айым Бекова</div>
+              <div class="sub" id="chat-sub">В сети · Лид #1024 · Консультация</div>
+            </div>
+            <div class="chat-header-actions">
+              <button class="btn btn-outline" onclick="toast('Открытие карточки лида...')">📋 Открыть лид</button>
+              <button class="btn btn-outline" onclick="toast('Задача создана')">✅ Задача</button>
+            </div>
+          </div>
+          <div class="chat-messages" id="chat-messages"></div>
+          <div class="chat-input-area">
+            <span style="font-size:18px;cursor:pointer" title="Шаблоны">📝</span>
+            <span style="font-size:18px;cursor:pointer" title="Прикрепить файл">📎</span>
+            <input id="chat-input" placeholder="Написать сообщение..." onkeydown="if(event.key==='Enter')sendMsg()"/>
+            <button class="chat-send" onclick="sendMsg()">➤</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TASKS -->
+    <div class="section" id="sec-tasks">
+      <div class="tasks-toolbar">
+        <button class="btn btn-primary" onclick="openModal('task')">+ Новая задача</button>
+        <button class="btn btn-outline">📅 Календарь</button>
+        <button class="btn btn-outline">👤 Мои задачи</button>
+        <span style="margin-left:auto;font-size:13px;color:var(--muted)">Просроченных: <b style="color:var(--red)">2</b> · На сегодня: <b style="color:var(--yellow)">3</b></span>
+      </div>
+      <div class="task-kanban" id="tasks-kanban"></div>
+    </div>
+
+    <!-- ANALYTICS -->
+    <div class="section" id="sec-analytics">
+      <div class="analytics-grid">
+        <div class="analytics-card">
+          <div class="analytics-title">📈 Выручка по месяцам</div>
+          <svg viewBox="0 0 360 160" style="width:100%;height:160px;">
+            <defs><linearGradient id="lg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#22c55e" stop-opacity=".4"/><stop offset="100%" stop-color="#22c55e" stop-opacity="0"/></linearGradient></defs>
+            <polyline points="20,130 70,115 120,105 170,80 220,60 270,40 320,20" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round"/>
+            <polygon points="20,130 70,115 120,105 170,80 220,60 270,40 320,20 320,150 20,150" fill="url(#lg2)"/>
+            <g fill="#64748b" font-size="9">
+              <text x="12" y="150">Янв</text><text x="62" y="150">Фев</text><text x="112" y="150">Мар</text><text x="162" y="150">Апр</text><text x="212" y="150">Май</text><text x="262" y="150">Июн</text><text x="312" y="150">Июл</text>
+            </g>
+          </svg>
+        </div>
+        <div class="analytics-card">
+          <div class="analytics-title">🗺️ География студентов</div>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px;">
+            <div style="display:flex;align-items:center;gap:10px"><span style="width:90px;font-size:12px;color:var(--muted)">Алматы</span><div style="flex:1;background:var(--light);border-radius:4px;height:20px;overflow:hidden"><div style="width:70%;background:#6366f1;height:100%;display:flex;align-items:center;padding-left:8px;color:#fff;font-size:11px;font-weight:700">70%</div></div></div>
+            <div style="display:flex;align-items:center;gap:10px"><span style="width:90px;font-size:12px;color:var(--muted)">Астана</span><div style="flex:1;background:var(--light);border-radius:4px;height:20px;overflow:hidden"><div style="width:45%;background:#3b82f6;height:100%;display:flex;align-items:center;padding-left:8px;color:#fff;font-size:11px;font-weight:700">45%</div></div></div>
+            <div style="display:flex;align-items:center;gap:10px"><span style="width:90px;font-size:12px;color:var(--muted)">Шымкент</span><div style="flex:1;background:var(--light);border-radius:4px;height:20px;overflow:hidden"><div style="width:30%;background:#06b6d4;height:100%;display:flex;align-items:center;padding-left:8px;color:#fff;font-size:11px;font-weight:700">30%</div></div></div>
+            <div style="display:flex;align-items:center;gap:10px"><span style="width:90px;font-size:12px;color:var(--muted)">Другие</span><div style="flex:1;background:var(--light);border-radius:4px;height:20px;overflow:hidden"><div style="width:20%;background:#94a3b8;height:100%;display:flex;align-items:center;padding-left:8px;color:#fff;font-size:11px;font-weight:700">20%</div></div></div>
+          </div>
+        </div>
+        <div class="analytics-card">
+          <div class="analytics-title">⏱️ Среднее время в этапах (дней)</div>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px"><span style="color:var(--muted)">Новый лид</span><span style="font-weight:700">0.5</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px"><span style="color:var(--muted)">Квалификация</span><span style="font-weight:700">2.1</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px"><span style="color:var(--muted)">Консультация</span><span style="font-weight:700;color:var(--yellow)">4.7 ⚠️</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px"><span style="color:var(--muted)">Договор</span><span style="font-weight:700">1.3</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px"><span style="color:var(--muted)">Обучение</span><span style="font-weight:700">14.0</span></div>
+            <div style="margin-top:8px;padding:10px 12px;background:#fffbeb;border-radius:8px;font-size:12px;color:#92400e">⚠️ «Консультация» — узкое место. Стоит добавить автозадачу на день 3.</div>
+          </div>
+        </div>
+        <div class="analytics-card">
+          <div class="analytics-title">🤖 Автороботы (активных)</div>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px;">
+            <div style="background:var(--light);border-radius:10px;padding:12px">
+              <div style="font-size:12px;font-weight:700;margin-bottom:4px">📨 Приветствие при новом лиде</div>
+              <div style="font-size:11px;color:var(--muted)">Отправляет WhatsApp сообщение сразу при создании лида</div>
+              <div style="margin-top:6px;display:flex;gap:6px"><span style="font-size:10px;background:#f0fdf4;color:#16a34a;padding:2px 8px;border-radius:6px;font-weight:600">✓ Активен</span><span style="font-size:10px;color:var(--muted)">Сработал 34 раза</span></div>
+            </div>
+            <div style="background:var(--light);border-radius:10px;padding:12px">
+              <div style="font-size:12px;font-weight:700;margin-bottom:4px">⏰ Напоминание через 3 дня</div>
+              <div style="font-size:11px;color:var(--muted)">Ставит задачу менеджеру если нет активности 3 дня</div>
+              <div style="margin-top:6px;display:flex;gap:6px"><span style="font-size:10px;background:#f0fdf4;color:#16a34a;padding:2px 8px;border-radius:6px;font-weight:600">✓ Активен</span><span style="font-size:10px;color:var(--muted)">Сработал 8 раз</span></div>
+            </div>
+            <div style="background:var(--light);border-radius:10px;padding:12px">
+              <div style="font-size:12px;font-weight:700;margin-bottom:4px">🔄 Перераспределение в 21 день</div>
+              <div style="font-size:11px;color:var(--muted)">Переводит лид на другого менеджера если нет прогресса 21 день</div>
+              <div style="margin-top:6px;display:flex;gap:6px"><span style="font-size:10px;background:#f0fdf4;color:#16a34a;padding:2px 8px;border-radius:6px;font-weight:600">✓ Активен</span><span style="font-size:10px;color:var(--muted)">Сработал 3 раза</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="section" id="sec-settings">
+      <div class="settings-tabs">
+        <div class="stab active" onclick="stab(this,'s-stages')">Этапы воронки</div>
+        <div class="stab" onclick="stab(this,'s-roles')">Роли и права</div>
+        <div class="stab" onclick="stab(this,'s-integrations')">Интеграции</div>
+        <div class="stab" onclick="stab(this,'s-users')">Пользователи</div>
+      </div>
+
+      <div class="settings-section active" id="s-stages">
+        <div style="display:flex;gap:16px;margin-bottom:20px">
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:700;margin-bottom:14px">🎯 Воронка лидов</div>
+            <div class="stage-list">
+              <div class="stage-item"><span class="stage-drag">⠿</span><div class="stage-color" style="background:#3b82f6"></div><input class="stage-name-input" value="Новый лид"/><button class="stage-del">×</button></div>
+              <div class="stage-item"><span class="stage-drag">⠿</span><div class="stage-color" style="background:#8b5cf6"></div><input class="stage-name-input" value="Квалификация"/><button class="stage-del">×</button></div>
+              <div class="stage-item"><span class="stage-drag">⠿</span><div class="stage-color" style="background:#06b6d4"></div><input class="stage-name-input" value="Консультация"/><button class="stage-del">×</button></div>
+              <div class="stage-item"><span class="stage-drag">⠿</span><div class="stage-color" style="background:#f59e0b"></div><input class="stage-name-input" value="Договор"/><button class="stage-del">×</button></div>
+              <div class="stage-item"><span class="stage-drag">⠿</span><div class="stage-color" style="background:#22c55e"></div><input class="stage-name-input" value="Обучение"/><button class="stage-del">×</button></div>
+              <div class="stage-item"><span class="stage-drag">⠿</span><div class="stage-color" style="background:#64748b"></div><input class="stage-name-input" value="Завершён"/><button class="stage-del">×</button></div>
+            </div>
+            <button class="btn btn-outline" style="margin-top:10px;width:100%" onclick="toast('Этап добавлен')">+ Добавить этап</button>
+            <button class="btn btn-primary" style="margin-top:8px;width:100%" onclick="toast('Сохранено ✓')">Сохранить</button>
+          </div>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:700;margin-bottom:14px">🤖 Автороботы</div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px">
+                <div style="font-size:13px;font-weight:600;margin-bottom:8px">При переходе на этап «Консультация»</div>
+                <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Действие:</div>
+                <select class="form-select" style="margin-bottom:8px"><option>Отправить WhatsApp сообщение</option><option>Поставить задачу менеджеру</option><option>Перевести на этап</option></select>
+                <textarea class="form-textarea" style="height:60px">Здравствуйте, {{имя}}! Напоминаем о вашей консультации по программе магистратуры. Когда вам удобно пообщаться?</textarea>
+                <button class="btn btn-primary" style="margin-top:8px" onclick="toast('Робот сохранён ✓')">Сохранить робота</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section" id="s-roles">
+        <div style="font-size:14px;font-weight:700;margin-bottom:16px">Матрица прав доступа</div>
+        <table class="roles-table">
+          <thead>
+            <tr>
+              <th>Раздел</th>
+              <th>Директор</th>
+              <th>РОП</th>
+              <th>Менеджер</th>
+              <th>Стажёр</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Дашборд (все данные)</td><td><div class="perm yes">✓</div></td><td><div class="perm yes">✓</div></td><td><div class="perm no">✗</div></td><td><div class="perm no">✗</div></td></tr>
+            <tr><td>Воронка (все лиды)</td><td><div class="perm yes">✓</div></td><td><div class="perm yes">✓</div></td><td><div class="perm part">~</div></td><td><div class="perm part">~</div></td></tr>
+            <tr><td>Контакты</td><td><div class="perm yes">✓</div></td><td><div class="perm yes">✓</div></td><td><div class="perm yes">✓</div></td><td><div class="perm part">~</div></td></tr>
+            <tr><td>WhatsApp чаты</td><td><div class="perm yes">✓</div></td><td><div class="perm yes">✓</div></td><td><div class="perm part">~</div></td><td><div class="perm part">~</div></td></tr>
+            <tr><td>Финансы / Выручка</td><td><div class="perm yes">✓</div></td><td><div class="perm no">✗</div></td><td><div class="perm no">✗</div></td><td><div class="perm no">✗</div></td></tr>
+            <tr><td>Аналитика KPI команды</td><td><div class="perm yes">✓</div></td><td><div class="perm yes">✓</div></td><td><div class="perm no">✗</div></td><td><div class="perm no">✗</div></td></tr>
+            <tr><td>Настройки системы</td><td><div class="perm yes">✓</div></td><td><div class="perm no">✗</div></td><td><div class="perm no">✗</div></td><td><div class="perm no">✗</div></td></tr>
+            <tr><td>Управление пользователями</td><td><div class="perm yes">✓</div></td><td><div class="perm part">~</div></td><td><div class="perm no">✗</div></td><td><div class="perm no">✗</div></td></tr>
+            <tr><td>Массовые рассылки WA</td><td><div class="perm yes">✓</div></td><td><div class="perm yes">✓</div></td><td><div class="perm no">✗</div></td><td><div class="perm no">✗</div></td></tr>
+          </tbody>
+        </table>
+        <div style="margin-top:12px;font-size:12px;color:var(--muted)">✓ — полный доступ · ~ — частичный (только свои данные) · ✗ — нет доступа</div>
+      </div>
+
+      <div class="settings-section" id="s-integrations">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px"><span style="font-size:28px">💬</span><div><div style="font-weight:700;font-size:14px">WhatsApp (GreenAPI)</div><div style="font-size:11px;color:var(--muted)">Серый канал — переписка без ограничений</div></div><span style="margin-left:auto;background:#f0fdf4;color:#16a34a;font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px">Активен</span></div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Подключённые номера:</div>
+            <div style="font-size:13px;margin-bottom:4px">✓ +7 727 xxx xx 01 — Айгерим</div>
+            <div style="font-size:13px;margin-bottom:4px">✓ +7 727 xxx xx 02 — Нурлан</div>
+            <div style="font-size:13px;margin-bottom:12px;color:var(--muted)">+ ещё 13 номеров</div>
+            <button class="btn btn-outline" onclick="toast('Управление каналами...')">Управление каналами</button>
+          </div>
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px"><span style="font-size:28px">📋</span><div><div style="font-weight:700;font-size:14px">WhatsApp Business API</div><div style="font-size:11px;color:var(--muted)">Официальный — для авторассылок и шаблонов</div></div><span style="margin-left:auto;background:#eff6ff;color:#2563eb;font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px">Настройка</span></div>
+            <div style="font-size:12px;margin-bottom:12px;color:var(--muted)">Подключите для отправки подтверждений, напоминаний о встречах и статус-уведомлений. Стоимость: 10–15 ₸/сообщение.</div>
+            <button class="btn btn-primary" onclick="toast('Открытие мастера подключения...')">Подключить WABA</button>
+          </div>
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px"><span style="font-size:28px">🌐</span><div><div style="font-weight:700;font-size:14px">Tilda</div><div style="font-size:11px;color:var(--muted)">Заявки с сайта → автоматически в CRM</div></div><span style="margin-left:auto;background:#f0fdf4;color:#16a34a;font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px">Активен</span></div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Вебхук подключён. За сегодня получено: <b>8 заявок</b></div>
+            <button class="btn btn-outline" onclick="toast('Настройки вебхука...')">Настройки</button>
+          </div>
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px"><span style="font-size:28px">📞</span><div><div style="font-weight:700;font-size:14px">SipUni (Телефония)</div><div style="font-size:11px;color:var(--muted)">Запись и прослушивание звонков в карточке лида</div></div><span style="margin-left:auto;background:#fffbeb;color:#d97706;font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px">Скоро</span></div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Интеграция с SipUni позволит видеть все звонки менеджеров прямо в CRM и контролировать качество.</div>
+            <button class="btn btn-outline" onclick="toast('Интеграция будет добавлена в следующем обновлении')">Подключить</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section" id="s-users">
+        <div style="display:flex;gap:12px;margin-bottom:20px">
+          <button class="btn btn-primary" onclick="toast('Ссылка для приглашения скопирована: crm.yourcompany.kz/invite/xxxxx')">+ Пригласить сотрудника</button>
+          <button class="btn btn-outline">Экспорт списка</button>
+        </div>
+        <table>
+          <thead><tr><th>Имя</th><th>Email / WhatsApp</th><th>Роль</th><th>Статус</th><th>Лидов</th><th>Последний вход</th><th></th></tr></thead>
+          <tbody>
+            <tr><td><div class="contact-name"><div class="contact-avatar" style="background:#6366f1">АЕ</div>Азат Есқали</div></td><td>azat@company.kz</td><td><span class="tag tag-purple">Директор</span></td><td><span class="status-pill status-active">В сети</span></td><td>—</td><td>Только что</td><td><button class="btn btn-outline" style="padding:4px 10px;font-size:11px">Изменить</button></td></tr>
+            <tr><td><div class="contact-name"><div class="contact-avatar" style="background:#3b82f6">АБ</div>Айгерим Б.</div></td><td>+7 701 xxx xxxx</td><td><span class="tag tag-blue">Менеджер</span></td><td><span class="status-pill status-active">В сети</span></td><td>14</td><td>3 мин назад</td><td><button class="btn btn-outline" style="padding:4px 10px;font-size:11px">Изменить</button></td></tr>
+            <tr><td><div class="contact-name"><div class="contact-avatar" style="background:#06b6d4">НМ</div>Нурлан М.</div></td><td>+7 702 xxx xxxx</td><td><span class="tag tag-blue">Менеджер</span></td><td><span class="status-pill status-active">В сети</span></td><td>11</td><td>7 мин назад</td><td><button class="btn btn-outline" style="padding:4px 10px;font-size:11px">Изменить</button></td></tr>
+            <tr><td><div class="contact-name"><div class="contact-avatar" style="background:#f59e0b">ДК</div>Дина К.</div></td><td>+7 707 xxx xxxx</td><td><span class="tag tag-blue">Менеджер</span></td><td><span class="status-pill status-new">Обед</span></td><td>9</td><td>45 мин назад</td><td><button class="btn btn-outline" style="padding:4px 10px;font-size:11px">Изменить</button></td></tr>
+            <tr><td><div class="contact-name"><div class="contact-avatar" style="background:#22c55e">АТ</div>Асель Т.</div></td><td>+7 705 xxx xxxx</td><td><span class="tag tag-green">Стажёр</span></td><td><span class="status-pill status-active">В сети</span></td><td>7</td><td>1 час назад</td><td><button class="btn btn-outline" style="padding:4px 10px;font-size:11px">Изменить</button></td></tr>
+          </tbody>
+        </table>
+        <div style="margin-top:16px;padding:14px 16px;background:var(--light);border-radius:12px;font-size:13px;color:var(--muted)">💡 Тарифный план: <b>Безлимит пользователей</b>. Добавляйте стажёров бесплатно — плата за каждого не нужна.</div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- NOTIFICATION PANEL -->
+<div class="notif-panel" id="notif-panel">
+  <div class="notif-header">Уведомления <span style="font-size:11px;color:var(--muted);float:right;font-weight:400">3 новых</span></div>
+  <div class="notif-item" onclick="this.style.background='var(--light)'"><div class="notif-icon">💬</div><div><div class="notif-text">Новое сообщение от <b>Серика А.</b> в WhatsApp</div><div class="notif-ntime">2 мин назад</div></div></div>
+  <div class="notif-item" onclick="this.style.background='var(--light)'"><div class="notif-icon">🎯</div><div><div class="notif-text">Новый лид из Tilda: <b>Маргарита К.</b> — MBA Канада</div><div class="notif-ntime">11 мин назад</div></div></div>
+  <div class="notif-item" onclick="this.style.background='var(--light)'"><div class="notif-icon">⚠️</div><div><div class="notif-text">Лид <b>Жасулан О.</b> без активности 3 дня — нужна задача</div><div class="notif-ntime">1 час назад</div></div></div>
+  <div class="notif-item"><div class="notif-icon">✅</div><div><div class="notif-text">Задача «Отправить КП Алии» отмечена выполненной</div><div class="notif-ntime">2 часа назад</div></div></div>
+</div>
+
+<!-- MODAL NEW LEAD -->
+<div class="modal-overlay" id="modal-lead">
+  <div class="modal">
+    <div class="modal-title">Новый лид <button class="modal-close" onclick="closeModal('lead')">×</button></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Имя *</label><input class="form-input" placeholder="Акжан Сейткали"/></div>
+      <div class="form-group"><label class="form-label">Телефон *</label><input class="form-input" placeholder="+7 701 xxx xx xx"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Программа</label><select class="form-select"><option>MBA</option><option>Магистратура в Великобритании</option><option>Магистратура в Европе</option><option>Магистратура в Канаде</option><option>Магистратура в Казахстане</option><option>Другое</option></select></div>
+      <div class="form-group"><label class="form-label">Источник</label><select class="form-select"><option>Tilda (сайт)</option><option>Instagram</option><option>WhatsApp</option><option>Реферал</option><option>Другое</option></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Менеджер</label><select class="form-select"><option>Айгерим Б.</option><option>Нурлан М.</option><option>Дина К.</option><option>Асель Т.</option></select></div>
+      <div class="form-group"><label class="form-label">Первый контакт</label><input class="form-input" type="date"/></div>
+    </div>
+    <div class="form-group"><label class="form-label">Комментарий</label><textarea class="form-textarea" placeholder="Детали встречи, пожелания, бюджет..."></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('lead')">Отмена</button>
+      <button class="btn btn-primary" onclick="addLead()">Создать лид</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL TASK -->
+<div class="modal-overlay" id="modal-task">
+  <div class="modal">
+    <div class="modal-title">Новая задача <button class="modal-close" onclick="closeModal('task')">×</button></div>
+    <div class="form-group"><label class="form-label">Название *</label><input class="form-input" placeholder="Перезвонить клиенту..."/></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Исполнитель</label><select class="form-select"><option>Айгерим Б.</option><option>Нурлан М.</option><option>Дина К.</option></select></div>
+      <div class="form-group"><label class="form-label">Срок</label><input class="form-input" type="datetime-local"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Приоритет</label><select class="form-select"><option>Обычный</option><option>Высокий</option><option>Срочно</option></select></div>
+      <div class="form-group"><label class="form-label">Связанный лид</label><input class="form-input" placeholder="Поиск лида..."/></div>
+    </div>
+    <div class="form-group"><label class="form-label">Описание</label><textarea class="form-textarea" placeholder="Детали задачи..."></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('task')">Отмена</button>
+      <button class="btn btn-primary" onclick="toast('Задача создана ✓');closeModal('task')">Создать</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONTACT -->
+<div class="modal-overlay" id="modal-contact">
+  <div class="modal">
+    <div class="modal-title">Новый контакт <button class="modal-close" onclick="closeModal('contact')">×</button></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Имя *</label><input class="form-input"/></div>
+      <div class="form-group"><label class="form-label">Фамилия</label><input class="form-input"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Телефон</label><input class="form-input" placeholder="+7..."/></div>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email"/></div>
+    </div>
+    <div class="form-group"><label class="form-label">Интересующая программа</label><input class="form-input"/></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('contact')">Отмена</button>
+      <button class="btn btn-primary" onclick="toast('Контакт добавлен ✓');closeModal('contact')">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// DATA
+const LEAD_STAGES=['Новый лид','Квалификация','Консультация','Договор','Обучение','Завершён'];
+const STAGE_COLORS=['#3b82f6','#8b5cf6','#06b6d4','#f59e0b','#22c55e','#64748b'];
+const DEAL_STAGES=['Квалификация','КП отправлено','Переговоры','Договор','Оплата','Закрыт'];
+const DEAL_COLORS=['#6366f1','#3b82f6','#f59e0b','#22c55e','#a855f7','#64748b'];
+const MANAGERS=['Айгерим Б.','Нурлан М.','Дина К.','Асель Т.','Болат С.'];
+const PROGRAMS=['MBA','Магистратура UK','Магистратура Европа','Магистратура Канада','Маг. KZ'];
+const SOURCES=['Tilda','Instagram','WhatsApp','Реферал'];
+const MANAGER_COLORS=['#6366f1','#06b6d4','#f59e0b','#22c55e','#ef4444'];
+const AVATAR_COLORS=['#6366f1','#3b82f6','#06b6d4','#22c55e','#f59e0b','#ef4444','#a855f7','#ec4899'];
+
+let leads=[
+  {id:1001,name:'Айым Бекова',phone:'+7 701 234 56 78',stage:0,program:'MBA',source:'Instagram',manager:'Айгерим Б.',date:'28.06',tags:['Срочно']},
+  {id:1002,name:'Серик Ахметов',phone:'+7 702 345 67 89',stage:0,program:'Магистратура UK',source:'Tilda',manager:'Нурлан М.',date:'01.07',tags:['Новый']},
+  {id:1003,name:'Маргарита Ким',phone:'+7 707 456 78 90',stage:0,program:'Магистратура Европа',source:'Tilda',manager:'Дина К.',date:'01.07',tags:['Новый']},
+  {id:1004,name:'Дильноза Кадырова',phone:'+7 705 567 89 01',stage:1,program:'Магистратура Канада',source:'WhatsApp',manager:'Айгерим Б.',date:'27.06',tags:['Горячий']},
+  {id:1005,name:'Жасулан Омаров',phone:'+7 708 678 90 12',stage:1,program:'MBA',source:'Instagram',manager:'Нурлан М.',date:'25.06',tags:['Просрочен']},
+  {id:1006,name:'Акерке Нурова',phone:'+7 701 789 01 23',stage:1,program:'Маг. KZ',source:'Реферал',manager:'Асель Т.',date:'29.06',tags:[]},
+  {id:1007,name:'Бауыржан Сейтов',phone:'+7 702 890 12 34',stage:2,program:'Магистратура UK',source:'Tilda',manager:'Айгерим Б.',date:'24.06',tags:['Горячий']},
+  {id:1008,name:'Акжан Мусина',phone:'+7 707 901 23 45',stage:2,program:'MBA',source:'Instagram',manager:'Нурлан М.',date:'23.06',tags:[]},
+  {id:1009,name:'Гүлнар Таева',phone:'+7 705 012 34 56',stage:2,program:'Магистратура Европа',source:'Tilda',manager:'Дина К.',date:'22.06',tags:[]},
+  {id:1010,name:'Нурсулу Жакупова',phone:'+7 708 123 45 67',stage:3,program:'Магистратура Канада',source:'WhatsApp',manager:'Айгерим Б.',date:'20.06',tags:['ВИП']},
+  {id:1011,name:'Ерлан Мухаметов',phone:'+7 701 234 56 78',stage:3,program:'MBA',source:'Реферал',manager:'Нурлан М.',date:'19.06',tags:[]},
+  {id:1012,name:'Сандугаш Исаева',phone:'+7 702 345 67 89',stage:4,program:'Магистратура UK',source:'Instagram',manager:'Дина К.',date:'15.06',tags:['ВИП']},
+];
+
+const contacts=[
+  {name:'Айым Бекова',phone:'+7 701 234 56 78',program:'MBA',manager:'Айгерим Б.',status:'new',date:'01.07.2026',color:'#6366f1'},
+  {name:'Серик Ахметов',phone:'+7 702 345 67 89',program:'Магистратура UK',manager:'Нурлан М.',status:'new',date:'01.07.2026',color:'#3b82f6'},
+  {name:'Нурсулу Жакупова',phone:'+7 708 123 45 67',program:'Магистратура Канада',manager:'Айгерим Б.',status:'deal',date:'20.06.2026',color:'#a855f7'},
+  {name:'Сандугаш Исаева',phone:'+7 702 345 67 89',program:'Магистратура UK',manager:'Дина К.',status:'active',date:'15.06.2026',color:'#22c55e'},
+  {name:'Дильноза Кадырова',phone:'+7 705 567 89 01',program:'Магистратура Канада',manager:'Айгерим Б.',status:'new',date:'27.06.2026',color:'#06b6d4'},
+  {name:'Жасулан Омаров',phone:'+7 708 678 90 12',program:'MBA',manager:'Нурлан М.',status:'lost',date:'25.06.2026',color:'#ef4444'},
+  {name:'Гүлнар Таева',phone:'+7 705 012 34 56',program:'Магистратура Европа',manager:'Дина К.',status:'active',date:'22.06.2026',color:'#f59e0b'},
+  {name:'Акерке Нурова',phone:'+7 701 789 01 23',program:'Маг. KZ',manager:'Асель Т.',status:'new',date:'29.06.2026',color:'#8b5cf6'},
+];
+
+const chats=[
+  {id:1,name:'Айым Бекова',phone:'+7 701 234 56 78',color:'#6366f1',lastMsg:'Да, мне удобно завтра в 14:00',time:'14:23',unread:0,stage:'Консультация',messages:[
+    {out:false,text:'Здравствуйте! Хочу узнать о программах магистратуры в Великобритании.',time:'09:15'},
+    {out:true,text:'Добрый день, Айым! Рада вашему обращению 🎓 Подскажите, у вас уже есть диплом бакалавра?',time:'09:18'},
+    {out:false,text:'Да, по специальности «Финансы», КазНУ, красный диплом.',time:'09:22'},
+    {out:true,text:'Отлично! Для вас подойдут программы MSc Finance в London School of Economics или Manchester. Когда вам удобно пообщаться подробнее?',time:'09:25'},
+    {out:false,text:'Да, мне удобно завтра в 14:00',time:'14:23'},
+  ]},
+  {id:2,name:'Серик Ахметов',phone:'+7 702 345 67 89',color:'#3b82f6',lastMsg:'Сколько стоит обучение?',time:'13:47',unread:1,stage:'Новый лид',messages:[
+    {out:false,text:'Привет, хочу поступить в MBA за рубежом.',time:'13:40'},
+    {out:true,text:'Добрый день! Какая страна интересует — Европа, Великобритания или Канада?',time:'13:44'},
+    {out:false,text:'Сколько стоит обучение?',time:'13:47'},
+  ]},
+  {id:3,name:'Нурсулу Жакупова',phone:'+7 708 123 45 67',color:'#a855f7',lastMsg:'Договор получила, изучу сегодня',time:'11:30',unread:2,stage:'Договор',messages:[
+    {out:true,text:'Нурсулу, направляю вам договор на подписание. Все условия как обсуждали.',time:'10:00'},
+    {out:false,text:'Спасибо! Посмотрю и дам ответ.',time:'10:15'},
+    {out:true,text:'Если будут вопросы — звоните! Я на связи 😊',time:'10:17'},
+    {out:false,text:'Договор получила, изучу сегодня',time:'11:30'},
+  ]},
+  {id:4,name:'Жасулан Омаров',phone:'+7 708 678 90 12',color:'#f59e0b',lastMsg:'Ок, подумаю',time:'Вчера',unread:0,stage:'Квалификация',messages:[
+    {out:true,text:'Жасулан, как прошла наша встреча? Есть ли вопросы по программе?',time:'Вчера 15:00'},
+    {out:false,text:'Ок, подумаю',time:'Вчера 18:30'},
+  ]},
+];
+
+let activeChatId=1;
+
+const tasks={
+  'Сегодня':[
+    {title:'Перезвонить Айым Бековой',lead:'Лид #1001',due:'сегодня 15:00',dueCls:'today',assignee:'АБ',color:'#6366f1',priority:'#f59e0b'},
+    {title:'Отправить КП Нурсулу',lead:'Лид #1010',due:'сегодня 17:00',dueCls:'today',assignee:'АБ',color:'#6366f1',priority:'#ef4444'},
+    {title:'Созвон с Бауыржаном',lead:'Лид #1007',due:'сегодня 16:30',dueCls:'today',assignee:'НМ',color:'#06b6d4',priority:'#3b82f6'},
+  ],
+  'На неделе':[
+    {title:'Подготовить документы для Сандугаш',lead:'Лид #1012',due:'03.07.2026',dueCls:'ok',assignee:'ДК',color:'#f59e0b',priority:'#3b82f6'},
+    {title:'Встреча с Акерке в Алматы',lead:'Лид #1006',due:'04.07.2026',dueCls:'ok',assignee:'АТ',color:'#22c55e',priority:'#3b82f6'},
+  ],
+  'Просроченные':[
+    {title:'Связаться с Жасуланом',lead:'Лид #1005',due:'28.06.2026',dueCls:'overdue',assignee:'НМ',color:'#06b6d4',priority:'#ef4444'},
+    {title:'Отправить материалы Ерлану',lead:'Лид #1011',due:'29.06.2026',dueCls:'overdue',assignee:'НМ',color:'#06b6d4',priority:'#f59e0b'},
+  ],
+};
+
+// NAV
+function nav(id){
+  document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('sec-'+id).classList.add('active');
+  const titles={dashboard:'Дашборд',leads:'Воронка лидов',deals:'Сделки',contacts:'Контакты',whatsapp:'WhatsApp чаты',tasks:'Задачи',analytics:'Аналитика',settings:'Настройки'};
+  document.getElementById('topbar-title').textContent=titles[id]||id;
+  if(id==='leads')renderLeadsKanban();
+  if(id==='deals')renderDealsKanban();
+  if(id==='contacts')renderContacts();
+  if(id==='whatsapp')renderChats();
+  if(id==='tasks')renderTasks();
+}
+
+// KANBAN
+function renderLeadsKanban(){
+  const wrap=document.getElementById('leads-kanban');
+  wrap.innerHTML='';
+  LEAD_STAGES.forEach((stage,si)=>{
+    const col=document.createElement('div');col.className='kanban-col';
+    const cards=leads.filter(l=>l.stage===si);
+    col.innerHTML=`<div class="kanban-col-header"><div class="kanban-col-title" style="color:${STAGE_COLORS[si]}">${stage}</div><div class="kanban-col-count">${cards.length}</div></div><div class="kanban-cards" id="lcol-${si}"></div><button class="add-card-btn" onclick="openModal('lead')">+ Добавить</button>`;
+    wrap.appendChild(col);
+    const colEl=col.querySelector(`#lcol-${si}`);
+    cards.forEach(lead=>{colEl.appendChild(makeLeadCard(lead,si));});
+  });
+}
+
+function makeLeadCard(lead,si){
+  const div=document.createElement('div');div.className='kcard';
+  const tagHtml=lead.tags.map(t=>`<span class="tag ${t==='Горячий'?'tag-red':t==='ВИП'?'tag-purple':t==='Просрочен'?'tag-red':'tag-blue'}">${t}</span>`).join('');
+  const nextStage=LEAD_STAGES[si+1];
+  div.innerHTML=`<div class="kcard-name">${lead.name}</div><div class="kcard-sub">${lead.program} · ${lead.source}</div>${lead.tags.length?`<div class="kcard-tags">${tagHtml}</div>`:''}<div class="kcard-footer"><div><div class="kcard-manager">👤 ${lead.manager}</div><div class="kcard-date">📅 ${lead.date}</div></div>${nextStage?`<button class="kcard-advance" onclick="advanceLead(${lead.id})">→ ${nextStage}</button>`:''}</div>`;
+  return div;
+}
+
+function advanceLead(id){
+  const l=leads.find(x=>x.id===id);
+  if(l&&l.stage<LEAD_STAGES.length-1){l.stage++;toast(`✓ ${l.name} → ${LEAD_STAGES[l.stage]}`);renderLeadsKanban();}
+}
+
+function renderDealsKanban(){
+  const wrap=document.getElementById('deals-kanban');
+  wrap.innerHTML='';
+  const deals=[
+    {id:2001,name:'Нурсулу Жакупова',amount:'850 000 ₸',stage:2,program:'Маг. Канада',manager:'Айгерим Б.',date:'30.06'},
+    {id:2002,name:'Сандугаш Исаева',amount:'1 200 000 ₸',stage:3,program:'Маг. UK',manager:'Дина К.',date:'28.06'},
+    {id:2003,name:'Дильноза Кадырова',amount:'950 000 ₸',stage:1,program:'Маг. Канада',manager:'Айгерим Б.',date:'01.07'},
+    {id:2004,name:'Бауыржан Сейтов',amount:'780 000 ₸',stage:0,program:'Маг. UK',manager:'Айгерим Б.',date:'25.06'},
+    {id:2005,name:'Акжан Мусина',amount:'600 000 ₸',stage:1,program:'MBA',manager:'Нурлан М.',date:'24.06'},
+  ];
+  DEAL_STAGES.forEach((stage,si)=>{
+    const col=document.createElement('div');col.className='kanban-col';
+    const cards=deals.filter(d=>d.stage===si);
+    col.innerHTML=`<div class="kanban-col-header"><div class="kanban-col-title" style="color:${DEAL_COLORS[si]}">${stage}</div><div class="kanban-col-count">${cards.length}</div></div><div class="kanban-cards"></div>`;
+    const colEl=col.querySelector('.kanban-cards');
+    cards.forEach(d=>{
+      const div=document.createElement('div');div.className='kcard';
+      const nextStage=DEAL_STAGES[si+1];
+      div.innerHTML=`<div class="kcard-name">${d.name}</div><div class="kcard-sub">${d.program}</div><div style="font-size:13px;font-weight:700;color:var(--green);margin:6px 0">${d.amount}</div><div class="kcard-footer"><div class="kcard-manager">👤 ${d.manager}</div>${nextStage?`<button class="kcard-advance">→ ${nextStage}</button>`:''}</div>`;
+      div.querySelector('.kcard-advance')&&div.querySelector('.kcard-advance').addEventListener('click',()=>{d.stage++;toast(`Сделка перемещена → ${DEAL_STAGES[d.stage]||'Закрыт'}`);renderDealsKanban();});
+      colEl.appendChild(div);
+    });
+    wrap.appendChild(col);
+  });
+}
+
+// CONTACTS
+function renderContacts(filter=''){
+  const filtered=contacts.filter(c=>!filter||c.name.toLowerCase().includes(filter.toLowerCase())||c.phone.includes(filter)||c.program.toLowerCase().includes(filter.toLowerCase()));
+  document.getElementById('contacts-count').textContent=`Всего: ${filtered.length}`;
+  const tbody=document.getElementById('contacts-tbody');
+  tbody.innerHTML='';
+  const statusLabels={new:'Новый',active:'Активный',lost:'Отказ',deal:'Сделка'};
+  const statusCls={new:'status-new',active:'status-active',lost:'status-lost',deal:'status-deal'};
+  filtered.forEach(c=>{
+    const initials=c.name.split(' ').map(w=>w[0]).slice(0,2).join('');
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td><div class="contact-name"><div class="contact-avatar" style="background:${c.color}">${initials}</div>${c.name}</div></td><td>${c.phone}</td><td>${c.program}</td><td>${c.manager}</td><td><span class="status-pill ${statusCls[c.status]}">${statusLabels[c.status]}</span></td><td>${c.date}</td><td><button class="btn btn-outline" style="padding:4px 10px;font-size:11px" onclick="toast('Открытие карточки...')">Открыть</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+function filterContacts(v){renderContacts(v);}
+
+// WHATSAPP
+function renderChats(){
+  const list=document.getElementById('chat-list');
+  list.innerHTML='';
+  chats.forEach(c=>{
+    const div=document.createElement('div');div.className='chat-item'+(c.id===activeChatId?' active':'');
+    div.innerHTML=`<div class="chat-item-avatar" style="background:${c.color}">${c.name.split(' ').map(w=>w[0]).slice(0,2).join('')}</div><div class="chat-item-info"><div class="chat-item-name">${c.name}<span class="chat-item-time">${c.time}</span></div><div class="chat-item-msg">${c.lastMsg}</div>${c.unread?`<span class="unread-badge">${c.unread}</span>`:''}</div>`;
+    div.onclick=()=>{activeChatId=c.id;renderChats();loadChat(c.id);};
+    list.appendChild(div);
+  });
+  loadChat(activeChatId);
+}
+
+function loadChat(id){
+  const c=chats.find(x=>x.id===id);if(!c)return;
+  document.getElementById('chat-avatar').textContent=c.name.split(' ').map(w=>w[0]).slice(0,2).join('');
+  document.getElementById('chat-avatar').style.background=c.color;
+  document.getElementById('chat-name').textContent=c.name;
+  document.getElementById('chat-sub').textContent=`${c.phone} · ${c.stage}`;
+  const msgs=document.getElementById('chat-messages');
+  msgs.innerHTML='<div class="msg-date">Сегодня</div>';
+  c.messages.forEach(m=>{
+    const div=document.createElement('div');
+    div.className='msg '+(m.out?'msg-out':'msg-in');
+    div.innerHTML=`${m.text}<div class="msg-time">${m.time}</div>`;
+    msgs.appendChild(div);
+  });
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+function sendMsg(){
+  const inp=document.getElementById('chat-input');
+  const text=inp.value.trim();if(!text)return;
+  const c=chats.find(x=>x.id===activeChatId);
+  const now=new Date();const time=now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
+  c.messages.push({out:true,text,time});
+  c.lastMsg=text;c.time=time;
+  inp.value='';
+  loadChat(activeChatId);renderChats();
+}
+
+// TASKS
+function renderTasks(){
+  const wrap=document.getElementById('tasks-kanban');
+  wrap.innerHTML='';
+  Object.entries(tasks).forEach(([col,cards])=>{
+    const div=document.createElement('div');div.className='task-col';
+    div.innerHTML=`<div class="task-col-header"><div class="task-col-title">${col}</div><div class="task-col-meta">${cards.length} задач</div></div>`;
+    cards.forEach(t=>{
+      const c=document.createElement('div');c.className='tcard';
+      c.innerHTML=`<div style="display:flex;align-items:center;margin-bottom:6px"><span class="priority-dot" style="background:${t.priority}"></span><div class="tcard-title" style="margin:0">${t.title}</div></div><div class="tcard-lead">🎯 ${t.lead}</div><div class="tcard-footer"><div class="tcard-due ${t.dueCls}">${t.due}</div><div class="tcard-assignee" style="background:${t.color}">${t.assignee}</div></div>`;
+      c.onclick=()=>{toast('Открытие задачи...');};
+      div.appendChild(c);
+    });
+    wrap.appendChild(div);
+  });
+}
+
+// SETTINGS TABS
+function stab(el,id){
+  el.parentElement.querySelectorAll('.stab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.settings-section').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// MODALS
+function openModal(type){document.getElementById('modal-'+type).classList.add('open');}
+function closeModal(type){document.getElementById('modal-'+type).classList.remove('open');}
+document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
+
+function addLead(){
+  const n={id:leads.length+1001,name:'Новый лид',phone:'+7 ...',stage:0,program:'MBA',source:'Ручной ввод',manager:'Айгерим Б.',date:'01.07',tags:['Новый']};
+  leads.unshift(n);
+  toast('✓ Лид создан и добавлен в воронку');
+  closeModal('lead');
+  renderLeadsKanban();
+}
+
+// NOTIFICATIONS
+function toggleNotif(){document.getElementById('notif-panel').classList.toggle('open');}
+document.addEventListener('click',e=>{if(!e.target.closest('#notif-panel')&&!e.target.closest('.notif-btn'))document.getElementById('notif-panel').classList.remove('open');});
+
+// TOAST
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
+
+// COUNTER ANIMATION
+function animateCount(el,target,suffix='',duration=1200){
+  let start=0;const step=target/60;
+  const interval=setInterval(()=>{start=Math.min(start+step,target);el.textContent=Math.floor(start).toLocaleString('ru')+suffix;if(start>=target)clearInterval(interval);},duration/60);
+}
+
+// INIT
+window.addEventListener('DOMContentLoaded',()=>{
+  setTimeout(()=>{
+    animateCount(document.getElementById('cnt1'),47);
+    animateCount(document.getElementById('cnt2'),11);
+    animateCount(document.getElementById('cnt3'),4250000,'₸');
+    let p=0;const el=document.getElementById('cnt4');
+    const iv=setInterval(()=>{p=Math.min(p+0.4,23.4);el.textContent=p.toFixed(1)+'%';if(p>=23.4)clearInterval(iv);},20);
+  },300);
+  renderContacts();
+  renderChats();
+});
+</script>
+</body>
+</html>

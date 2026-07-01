@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ТЗ — CRM-система для образовательного бизнеса · Pllato</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',sans-serif;background:#f5f5f7;color:#1a1830;}
+.wrap{max-width:800px;margin:0 auto;padding:0 0 60px;}
+.cover{min-height:100vh;background:linear-gradient(135deg,#0f172a 0%,#1e293b 60%,#0f172a 100%);display:flex;flex-direction:column;padding:48px 56px;color:#fff;position:relative;overflow:hidden;}
+.cover::before{content:'';position:absolute;top:-80px;right:-80px;width:400px;height:400px;background:radial-gradient(circle,rgba(99,102,241,.15),transparent 70%);}
+.logo{display:flex;align-items:center;gap:12px;margin-bottom:auto;}
+.logo-mark{width:44px;height:44px;background:linear-gradient(135deg,#F7941D,#6DC21B);border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px;}
+.logo-name{font-weight:800;font-size:20px;}
+.cover-content{flex:1;display:flex;flex-direction:column;justify-content:center;padding:60px 0 40px;}
+.cover-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);border-radius:20px;padding:6px 16px;font-size:12px;font-weight:600;color:#818cf8;margin-bottom:24px;width:fit-content;}
+.cover-title{font-size:44px;font-weight:900;letter-spacing:-2px;line-height:1.1;margin-bottom:16px;}
+.cover-title span{color:#818cf8;}
+.cover-sub{font-size:16px;color:rgba(255,255,255,.6);line-height:1.5;max-width:520px;margin-bottom:40px;}
+.meta-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+.meta-item{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:16px;}
+.meta-label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:6px;}
+.meta-val{font-size:14px;font-weight:600;}
+.cover-footer{display:flex;align-items:center;justify-content:space-between;padding-top:28px;border-top:1px solid rgba(255,255,255,.1);font-size:13px;color:rgba(255,255,255,.4);}
+
+.section{background:#fff;border-radius:20px;padding:36px 44px;margin:16px 24px;box-shadow:0 2px 12px rgba(26,24,48,.06);}
+.section-eyebrow{font-size:11px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:#6366f1;margin-bottom:8px;}
+.section-title{font-size:24px;font-weight:800;letter-spacing:-.5px;margin-bottom:6px;}
+.section-sub{font-size:14px;color:#6a6888;margin-bottom:24px;line-height:1.5;}
+h3{font-size:16px;font-weight:700;margin-bottom:12px;margin-top:24px;color:#1a1830;display:flex;align-items:center;gap:8px;}
+h3:first-child{margin-top:0;}
+
+/* MODULE HEADER */
+.module-header{background:linear-gradient(135deg,#1a1830,#2d2b4e);color:#fff;border-radius:14px;padding:20px 24px;display:flex;align-items:center;gap:16px;margin-bottom:20px;}
+.module-num{width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0;}
+.module-title{font-size:17px;font-weight:700;}
+.module-sub{font-size:13px;color:rgba(255,255,255,.6);margin-top:3px;}
+
+/* REQUIREMENT ITEMS */
+.req-list{display:flex;flex-direction:column;gap:8px;}
+.req-item{display:flex;gap:10px;padding:12px 16px;background:#fafafa;border-radius:10px;border-left:3px solid #e8e6f0;font-size:13px;line-height:1.4;align-items:flex-start;}
+.req-item.must{border-color:#6366f1;}
+.req-item.should{border-color:#f59e0b;}
+.req-item.wont{border-color:#e2e8f0;color:#94a3b8;}
+.req-dot{font-size:16px;flex-shrink:0;margin-top:-1px;}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;}
+th{padding:10px 14px;text-align:left;background:#f8fafc;font-weight:700;font-size:11px;letter-spacing:.5px;color:#64748b;border-bottom:2px solid #e2e8f0;}
+td{padding:10px 14px;border-bottom:1px solid #f1f5f9;vertical-align:top;line-height:1.4;}
+.perm-yes{color:#16a34a;font-weight:700;}
+.perm-no{color:#ef4444;font-weight:700;}
+.perm-part{color:#d97706;font-weight:700;}
+
+/* FIELD LIST */
+.fields-wrap{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.field-tag{display:inline-flex;align-items:center;gap:6px;background:#f1f5f9;border-radius:8px;padding:6px 12px;font-size:12px;}
+.field-required{color:#ef4444;font-size:10px;font-weight:700;}
+
+/* STAGE LIST */
+.stages{display:flex;flex-direction:column;gap:0;}
+.stage{display:flex;align-items:center;gap:0;}
+.stage-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;margin-right:14px;}
+.stage-line{width:2px;height:24px;background:#e2e8f0;margin-left:6px;margin-bottom:0;}
+.stage-info{flex:1;padding:10px 0;}
+.stage-name{font-size:14px;font-weight:700;}
+.stage-desc{font-size:12px;color:#6a6888;margin-top:2px;}
+.stage-robot{font-size:11px;background:#eff6ff;color:#2563eb;padding:3px 10px;border-radius:6px;margin-top:6px;display:inline-block;font-weight:600;}
+
+/* TECH */
+.tech-stack{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.tech-item{background:#fafafa;border:1px solid #e8e6f0;border-radius:12px;padding:16px;text-align:center;}
+.tech-icon{font-size:28px;margin-bottom:8px;}
+.tech-name{font-size:13px;font-weight:700;margin-bottom:3px;}
+.tech-desc{font-size:11px;color:#6a6888;}
+
+/* TIMELINE */
+.tl-table{width:100%;border-collapse:collapse;}
+.tl-table td{padding:10px 14px;border-bottom:1px solid #f1f5f9;font-size:13px;}
+.tl-table td:first-child{font-weight:700;color:#6366f1;white-space:nowrap;width:100px;}
+.tl-table td:last-child{color:#6a6888;}
+
+/* DELIVERY */
+.delivery-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.delivery-card{border:1.5px solid #e8e6f0;border-radius:14px;padding:20px;}
+.delivery-num{font-size:28px;font-weight:900;color:#6366f1;margin-bottom:8px;}
+.delivery-title{font-size:14px;font-weight:700;margin-bottom:8px;}
+.delivery-item{font-size:12px;color:#6a6888;margin-bottom:4px;display:flex;gap:6px;}
+
+.footer{text-align:center;padding:40px 24px;font-size:12px;color:#9896b0;}
+@media print{
+  body{background:#fff;}
+  .cover{page-break-after:always;min-height:100vh;}
+  .section{page-break-inside:avoid;box-shadow:none;margin:12px 0;}
+  .wrap{padding:0;}
+  .module-header{page-break-inside:avoid;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- COVER -->
+<div class="cover">
+  <div class="logo">
+    <div class="logo-mark">Pl</div>
+    <div class="logo-name">Pllato.</div>
+  </div>
+  <div class="cover-content">
+    <div class="cover-badge">📄 Техническое задание v1.0</div>
+    <h1 class="cover-title">CRM-система для<br/><span>образовательного</span><br/>бизнеса</h1>
+    <p class="cover-sub">Полное описание функциональных требований, модулей, интеграций и условий приёмки для разработки кастомной CRM-системы.</p>
+    <div class="meta-grid">
+      <div class="meta-item"><div class="meta-label">Клиент</div><div class="meta-val">Азат Есқали</div></div>
+      <div class="meta-item"><div class="meta-label">Версия ТЗ</div><div class="meta-val">1.0 (01.07.2026)</div></div>
+      <div class="meta-item"><div class="meta-label">Исполнитель</div><div class="meta-val">Pllato</div></div>
+      <div class="meta-item"><div class="meta-label">Срок</div><div class="meta-val">4–6 недель</div></div>
+    </div>
+  </div>
+  <div class="cover-footer">
+    <span>pllato.kz</span>
+    <span>ИП «STUDYSTORIES.APP» · Алматы</span>
+    <span>+7 701 123 99 99</span>
+  </div>
+</div>
+
+<!-- ОБЩЕЕ ОПИСАНИЕ -->
+<div class="section">
+  <div class="section-eyebrow">Обзор системы</div>
+  <div class="section-title">Что разрабатываем</div>
+  <div class="section-sub">Веб-приложение (PWA) для управления продажами, клиентами, задачами и коммуникациями в компании по подготовке к магистратуре.</div>
+
+  <div class="tech-stack">
+    <div class="tech-item"><div class="tech-icon">⚛️</div><div class="tech-name">React + Firebase</div><div class="tech-desc">Основной стек. Быстро, масштабируемо, надёжно</div></div>
+    <div class="tech-item"><div class="tech-icon">📱</div><div class="tech-name">PWA</div><div class="tech-desc">Работает как приложение. Иконка на телефон, push-уведомления</div></div>
+    <div class="tech-item"><div class="tech-icon">🖥️</div><div class="tech-name">Ваш сервер</div><div class="tech-desc">Деплой на сервер клиента. 10 GB бесплатно от Pllato</div></div>
+    <div class="tech-item"><div class="tech-icon">🔐</div><div class="tech-name">Исходный код</div><div class="tech-desc">Полная передача кода после финального этапа</div></div>
+    <div class="tech-item"><div class="tech-icon">👥</div><div class="tech-name">До 50 пользователей</div><div class="tech-desc">Без ограничений по тарифу. Стажёры — бесплатно</div></div>
+    <div class="tech-item"><div class="tech-icon">🌐</div><div class="tech-name">Chrome / Safari / Mobile</div><div class="tech-desc">Работает во всех современных браузерах</div></div>
+  </div>
+</div>
+
+<!-- МОДУЛЬ 1: ВОРОНКИ -->
+<div class="section">
+  <div class="module-header">
+    <div class="module-num">1</div>
+    <div><div class="module-title">🎯 Воронки лидов и сделок</div><div class="module-sub">Канбан-доска с кастомными этапами под бизнес-процесс компании</div></div>
+  </div>
+
+  <h3>Этапы воронки лидов (настраиваемые)</h3>
+  <div class="stages">
+    <div class="stage">
+      <div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0">
+          <div class="stage-dot" style="background:#3b82f6"></div>
+          <div class="stage-info"><div class="stage-name">1. Новый лид</div><div class="stage-desc">Лид только попал в систему (из Tilda, WhatsApp, вручную)</div><div class="stage-robot">🤖 Автоматически: приветственное сообщение в WhatsApp</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0">
+          <div class="stage-dot" style="background:#8b5cf6"></div>
+          <div class="stage-info"><div class="stage-name">2. Квалификация</div><div class="stage-desc">Первый контакт установлен, интерес подтверждён</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0">
+          <div class="stage-dot" style="background:#06b6d4"></div>
+          <div class="stage-info"><div class="stage-name">3. Консультация</div><div class="stage-desc">Проведена онлайн- или офлайн-консультация по программе</div><div class="stage-robot">🤖 Если нет активности 3 дня → задача менеджеру</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0">
+          <div class="stage-dot" style="background:#f59e0b"></div>
+          <div class="stage-info"><div class="stage-name">4. Договор</div><div class="stage-desc">Клиент готов, формируется договор</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0">
+          <div class="stage-dot" style="background:#22c55e"></div>
+          <div class="stage-info"><div class="stage-name">5. Обучение</div><div class="stage-desc">Клиент оплатил, начался процесс подготовки</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0">
+          <div class="stage-dot" style="background:#64748b"></div>
+          <div class="stage-info"><div class="stage-name">6. Завершён / Отказ</div><div class="stage-desc">Клиент завершил обучение или отказался</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="margin-top:24px">Поля карточки лида</h3>
+  <div class="fields-wrap">
+    <div class="field-tag">👤 ФИО <span class="field-required">*</span></div>
+    <div class="field-tag">📞 Телефон <span class="field-required">*</span></div>
+    <div class="field-tag">📧 Email</div>
+    <div class="field-tag">🎓 Программа магистратуры</div>
+    <div class="field-tag">🌍 Страна / университет</div>
+    <div class="field-tag">📍 Город клиента</div>
+    <div class="field-tag">🔗 Источник</div>
+    <div class="field-tag">👤 Ответственный менеджер</div>
+    <div class="field-tag">📅 Дата следующего контакта</div>
+    <div class="field-tag">🏷️ Теги (кастомные)</div>
+    <div class="field-tag">💬 Комментарии</div>
+    <div class="field-tag">📎 Прикреплённые файлы</div>
+  </div>
+
+  <h3>Требования к функциональности</h3>
+  <div class="req-list">
+    <div class="req-item must"><span class="req-dot">✅</span>Добавление лида вручную или автоматически из Tilda / WhatsApp</div>
+    <div class="req-item must"><span class="req-dot">✅</span>Перемещение по этапам воронки (клик или перетаскивание)</div>
+    <div class="req-item must"><span class="req-dot">✅</span>Назначение и смена ответственного менеджера</div>
+    <div class="req-item must"><span class="req-dot">✅</span>История действий внутри карточки (кто и когда что делал)</div>
+    <div class="req-item must"><span class="req-dot">✅</span>Добавление и редактирование кастомных полей директором</div>
+    <div class="req-item must"><span class="req-dot">✅</span>Фильтрация воронки по менеджеру, этапу, источнику, дате</div>
+    <div class="req-item must"><span class="req-dot">✅</span>Автоматические роботы при переходе между этапами</div>
+    <div class="req-item should"><span class="req-dot">🔶</span>Редактирование этапов воронки директором без программиста</div>
+    <div class="req-item should"><span class="req-dot">🔶</span>Несколько воронок: лиды, сделки, студенты в обучении</div>
+  </div>
+</div>
+
+<!-- МОДУЛЬ 2: КОНТАКТЫ -->
+<div class="section">
+  <div class="module-header">
+    <div class="module-num">2</div>
+    <div><div class="module-title">👥 Контакты и база клиентов</div><div class="module-sub">Единая база всех клиентов с историей взаимодействий</div></div>
+  </div>
+  <div class="req-list">
+    <div class="req-item must"><span class="req-dot">✅</span>Карточка контакта: ФИО, телефон, email, программа, теги, история</div>
+    <div class="req-item must"><span class="req-dot">✅</span>Вся история переписок, звонков и задач внутри карточки клиента</div>
+    <div class="req-item must"><span class="req-dot">✅</span>Импорт контактов из AmoCRM (CSV-экспорт) — в подарок</div>
+    <div class="req-item must"><span class="req-dot">✅</span>Поиск и фильтрация по любому полю</div>
+    <div class="req-item must"><span class="req-dot">✅</span>Объединение дублирующихся контактов</div>
+    <div class="req-item should"><span class="req-dot">🔶</span>Экспорт базы в Excel / CSV</div>
+    <div class="req-item should"><span class="req-dot">🔶</span>Теги и сегментация для рассылок</div>
+  </div>
+</div>
+
+<!-- МОДУЛЬ 3: WHATSAPP -->
+<div class="section">
+  <div class="module-header">
+    <div class="module-num">3</div>
+    <div><div class="module-title">💬 WhatsApp интеграция</div><div class="module-sub">Два типа интеграции: серый (GreenAPI) + официальный (WABA)</div></div>
+  </div>
+
+  <h3>Тип 1: GreenAPI (основная переписка)</h3>
+  <div class="req-list">
+    <div class="req-item must"><span class="req-dot">✅</span>Каждый менеджер — свой WhatsApp номер внутри CRM (~8 000 ₸/мес за канал)</div>
+    <div class="req-item must"><span class="req-dot">✅</span>Входящее сообщение → автоматически создаётся лид в CRM</div>
+    <div class="req-item must"><span class="req-dot">✅</span>Вся история переписки видна директору и РОПу</div>
+    <div class="req-item must"><span class="req-dot">✅</span>Отправка текста, файлов, фото, голосовых, видео (лимит сервера)</div>
+    <div class="req-item must"><span class="req-dot">✅</span>Переписка отображается внутри карточки клиента</div>
+    <div class="req-item must"><span class="req-dot">✅</span>Массовые рассылки: выбор сегмента → отправка с rate-limiting</div>
+    <div class="req-item should"><span class="req-dot">🔶</span>Шаблоны быстрых ответов</div>
+  </div>
+
+  <h3>Тип 2: WhatsApp Business API (официальный)</h3>
+  <div class="req-list">
+    <div class="req-item must"><span class="req-dot">✅</span>Отправка шаблонных уведомлений: подтверждения записи, напоминания</div>
+    <div class="req-item must"><span class="req-dot">✅</span>Интеграция с верифицированным номером компании</div>
+    <div class="req-item should"><span class="req-dot">🔶</span>Стоимость от Meta: 10–15 ₸ за исходящее сообщение (оплата клиентом)</div>
+  </div>
+
+  <h3>Распределение лидов по WhatsApp</h3>
+  <div class="req-list">
+    <div class="req-item must"><span class="req-dot">✅</span>Входящий WhatsApp → автоматически назначается ответственный по правилу</div>
+    <div class="req-item must"><span class="req-dot">✅</span>Правила: по очереди, кто онлайн, по сменам (5/2 с настраиваемым расписанием)</div>
+    <div class="req-item must"><span class="req-dot">✅</span>Ручное переназначение директором/РОПом</div>
+  </div>
+</div>
+
+<!-- МОДУЛЬ 4: РОБОТЫ -->
+<div class="section">
+  <div class="module-header">
+    <div class="module-num">4</div>
+    <div><div class="module-title">🤖 Автороботы и автоматизация</div><div class="module-sub">Настраиваемые правила без программиста</div></div>
+  </div>
+  <table>
+    <thead><tr><th>Триггер</th><th>Условие</th><th>Действие</th></tr></thead>
+    <tbody>
+      <tr><td>Новый лид создан</td><td>Всегда</td><td>Отправить приветственное WhatsApp сообщение</td></tr>
+      <tr><td>Лид переведён на этап</td><td>Любой этап</td><td>Задача менеджеру + уведомление в браузере</td></tr>
+      <tr><td>Нет активности N дней</td><td>Настраивается (по умолчанию: 3)</td><td>Создать задачу: «Связаться с клиентом»</td></tr>
+      <tr><td>Нет прогресса M дней</td><td>Настраивается (по умолчанию: 21)</td><td>Перевести лид на другого менеджера</td></tr>
+      <tr><td>Каждые K дней</td><td>Настраивается (напр. каждые 7)</td><td>Задача: «Напомнить о себе»</td></tr>
+      <tr><td>Дата следующего контакта наступила</td><td>По расписанию</td><td>Push-уведомление менеджеру</td></tr>
+    </tbody>
+  </table>
+  <div style="margin-top:16px;padding:14px 16px;background:#eff6ff;border-radius:10px;font-size:13px;color:#1e40af">
+    💡 Роботы настраиваются директором через UI без обращения в Pllato. Поддерживается до 20 активных правил.
+  </div>
+</div>
+
+<!-- МОДУЛЬ 5: ЗАДАЧИ -->
+<div class="section">
+  <div class="module-header">
+    <div class="module-num">5</div>
+    <div><div class="module-title">✅ Задачи и Kanban</div><div class="module-sub">Замена WhatsApp-поручений на структурированный таск-трекер</div></div>
+  </div>
+  <div class="req-list">
+    <div class="req-item must"><span class="req-dot">✅</span>Создание задач вручную и автоматически (через роботов)</div>
+    <div class="req-item must"><span class="req-dot">✅</span>Поля: название, описание, исполнитель, дедлайн, приоритет, связанный лид</div>
+    <div class="req-item must"><span class="req-dot">✅</span>Kanban-доска: «Сегодня», «На неделе», «Просроченные», «Выполнено»</div>
+    <div class="req-item must"><span class="req-dot">✅</span>Фильтрация: мои задачи / все задачи (для РОПа и директора)</div>
+    <div class="req-item must"><span class="req-dot">✅</span>Push-уведомление при наступлении дедлайна</div>
+    <div class="req-item should"><span class="req-dot">🔶</span>Трекинг времени выполнения задачи (таймер)</div>
+    <div class="req-item should"><span class="req-dot">🔶</span>Комментарии к задачам между исполнителями</div>
+  </div>
+</div>
+
+<!-- МОДУЛЬ 6: РОЛИ -->
+<div class="section">
+  <div class="module-header">
+    <div class="module-num">6</div>
+    <div><div class="module-title">🔐 Роли и права доступа</div><div class="module-sub">Гибкая матрица — настраивается директором</div></div>
+  </div>
+  <table>
+    <thead><tr><th>Раздел системы</th><th>Директор</th><th>РОП</th><th>Менеджер</th><th>Стажёр</th></tr></thead>
+    <tbody>
+      <tr><td>Дашборд (вся команда)</td><td class="perm-yes">✓</td><td class="perm-yes">✓</td><td class="perm-no">✗</td><td class="perm-no">✗</td></tr>
+      <tr><td>Воронка (все лиды)</td><td class="perm-yes">✓</td><td class="perm-yes">✓</td><td class="perm-part">Только свои</td><td class="perm-part">Только свои</td></tr>
+      <tr><td>Контакты</td><td class="perm-yes">✓</td><td class="perm-yes">✓</td><td class="perm-yes">✓</td><td class="perm-part">Только свои</td></tr>
+      <tr><td>WhatsApp все чаты</td><td class="perm-yes">✓</td><td class="perm-yes">✓</td><td class="perm-part">Только свои</td><td class="perm-part">Только свои</td></tr>
+      <tr><td>Финансы / Выручка</td><td class="perm-yes">✓</td><td class="perm-no">✗</td><td class="perm-no">✗</td><td class="perm-no">✗</td></tr>
+      <tr><td>Задачи команды</td><td class="perm-yes">✓</td><td class="perm-yes">✓</td><td class="perm-part">Только свои</td><td class="perm-part">Только свои</td></tr>
+      <tr><td>Аналитика KPI</td><td class="perm-yes">✓</td><td class="perm-yes">✓</td><td class="perm-no">✗</td><td class="perm-no">✗</td></tr>
+      <tr><td>Массовые рассылки</td><td class="perm-yes">✓</td><td class="perm-yes">✓</td><td class="perm-no">✗</td><td class="perm-no">✗</td></tr>
+      <tr><td>Настройки системы</td><td class="perm-yes">✓</td><td class="perm-no">✗</td><td class="perm-no">✗</td><td class="perm-no">✗</td></tr>
+      <tr><td>Управление пользователями</td><td class="perm-yes">✓</td><td class="perm-part">Просмотр</td><td class="perm-no">✗</td><td class="perm-no">✗</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- МОДУЛЬ 7: ДАШБОРДЫ -->
+<div class="section">
+  <div class="module-header">
+    <div class="module-num">7</div>
+    <div><div class="module-title">📊 Дашборды и аналитика</div><div class="module-sub">Все ключевые показатели в реальном времени</div></div>
+  </div>
+  <div class="req-list">
+    <div class="req-item must"><span class="req-dot">✅</span>Конверсия воронки по этапам (воронкообразный bar chart)</div>
+    <div class="req-item must"><span class="req-dot">✅</span>ТОП менеджеров по количеству сделок</div>
+    <div class="req-item must"><span class="req-dot">✅</span>Источники лидов (pie chart: Tilda, Instagram, WhatsApp, Реферал)</div>
+    <div class="req-item must"><span class="req-dot">✅</span>Новые лиды и выручка по дням/неделям/месяцам</div>
+    <div class="req-item must"><span class="req-dot">✅</span>Среднее время нахождения лида в каждом этапе</div>
+    <div class="req-item must"><span class="req-dot">✅</span>Просроченные лиды и задачи (выделены красным)</div>
+    <div class="req-item must"><span class="req-dot">✅</span>KPI менеджеров: звонки, задачи, конверсия, время реакции</div>
+    <div class="req-item should"><span class="req-dot">🔶</span>Фильтрация дашборда по периоду и менеджеру</div>
+    <div class="req-item should"><span class="req-dot">🔶</span>Экспорт отчёта в PDF</div>
+  </div>
+</div>
+
+<!-- МОДУЛЬ 8: ИНТЕГРАЦИИ -->
+<div class="section">
+  <div class="module-header">
+    <div class="module-num">8</div>
+    <div><div class="module-title">🔌 Интеграции</div><div class="module-sub">Все инструменты подключены к единой системе</div></div>
+  </div>
+  <table>
+    <thead><tr><th>Интеграция</th><th>Что делает</th><th>Этап</th></tr></thead>
+    <tbody>
+      <tr><td>🌐 Tilda</td><td>Заявка с сайта → автоматически лид в CRM + приветственный WA</td><td>Этап 1</td></tr>
+      <tr><td>💬 GreenAPI (WA)</td><td>WhatsApp для каждого менеджера внутри CRM</td><td>Этап 1</td></tr>
+      <tr><td>📋 WhatsApp Business API</td><td>Официальные шаблонные уведомления клиентам</td><td>Этап 2</td></tr>
+      <tr><td>📞 SipUni (телефония)</td><td>Звонки + запись разговоров в карточке клиента</td><td>Этап 2</td></tr>
+      <tr><td>📦 AmoCRM</td><td>Импорт базы контактов, сделок, полей (в подарок)</td><td>Финал</td></tr>
+      <tr><td>📹 Автоюнар</td><td>Вебинары/прямые эфиры — обсуждается отдельно</td><td>По запросу</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ТЕХНИЧЕСКИЕ ТРЕБОВАНИЯ -->
+<div class="section">
+  <div class="section-eyebrow">Технические требования</div>
+  <div class="section-title">Платформа и инфраструктура</div>
+  <div class="section-sub">Минимальные требования для корректной работы системы.</div>
+  <div class="req-list">
+    <div class="req-item must"><span class="req-dot">✅</span>Браузеры: Chrome 110+, Safari 16+, Firefox 110+, мобильный Chrome/Safari</div>
+    <div class="req-item must"><span class="req-dot">✅</span>Одновременных пользователей: до 50 без деградации производительности</div>
+    <div class="req-item must"><span class="req-dot">✅</span>PWA: установка на телефон через браузер, push-уведомления, работа при плохом интернете</div>
+    <div class="req-item must"><span class="req-dot">✅</span>Хостинг: сервер клиента или бесплатный хостинг Pllato (10 GB включено)</div>
+    <div class="req-item must"><span class="req-dot">✅</span>Время отклика интерфейса: < 300 мс для стандартных действий</div>
+    <div class="req-item must"><span class="req-dot">✅</span>Резервное копирование данных: автоматически каждые 24 часа</div>
+    <div class="req-item should"><span class="req-dot">🔶</span>При росте >50 пользователей: рефакторинг (~10–20 часов, по тарифу 2 000 ₸/час)</div>
+  </div>
+</div>
+
+<!-- ЭТАПЫ И СРОКИ -->
+<div class="section">
+  <div class="section-eyebrow">Этапность разработки</div>
+  <div class="section-title">График работ</div>
+  <div class="section-sub">Ориентировочный план. Возможна корректировка после согласования макета.</div>
+  <table class="tl-table">
+    <tbody>
+      <tr><td>Нед. 1</td><td>Дизайн макета, настройка архитектуры, Firebase структура</td></tr>
+      <tr><td>Нед. 2</td><td>Интерактивный макет → согласование с клиентом → правки дизайна</td></tr>
+      <tr><td>Нед. 3</td><td>Разработка: воронка лидов, карточки, задачи, роли, авторизация</td></tr>
+      <tr><td>Нед. 4</td><td>WhatsApp GreenAPI, Tilda вебхук, автороботы, дашборды</td></tr>
+      <tr><td>Нед. 5</td><td>SipUni, WABA, массовые рассылки, PWA, тестирование</td></tr>
+      <tr><td>Нед. 6</td><td>Полировочные правки, деплой на сервер, импорт базы из AmoCRM, обучение</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- УСЛОВИЯ СДАЧИ -->
+<div class="section">
+  <div class="section-eyebrow">Условия приёмки</div>
+  <div class="section-title">Что входит в каждый этап</div>
+  <div class="section-sub">Каждый этап сдаётся, согласовывается и оплачивается отдельно.</div>
+
+  <div class="delivery-grid">
+    <div class="delivery-card">
+      <div class="delivery-num">01</div>
+      <div class="delivery-title">Предоплата</div>
+      <div class="delivery-item"><span>📐</span>Интерактивный макет CRM</div>
+      <div class="delivery-item"><span>🎨</span>Дизайн под бренд клиента</div>
+      <div class="delivery-item"><span>🏗️</span>Архитектура базы данных</div>
+      <div style="margin-top:12px;font-size:13px;font-weight:700;color:#6366f1">150 000 ₸</div>
+    </div>
+    <div class="delivery-card">
+      <div class="delivery-num">02</div>
+      <div class="delivery-title">Этап 2</div>
+      <div class="delivery-item"><span>✅</span>Рабочая CRM с воронками</div>
+      <div class="delivery-item"><span>💬</span>WhatsApp интеграция</div>
+      <div class="delivery-item"><span>🤖</span>Автороботы настроены</div>
+      <div class="delivery-item"><span>📊</span>Дашборды работают</div>
+      <div class="delivery-item"><span>🔐</span>Роли и права</div>
+      <div style="margin-top:12px;font-size:13px;font-weight:700;color:#6366f1">600 000 ₸</div>
+    </div>
+    <div class="delivery-card" style="border-color:#6366f1">
+      <div class="delivery-num" style="color:#22c55e">03</div>
+      <div class="delivery-title">Финал</div>
+      <div class="delivery-item"><span>🚀</span>Деплой на сервер клиента</div>
+      <div class="delivery-item"><span>📦</span>Перенос базы из AmoCRM</div>
+      <div class="delivery-item"><span>📱</span>PWA настроено</div>
+      <div class="delivery-item"><span>📄</span>Документация по системе</div>
+      <div class="delivery-item"><span>🎓</span>Обучение команды (Zoom)</div>
+      <div class="delivery-item"><span>🔑</span>Передача исходного кода</div>
+      <div style="margin-top:12px;font-size:13px;font-weight:700;color:#22c55e">600 000 ₸</div>
+    </div>
+  </div>
+
+  <div style="margin-top:20px;padding:16px 20px;background:#fffbeb;border-radius:12px;font-size:13px;color:#92400e;border:1px solid #fde68a">
+    ⚠️ Баги и ошибки в сданном функционале исправляются бесплатно. Новые доработки за пределами ТЗ — 2 000 ₸/час.
+  </div>
+</div>
+
+<div class="footer">
+  <strong>Pllato</strong> · ИП «STUDYSTORIES.APP» · pllato.kz · +7 701 123 99 99<br/>
+  ТЗ версия 1.0 · 01.07.2026 · Для Азат Есқали
+</div>
+
+</div>
+</body>
+</html>
