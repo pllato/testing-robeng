@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Счёт ALB-2026-001 · Альпин Сервис · Транш 2</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',sans-serif;background:#f5f0e4;color:#1a2e1a;font-size:13px;line-height:1.5;}
+.page{max-width:820px;margin:0 auto;background:#fff;min-height:100vh;}
+
+/* HEADER */
+.hdr{padding:36px 48px 28px;display:flex;align-items:flex-start;justify-content:space-between;border-bottom:1px solid #d4c9a8;}
+.logo-wrap{}
+.logo-brand{font-size:32px;font-weight:900;color:#1a2e1a;letter-spacing:-1.5px;line-height:1;}
+.logo-brand span{color:#3a5c3a;}
+.logo-sub{font-size:11px;color:#7a7055;margin-top:4px;}
+.hdr-right{text-align:right;}
+.badge-postopl{display:inline-block;background:#3a5c3a;color:#f5f0e4;font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;padding:4px 12px;border-radius:4px;margin-bottom:12px;}
+.hdr-label{font-size:11px;color:#7a7055;margin-bottom:4px;}
+.inv-num{font-size:28px;font-weight:900;color:#1a2e1a;letter-spacing:-0.5px;}
+.inv-date{font-size:12px;color:#7a7055;margin-top:6px;}
+
+/* PARTIES */
+.parties{display:grid;grid-template-columns:1fr 1fr;gap:0;border-bottom:1px solid #d4c9a8;}
+.party{padding:24px 48px;}
+.party:first-child{border-right:1px solid #d4c9a8;}
+.party-label{font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#7a7055;margin-bottom:10px;}
+.party-name{font-size:14px;font-weight:800;color:#1a2e1a;margin-bottom:6px;}
+.party-detail{font-size:12px;color:#4a4535;line-height:1.7;}
+
+/* NOTE */
+.note-bar{background:#f5f0e4;border-left:4px solid #3a5c3a;margin:0 48px;padding:14px 18px;border-radius:0 6px 6px 0;margin-top:24px;margin-bottom:24px;}
+.note-bar p{font-size:12px;color:#3a3020;line-height:1.6;}
+.note-bar b{color:#1a2e1a;}
+
+/* TABLE */
+.tbl-section{padding:0 48px 24px;}
+.tbl-label{font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#7a7055;margin-bottom:12px;}
+table{width:100%;border-collapse:collapse;border:1px solid #d4c9a8;border-radius:6px;overflow:hidden;}
+thead{background:#3a5c3a;}
+thead th{color:#f5f0e4;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:10px 14px;text-align:left;}
+thead th:last-child{text-align:right;}
+tbody tr{border-bottom:1px solid #e8e0cc;}
+tbody tr:last-child{border-bottom:none;}
+td{padding:14px 14px;vertical-align:top;}
+td:last-child{text-align:right;font-weight:700;white-space:nowrap;}
+.td-num{width:32px;color:#7a7055;font-weight:700;}
+.td-desc .main{font-weight:700;font-size:13px;color:#1a2e1a;margin-bottom:4px;}
+.td-desc .sub{font-size:11px;color:#6a6050;line-height:1.5;}
+
+/* SUBTOTAL ROW */
+.subtotal-row td{background:#faf7f0;font-size:11px;font-style:italic;color:#6a6050;padding:10px 14px;}
+
+/* TOTAL BOX */
+.total-box{margin:0 48px 24px;background:#3a5c3a;border-radius:10px;padding:22px 28px;display:flex;align-items:center;justify-content:space-between;}
+.total-left{}
+.total-box-label{font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#a8c4a8;margin-bottom:4px;}
+.total-stage{font-size:12px;color:#c8dcc8;margin-bottom:6px;}
+.total-words{font-size:11px;color:#a8c4a8;font-style:italic;line-height:1.4;}
+.total-amount{font-size:44px;font-weight:900;color:#f5f0e4;letter-spacing:-1px;white-space:nowrap;}
+.total-currency{font-size:24px;font-weight:700;color:#a8c4a8;}
+
+/* REQUISITES */
+.req-section{padding:0 48px 28px;}
+.req-title{font-size:13px;font-weight:700;color:#1a2e1a;margin-bottom:14px;}
+.req-table{width:100%;border-collapse:collapse;}
+.req-table tr{border-bottom:1px solid #e8e0cc;}
+.req-table td{padding:9px 0;font-size:12px;vertical-align:top;}
+.req-table td:first-child{color:#7a7055;width:200px;padding-right:16px;}
+.req-table td:last-child{font-weight:700;color:#1a2e1a;}
+
+/* FOOTER */
+.sign-section{padding:24px 48px;display:flex;justify-content:space-between;align-items:flex-end;border-top:1px solid #d4c9a8;}
+.sign-left{}
+.sign-label{font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#7a7055;margin-bottom:8px;}
+.sign-line{display:flex;align-items:center;gap:10px;font-size:12px;}
+.sign-blank{display:inline-block;width:140px;border-bottom:1px solid #1a2e1a;}
+.sign-right{text-align:right;font-size:11px;color:#7a7055;line-height:2;}
+.sign-right b{color:#1a2e1a;font-weight:700;}
+
+.page-footer{background:#1a2e1a;padding:10px 48px;display:flex;justify-content:space-between;align-items:center;}
+.page-footer span{font-size:10px;color:#7a9a7a;}
+
+/* PRINT */
+@media print{
+  body{background:#fff;}
+  .page{max-width:100%;box-shadow:none;}
+  @page{margin:0;size:A4;}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="hdr">
+    <div class="logo-wrap">
+      <div class="logo-brand">Pllato<span>.</span></div>
+      <div class="logo-sub">Партнёр по операционной отцифровке · pllato.kz</div>
+    </div>
+    <div class="hdr-right">
+      <div class="badge-postopl">ПОСТОПЛАТА · ТРАНШ 2</div>
+      <div class="hdr-label">Счёт на оплату · транш 2</div>
+      <div class="inv-num">№ ALB-2026-001</div>
+      <div class="inv-date">от 01 июля 2026 г.<br>Действителен 7 банковских дней</div>
+    </div>
+  </div>
+
+  <!-- PARTIES -->
+  <div class="parties">
+    <div class="party">
+      <div class="party-label">Поставщик · Beneficiary</div>
+      <div class="party-name">ИП «STUDYSTORIES.APP»</div>
+      <div class="party-detail">
+        БИН: 880607300110<br>
+        РК, г. Алматы, мкр. Орбита-4, д. 3, оф. 2<br>
+        Email: uurraa@gmail.com · Тел.: +7 701 123 99 99<br>
+        Директор: Цай Платон Львович
+      </div>
+    </div>
+    <div class="party">
+      <div class="party-label">Плательщик · Payer</div>
+      <div class="party-name">ТОО «Альпин Сервис»</div>
+      <div class="party-detail">
+        БИН: 050540005760<br>
+        РК, г. Алматы, Бостандыкский район, мкр. Хан Тенгри, 191<br>
+        Банк: АО «Народный Банк Казахстана»<br>
+        IBAN: KZ776017131000020714 · БИК: HSBKKZKX<br>
+        Тел/факс: 8(727)229 35 61
+      </div>
+    </div>
+  </div>
+
+  <!-- NOTE -->
+  <div class="note-bar">
+    <p><b>Оплата счёта = продолжение договора.</b> Транш 2 по Договору-оферте Pllato
+    (pllato.kz/offer/custom-development/v2026-05-26/, Ред. 1.0) и КП по CRM для скалодрома от 15.06.2026.
+    Предоплата 150 000 ₸ (счёт SKL-2026-001) оплачена ранее. Доп. подписей не требуется.</p>
+  </div>
+
+  <!-- TABLE -->
+  <div class="tbl-section">
+    <div class="tbl-label">Назначение платежа · Транш 2 (после согласования скелета)</div>
+    <table>
+      <thead>
+        <tr><th style="width:36px;">№</th><th>Наименование работ</th><th style="width:110px;text-align:right;">Сумма, ₸</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="td-num">1</td>
+          <td class="td-desc">
+            <div class="main">Транш 2 за разработку CRM-системы для скалодрома — после согласования скелета.</div>
+            <div class="sub">Воронки, абонементы, чек-ин по QR, расписание и ЗП тренеров, клиенты, касса. Полностью развёрнутый скелет согласован — продолжаем доработку и полировку.</div>
+          </td>
+          <td>652 500</td>
+        </tr>
+        <tr>
+          <td colspan="3" class="subtotal-row">
+            <em>Проект: 1 500 000 ₸ (со скидкой 3% — 1 455 000 ₸). Старт 150 000 ₸ — оплачено · транш 2 — 652 500 ₸ (этот счёт) · транш 3 — 652 500 ₸ постоплатой после сдачи.</em>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- TOTAL -->
+  <div class="total-box">
+    <div class="total-left">
+      <div class="total-box-label">К оплате — Транш 2</div>
+      <div class="total-stage">2-й из 3 этапов · остаток постоплатой после сдачи</div>
+      <div class="total-words">Шестьсот пятьдесят две тысячи пятьсот тенге 00 тиын.<br>НДС не облагается (поставщик не является плательщиком НДС РК).</div>
+    </div>
+    <div>
+      <span class="total-amount">652 500</span>
+      <span class="total-currency"> ₸</span>
+    </div>
+  </div>
+
+  <!-- REQUISITES -->
+  <div class="req-section">
+    <div class="req-title">Реквизиты для оплаты · АО «Kaspi Bank»</div>
+    <table class="req-table">
+      <tr>
+        <td>Получатель · БИН</td>
+        <td>ИП «STUDYSTORIES.APP» (Цай П.Л.) · 880607300110</td>
+      </tr>
+      <tr>
+        <td>Банк · IBAN (KZT)</td>
+        <td>АО «Kaspi Bank» · KZ31722S000010366450</td>
+      </tr>
+      <tr>
+        <td>БИК · КБе · КНП</td>
+        <td>CASPKZKA · 19 · 851</td>
+      </tr>
+      <tr>
+        <td>Карта (быстрый перевод)</td>
+        <td>4400 4303 0208 4337 · PLATON TSAY</td>
+      </tr>
+      <tr>
+        <td>Назначение платежа</td>
+        <td>Оплата по счёту ALB-2026-001 от 01.07.2026, транш 2 за разработку ПО. Без НДС.</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- SIGNATURE -->
+  <div class="sign-section">
+    <div class="sign-left">
+      <div class="sign-label">Поставщик / Supplier</div>
+      <div class="sign-line">ИП «STUDYSTORIES.APP» · <span class="sign-blank"></span> / Цай П.Л.</div>
+      <div style="font-size:11px;color:#7a7055;margin-top:4px;">М.П. (при наличии)</div>
+    </div>
+    <div class="sign-right">
+      Счёт сформирован автоматически.<br>
+      Дата выставления: <b>01.07.2026</b><br>
+      Срок оплаты: <b>до 08.07.2026</b><br>
+      К оплате: <b>652 500 ₸</b>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>Pllato · Счёт ALB-2026-001 · скалодром</span>
+    <span>pllato.kz/offer/custom-development/v2026-05-26/</span>
+  </div>
+
+</div>
+</body>
+</html>
