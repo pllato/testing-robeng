@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ШвейЦех ERP — Управление производством</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --sb:#0f172a;--sb2:#1e293b;--sb3:#334155;
+  --ac:#f59e0b;--ac2:#fbbf24;--ac3:#fef3c7;
+  --green:#22c55e;--red:#ef4444;--blue:#3b82f6;--purple:#a855f7;--orange:#f97316;
+  --bg:#f1f5f9;--card:#fff;--border:#e2e8f0;--text:#0f172a;--muted:#64748b;--light:#f8fafc;
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);display:flex;height:100vh;overflow:hidden;}
+
+/* SIDEBAR */
+.sb{width:224px;background:var(--sb);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;}
+.sb-logo{padding:18px 16px 14px;border-bottom:1px solid var(--sb2);}
+.brand{display:flex;align-items:center;gap:10px;}
+.brand-mark{width:34px;height:34px;background:linear-gradient(135deg,#f59e0b,#f97316);border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:12px;flex-shrink:0;}
+.brand-name{font-weight:800;font-size:14px;color:#fff;line-height:1.2;}
+.brand-sub{font-size:10px;color:#94a3b8;}
+.sb-user{padding:10px 14px;border-bottom:1px solid var(--sb2);display:flex;align-items:center;gap:9px;}
+.ua{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#f97316);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;color:#fff;flex-shrink:0;}
+.un{font-size:12px;font-weight:600;color:#f1f5f9;}
+.ur{font-size:10px;color:#94a3b8;}
+.sb-nav{padding:10px 8px;flex:1;}
+.nav-sec{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#475569;padding:8px 8px 4px;}
+.ni{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;cursor:pointer;color:#94a3b8;font-size:13px;font-weight:500;margin-bottom:2px;transition:all .15s;}
+.ni:hover{background:var(--sb2);color:#e2e8f0;}
+.ni.active{background:linear-gradient(135deg,rgba(245,158,11,.25),rgba(249,115,22,.15));color:#fbbf24;border-left:3px solid #f59e0b;padding-left:7px;}
+.ni .ic{font-size:15px;flex-shrink:0;}
+.nb{margin-left:auto;background:#ef4444;color:#fff;font-size:9px;font-weight:700;padding:2px 5px;border-radius:8px;}
+.nb.amber{background:#f59e0b;}
+.nb.green{background:#22c55e;}
+.sb-bot{padding:10px 8px;border-top:1px solid var(--sb2);}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.topbar{height:54px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 22px;gap:14px;flex-shrink:0;}
+.tb-title{font-weight:800;font-size:16px;flex:1;}
+.tb-search{display:flex;align-items:center;gap:7px;background:var(--light);border:1px solid var(--border);border-radius:8px;padding:6px 11px;width:240px;}
+.tb-search input{border:none;background:none;outline:none;font-size:12px;color:var(--text);width:100%;}
+.tb-actions{display:flex;gap:7px;align-items:center;}
+.btn{padding:7px 13px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .15s;display:inline-flex;align-items:center;gap:5px;}
+.btn-primary{background:var(--ac);color:#fff;}
+.btn-primary:hover{background:#d97706;}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text);}
+.btn-outline:hover{background:var(--light);}
+.btn-red{background:#fee2e2;color:#dc2626;border:none;}
+.notif-btn{width:34px;height:34px;border-radius:8px;background:var(--light);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;position:relative;}
+.ndot{position:absolute;top:5px;right:5px;width:7px;height:7px;background:#ef4444;border-radius:50%;border:2px solid #fff;}
+.content{flex:1;overflow-y:auto;padding:22px;}
+.sec{display:none;}
+.sec.active{display:block;}
+
+/* KPI GRID */
+.kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:20px;}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 14px;position:relative;overflow:hidden;}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--kc,#e2e8f0);}
+.kpi.amber{--kc:#f59e0b;}
+.kpi.green{--kc:#22c55e;}
+.kpi.blue{--kc:#3b82f6;}
+.kpi.red{--kc:#ef4444;}
+.kpi.purple{--kc:#a855f7;}
+.kpi.orange{--kc:#f97316;}
+.kpi-label{font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+.kpi-value{font-size:22px;font-weight:800;line-height:1;}
+.kpi-sub{font-size:10px;margin-top:4px;color:var(--muted);}
+.kpi-sub.up{color:var(--green);}
+.kpi-sub.down{color:var(--red);}
+.kpi-icon{position:absolute;right:12px;top:14px;font-size:20px;opacity:.35;}
+
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;}
+.card-hd{font-size:13px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.card-hd-sub{font-size:11px;color:var(--muted);font-weight:400;}
+
+/* DASH GRID */
+.dash-row{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px;}
+.dash-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;}
+
+/* ORDER PROGRESS BAR */
+.order-prog{display:flex;flex-direction:column;gap:10px;}
+.op-row{display:flex;align-items:center;gap:10px;}
+.op-name{font-size:11px;font-weight:600;width:120px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.op-bar{flex:1;background:var(--light);border-radius:4px;height:18px;overflow:hidden;}
+.op-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#f59e0b,#f97316);transition:width .8s ease;display:flex;align-items:center;padding-left:7px;font-size:10px;font-weight:700;color:#fff;}
+.op-pct{width:32px;text-align:right;font-size:11px;font-weight:700;}
+
+/* STOCK ALERTS */
+.alert-list{display:flex;flex-direction:column;gap:8px;}
+.alert-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;}
+.alert-row.crit{background:#fee2e2;}
+.alert-row.warn{background:#fef3c7;}
+.alert-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.alert-dot.crit{background:#ef4444;}
+.alert-dot.warn{background:#f59e0b;}
+.alert-name{font-size:12px;font-weight:600;flex:1;}
+.alert-stock{font-size:11px;color:var(--muted);}
+.alert-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;}
+.alert-badge.crit{background:#fecaca;color:#dc2626;}
+.alert-badge.warn{background:#fde68a;color:#92400e;}
+
+/* BAR CHART SVG */
+.chart-wrap{position:relative;}
+
+/* KANBAN */
+.kanban{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;}
+.k-col{min-width:200px;flex:1;background:var(--light);border-radius:10px;padding:10px;}
+.k-col-hd{font-size:11px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
+.k-col-hd span{background:var(--border);border-radius:10px;padding:1px 7px;font-size:10px;}
+.k-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:11px;margin-bottom:8px;cursor:pointer;transition:all .15s;}
+.k-card:hover{border-color:var(--ac);box-shadow:0 2px 8px rgba(245,158,11,.15);transform:translateY(-1px);}
+.k-num{font-size:10px;color:var(--muted);font-weight:600;margin-bottom:4px;}
+.k-title{font-size:12px;font-weight:700;margin-bottom:6px;}
+.k-meta{font-size:11px;color:var(--muted);margin-bottom:8px;}
+.k-prog{height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.k-prog-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,#f59e0b,#22c55e);}
+.k-footer{display:flex;align-items:center;justify-content:space-between;margin-top:7px;}
+.k-badge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;}
+.k-badge.urgent{background:#fee2e2;color:#dc2626;}
+.k-badge.ok{background:#dcfce7;color:#16a34a;}
+.k-badge.warn{background:#fef3c7;color:#92400e;}
+.k-due{font-size:10px;color:var(--muted);}
+
+/* FLOOR PLAN */
+.floor-wrap{background:#f8fafc;border:1px solid var(--border);border-radius:12px;padding:16px;position:relative;}
+.floor-legend{display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap;}
+.fl-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);}
+.fl-dot{width:12px;height:12px;border-radius:3px;}
+.fl-dot.working{background:#22c55e;}
+.fl-dot.idle{background:#f59e0b;}
+.fl-dot.break{background:#94a3b8;}
+.fl-dot.repair{background:#ef4444;}
+.zone-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px;}
+.zone{margin-bottom:16px;}
+.machines-grid{display:flex;gap:8px;flex-wrap:wrap;}
+.machine{width:52px;height:52px;border-radius:8px;border:2px solid transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:18px;transition:all .15s;position:relative;}
+.machine.working{background:#dcfce7;border-color:#22c55e;}
+.machine.idle{background:#fef3c7;border-color:#f59e0b;}
+.machine.break{background:#f1f5f9;border-color:#94a3b8;}
+.machine.repair{background:#fee2e2;border-color:#ef4444;}
+.machine-num{font-size:8px;font-weight:700;color:inherit;opacity:.7;margin-top:2px;}
+.machine:hover{transform:scale(1.08);box-shadow:0 3px 10px rgba(0,0,0,.12);}
+
+/* WAREHOUSE TABLE */
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:8px 10px;text-align:left;border-bottom:2px solid var(--border);}
+td{font-size:12px;padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tr:hover td{background:var(--light);}
+.stock-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;width:80px;}
+.stock-fill{height:100%;border-radius:3px;}
+.stock-fill.ok{background:#22c55e;}
+.stock-fill.warn{background:#f59e0b;}
+.stock-fill.crit{background:#ef4444;}
+.badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;display:inline-block;}
+.badge-green{background:#dcfce7;color:#16a34a;}
+.badge-amber{background:#fef3c7;color:#92400e;}
+.badge-red{background:#fee2e2;color:#dc2626;}
+.badge-blue{background:#dbeafe;color:#1d4ed8;}
+.badge-gray{background:#f1f5f9;color:#64748b;}
+
+/* WORKERS */
+.worker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;}
+.worker-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;display:flex;align-items:center;gap:12px;}
+.w-avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;flex-shrink:0;}
+.w-name{font-size:12px;font-weight:700;margin-bottom:3px;}
+.w-role{font-size:10px;color:var(--muted);}
+.w-stats{display:flex;gap:12px;margin-top:8px;}
+.w-stat{text-align:center;}
+.w-stat-val{font-size:15px;font-weight:800;}
+.w-stat-lbl{font-size:9px;color:var(--muted);}
+.worker-table .rank{font-size:12px;font-weight:800;color:var(--muted);width:28px;}
+.worker-table .rank.gold{color:#f59e0b;}
+.worker-table .rank.silver{color:#94a3b8;}
+.worker-table .rank.bronze{color:#d97706;}
+
+/* NOMENCLATURE GRID */
+.nom-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;}
+.nom-card{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;transition:all .15s;}
+.nom-card:hover{border-color:var(--ac);box-shadow:0 3px 12px rgba(245,158,11,.15);transform:translateY(-2px);}
+.nom-img{height:90px;display:flex;align-items:center;justify-content:center;font-size:48px;}
+.nom-body{padding:12px;}
+.nom-code{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);}
+.nom-name{font-size:13px;font-weight:700;margin:3px 0;}
+.nom-cat{font-size:10px;color:var(--muted);}
+.nom-sizes{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;}
+.size-tag{font-size:9px;font-weight:700;background:var(--light);border:1px solid var(--border);border-radius:4px;padding:1px 5px;}
+
+/* ANALYTICS */
+.analytics-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+
+/* SHIPMENTS */
+.ship-table tr.ready td{background:#f0fdf4;}
+
+/* TABS */
+.tabs{display:flex;gap:2px;background:var(--light);border-radius:8px;padding:3px;margin-bottom:16px;width:fit-content;}
+.tab{padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;color:var(--muted);transition:all .15s;}
+.tab.active{background:var(--card);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.1);}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px);}
+.overlay.open{display:flex;}
+.modal{background:var(--card);border-radius:16px;width:680px;max-height:85vh;overflow-y:auto;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.25);}
+.modal-hd{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--card);z-index:1;}
+.modal-title{font-size:16px;font-weight:800;}
+.modal-close{width:28px;height:28px;border-radius:6px;border:none;background:var(--light);cursor:pointer;font-size:14px;}
+.modal-body{padding:20px 24px;}
+.modal-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:16px;}
+.modal-tab{padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;}
+.modal-tab.active{color:var(--ac);border-bottom-color:var(--ac);}
+.mtab-content{display:none;}
+.mtab-content.active{display:block;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.form-group{margin-bottom:12px;}
+.form-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);display:block;margin-bottom:5px;}
+.form-input,.form-select,.form-textarea{width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:'Inter',sans-serif;outline:none;transition:border .15s;background:var(--card);}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--ac);}
+.form-textarea{resize:vertical;min-height:80px;}
+
+/* TIMELINE */
+.timeline{display:flex;flex-direction:column;gap:0;}
+.tl-item{display:flex;gap:12px;padding-bottom:14px;position:relative;}
+.tl-item::before{content:'';position:absolute;left:15px;top:28px;bottom:0;width:1px;background:var(--border);}
+.tl-item:last-child::before{display:none;}
+.tl-dot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;border:2px solid var(--border);}
+.tl-content{flex:1;}
+.tl-text{font-size:12px;font-weight:500;}
+.tl-time{font-size:10px;color:var(--muted);margin-top:2px;}
+
+/* TOAST */
+#toast-wrap{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#1e293b;color:#fff;padding:11px 16px;border-radius:10px;font-size:13px;font-weight:500;min-width:240px;display:flex;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.3);animation:slideIn .25s ease;border-left:4px solid var(--ac);}
+.toast.success{border-left-color:#22c55e;}
+.toast.error{border-left-color:#ef4444;}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0;}to{transform:translateX(0);opacity:1;}}
+
+/* MACHINE TOOLTIP */
+.machine-tooltip{display:none;position:absolute;background:#1e293b;color:#fff;border-radius:8px;padding:8px 12px;font-size:11px;z-index:50;white-space:nowrap;bottom:58px;left:50%;transform:translateX(-50%);}
+.machine:hover .machine-tooltip{display:block;}
+
+/* PRODUCTION STAGES */
+.stages-flow{display:flex;align-items:center;gap:0;margin-bottom:20px;overflow-x:auto;}
+.stage-step{display:flex;align-items:center;}
+.stage-box{padding:8px 16px;border-radius:8px;font-size:12px;font-weight:700;white-space:nowrap;cursor:pointer;transition:all .15s;}
+.stage-box.done{background:#dcfce7;color:#16a34a;}
+.stage-box.active{background:linear-gradient(135deg,#f59e0b,#f97316);color:#fff;box-shadow:0 3px 10px rgba(245,158,11,.4);}
+.stage-box.pending{background:var(--light);color:var(--muted);}
+.stage-arrow{color:var(--border);font-size:18px;margin:0 4px;}
+
+/* NOTIF PANEL */
+.notif-panel{position:absolute;top:54px;right:12px;width:320px;background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.15);z-index:50;display:none;}
+.notif-panel.open{display:block;}
+.np-hd{padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700;display:flex;justify-content:space-between;}
+.np-hd button{font-size:11px;color:var(--ac);background:none;border:none;cursor:pointer;font-weight:600;}
+.notif-item{display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;}
+.notif-item:hover{background:var(--light);}
+.notif-item.unread{background:#fffbeb;}
+.ni-icon{font-size:20px;flex-shrink:0;}
+.ni-text{font-size:12px;line-height:1.4;}
+.ni-time{font-size:10px;color:var(--muted);margin-top:2px;}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sb">
+  <div class="sb-logo">
+    <div class="brand">
+      <div class="brand-mark">🧵</div>
+      <div>
+        <div class="brand-name">ШвейЦех ERP</div>
+        <div class="brand-sub">Управление производством</div>
+      </div>
+    </div>
+  </div>
+  <div class="sb-user">
+    <div class="ua">АН</div>
+    <div>
+      <div class="un">Айгуль Нурова</div>
+      <div class="ur">Директор · Бишкек</div>
+    </div>
+  </div>
+  <div class="sb-nav">
+    <div class="nav-sec">Производство</div>
+    <div class="ni active" onclick="nav('dashboard')"><span class="ic">📊</span> Дашборд</div>
+    <div class="ni" onclick="nav('orders')"><span class="ic">📋</span> Заказы <span class="nb amber">23</span></div>
+    <div class="ni" onclick="nav('floor')"><span class="ic">🏭</span> Цех</div>
+    <div class="nav-sec">Ресурсы</div>
+    <div class="ni" onclick="nav('warehouse')"><span class="ic">📦</span> Склад <span class="nb">4</span></div>
+    <div class="ni" onclick="nav('nomenclature')"><span class="ic">🧵</span> Номенклатура</div>
+    <div class="ni" onclick="nav('workers')"><span class="ic">👷</span> Сотрудники</div>
+    <div class="nav-sec">Продажи</div>
+    <div class="ni" onclick="nav('shipments')"><span class="ic">🚚</span> Отгрузка <span class="nb green">8</span></div>
+    <div class="ni" onclick="nav('analytics')"><span class="ic">📈</span> Аналитика</div>
+    <div class="nav-sec">Система</div>
+    <div class="ni" onclick="nav('settings')"><span class="ic">⚙️</span> Настройки</div>
+  </div>
+  <div class="sb-bot">
+    <div class="ni" onclick="toast('Документация открывается...')"><span class="ic">❓</span> Помощь</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="tb-title" id="tb-title">Дашборд производства</div>
+    <div class="tb-search">
+      <span>🔍</span>
+      <input placeholder="Поиск заказа, изделия, материала..."/>
+    </div>
+    <div class="tb-actions">
+      <button class="btn btn-primary" onclick="openModal('new-order')">+ Новый заказ</button>
+      <div style="position:relative;">
+        <button class="notif-btn" onclick="toggleNotif()">🔔<span class="ndot"></span></button>
+        <div class="notif-panel" id="notif-panel">
+          <div class="np-hd">Уведомления <button onclick="markAllRead()">Прочитать все</button></div>
+          <div class="notif-item unread"><div class="ni-icon">🚨</div><div><div class="ni-text">Критический остаток: <b>Ткань Оксфорд 600D</b> — 45м (мин. 200м)</div><div class="ni-time">5 мин назад</div></div></div>
+          <div class="notif-item unread"><div class="ni-icon">⚠️</div><div><div class="ni-text">Заказ <b>№ЗК-2026-041</b> просрочен на 2 дня</div><div class="ni-time">1 час назад</div></div></div>
+          <div class="notif-item unread"><div class="ni-icon">🔧</div><div><div class="ni-text">Машина <b>М-14</b> требует ремонта (сообщил оператор)</div><div class="ni-time">3 часа назад</div></div></div>
+          <div class="notif-item"><div class="ni-icon">✅</div><div><div class="ni-text">Заказ <b>№ЗК-2026-038</b> отгружен на базар — 420 шт</div><div class="ni-time">Вчера, 17:30</div></div></div>
+          <div class="notif-item"><div class="ni-icon">📦</div><div><div class="ni-text">Поставка фурнитуры принята — молнии 1000 шт, пуговицы 5000 шт</div><div class="ni-time">Вчера, 14:00</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ===== DASHBOARD ===== -->
+    <div class="sec active" id="sec-dashboard">
+      <div class="kpi-grid">
+        <div class="kpi amber"><div class="kpi-icon">📋</div><div class="kpi-label">Заказов в работе</div><div class="kpi-value" id="k1">0</div><div class="kpi-sub up">↑ 3 новых сегодня</div></div>
+        <div class="kpi green"><div class="kpi-icon">👕</div><div class="kpi-label">Выпуск сегодня</div><div class="kpi-value" id="k2">0</div><div class="kpi-sub">шт · план 900</div></div>
+        <div class="kpi blue"><div class="kpi-icon">🧵</div><div class="kpi-label">Ткань на складе</div><div class="kpi-value" id="k3">0</div><div class="kpi-sub down">м · 4 позиции мало</div></div>
+        <div class="kpi orange"><div class="kpi-icon">👷</div><div class="kpi-label">Рабочих сегодня</div><div class="kpi-value" id="k4">0</div><div class="kpi-sub">из 42 в штате</div></div>
+        <div class="kpi red"><div class="kpi-icon">⚠️</div><div class="kpi-label">Дефекты</div><div class="kpi-value" id="k5">0</div><div class="kpi-sub down">% · цель ≤2%</div></div>
+        <div class="kpi purple"><div class="kpi-icon">💰</div><div class="kpi-label">Выручка / месяц</div><div class="kpi-value" id="k6">0</div><div class="kpi-sub up">↑ 18% к пр. месяцу</div></div>
+      </div>
+
+      <div class="dash-row">
+        <div class="card">
+          <div class="card-hd">Активные заказы — топ 5 <span class="card-hd-sub">по готовности</span></div>
+          <div class="order-prog" id="order-prog-list"></div>
+        </div>
+        <div class="card">
+          <div class="card-hd">⚠️ Алерты склада</div>
+          <div class="alert-list">
+            <div class="alert-row crit"><div class="alert-dot crit"></div><div class="alert-name">Ткань Оксфорд 600D</div><div class="alert-stock">45 м</div><div class="alert-badge crit">Критично</div></div>
+            <div class="alert-row crit"><div class="alert-dot crit"></div><div class="alert-name">Молнии 50см</div><div class="alert-stock">120 шт</div><div class="alert-badge crit">Критично</div></div>
+            <div class="alert-row warn"><div class="alert-dot warn"></div><div class="alert-name">Нитки белые №40</div><div class="alert-stock">8 катушек</div><div class="alert-badge warn">Мало</div></div>
+            <div class="alert-row warn"><div class="alert-dot warn"></div><div class="alert-name">Резинка 3см</div><div class="alert-stock">35 м</div><div class="alert-badge warn">Мало</div></div>
+            <div style="margin-top:10px;"><button class="btn btn-outline" style="font-size:11px;width:100%;" onclick="nav('warehouse')">→ Перейти на склад</button></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dash-row3">
+        <div class="card">
+          <div class="card-hd">Выпуск по дням <span class="card-hd-sub">последние 7 дней</span></div>
+          <svg width="100%" height="140" id="dash-chart" viewBox="0 0 300 140"></svg>
+        </div>
+        <div class="card">
+          <div class="card-hd">Статус цеха</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#f0fdf4;border-radius:8px;border-left:3px solid #22c55e;">
+              <span style="font-size:12px;font-weight:700;">🟢 Работают</span>
+              <span style="font-size:18px;font-weight:800;color:#16a34a;">21</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#fef3c7;border-radius:8px;border-left:3px solid #f59e0b;">
+              <span style="font-size:12px;font-weight:700;">🟡 Простой</span>
+              <span style="font-size:18px;font-weight:800;color:#92400e;">3</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#fee2e2;border-radius:8px;border-left:3px solid #ef4444;">
+              <span style="font-size:12px;font-weight:700;">🔴 Ремонт</span>
+              <span style="font-size:18px;font-weight:800;color:#dc2626;">1</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--light);border-radius:8px;border-left:3px solid #94a3b8;">
+              <span style="font-size:12px;font-weight:700;">⚪ Свободны</span>
+              <span style="font-size:18px;font-weight:800;color:#64748b;">3</span>
+            </div>
+            <button class="btn btn-outline" style="font-size:11px;margin-top:4px;width:100%;" onclick="nav('floor')">→ Открыть план цеха</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hd">🏆 Топ сотрудников <span class="card-hd-sub">сегодня</span></div>
+          <div id="worker-top"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== ORDERS ===== -->
+    <div class="sec" id="sec-orders">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="display:flex;gap:8px;">
+          <select class="form-select" style="width:auto;font-size:12px;" onchange="filterOrders(this.value)">
+            <option value="">Все заказы</option>
+            <option value="urgent">Срочные</option>
+            <option value="late">Просроченные</option>
+            <option value="today">Сдача сегодня</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('new-order')">+ Новый заказ</button>
+      </div>
+      <div class="kanban" id="orders-kanban"></div>
+    </div>
+
+    <!-- ===== FLOOR ===== -->
+    <div class="sec" id="sec-floor">
+      <div class="card" style="margin-bottom:14px;">
+        <div class="card-hd">🏭 План швейного цеха — реальное время</div>
+        <div class="floor-legend">
+          <div class="fl-item"><div class="fl-dot working"></div> Работает</div>
+          <div class="fl-item"><div class="fl-dot idle"></div> Простой</div>
+          <div class="fl-item"><div class="fl-dot break"></div> Перерыв</div>
+          <div class="fl-item"><div class="fl-dot repair"></div> Ремонт</div>
+        </div>
+        <div id="floor-map"></div>
+      </div>
+      <div class="dash-row">
+        <div class="card">
+          <div class="card-hd">Смена сегодня</div>
+          <table><thead><tr><th>Машина</th><th>Оператор</th><th>Заказ</th><th>Выпуск</th><th>Статус</th></tr></thead>
+          <tbody id="shift-table"></tbody></table>
+        </div>
+        <div class="card">
+          <div class="card-hd">Журнал цеха <span class="card-hd-sub">сегодня</span></div>
+          <div id="floor-log" style="display:flex;flex-direction:column;gap:8px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== WAREHOUSE ===== -->
+    <div class="sec" id="sec-warehouse">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div class="tabs">
+          <div class="tab active" onclick="switchWarehouseTab('fabric',this)">🧵 Ткани</div>
+          <div class="tab" onclick="switchWarehouseTab('fittings',this)">🔩 Фурнитура</div>
+          <div class="tab" onclick="switchWarehouseTab('finished',this)">📦 Готовая продукция</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-outline" onclick="openModal('receive-stock')">+ Принять поставку</button>
+          <button class="btn btn-primary" onclick="openModal('issue-stock')">− Выдать в производство</button>
+        </div>
+      </div>
+      <div class="card" id="warehouse-content"></div>
+    </div>
+
+    <!-- ===== NOMENCLATURE ===== -->
+    <div class="sec" id="sec-nomenclature">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div class="tabs">
+          <div class="tab active" onclick="switchNomTab('all',this)">Все</div>
+          <div class="tab" onclick="switchNomTab('outerwear',this)">Верхняя одежда</div>
+          <div class="tab" onclick="switchNomTab('sport',this)">Спортивная</div>
+          <div class="tab" onclick="switchNomTab('work',this)">Рабочая</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('new-nom')">+ Добавить изделие</button>
+      </div>
+      <div class="nom-grid" id="nom-grid"></div>
+    </div>
+
+    <!-- ===== WORKERS ===== -->
+    <div class="sec" id="sec-workers">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="font-size:13px;color:var(--muted);">Сегодня на смене: <b style="color:var(--text);">38 из 42</b> · <span style="color:#ef4444;font-weight:700;">4 отсутствуют</span></div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-outline" onclick="toast('Табель скачан ✓','success')">⬇ Скачать табель</button>
+          <button class="btn btn-primary" onclick="openModal('new-worker')">+ Добавить сотрудника</button>
+        </div>
+      </div>
+      <div class="dash-row">
+        <div class="card">
+          <div class="card-hd">Выработка сегодня</div>
+          <div class="tbl-wrap"><table>
+            <thead><tr><th>#</th><th>Сотрудник</th><th>Специализация</th><th>Выработка</th><th>План</th><th>%</th><th>Статус</th></tr></thead>
+            <tbody id="worker-output-table"></tbody>
+          </table></div>
+        </div>
+        <div class="card" style="max-width:280px;">
+          <div class="card-hd">📊 Итого по цеху</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="padding:12px;background:var(--light);border-radius:8px;text-align:center;"><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:4px;">Выработка смены</div><div style="font-size:28px;font-weight:800;color:var(--ac);" id="total-output">847</div><div style="font-size:11px;color:var(--muted);">шт из 900 план (94%)</div></div>
+            <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden;"><div style="width:94%;height:100%;background:linear-gradient(90deg,#f59e0b,#22c55e);border-radius:3px;"></div></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <div style="padding:10px;background:#f0fdf4;border-radius:8px;text-align:center;"><div style="font-size:9px;color:var(--muted);text-transform:uppercase;font-weight:700;">Перевыполняют</div><div style="font-size:20px;font-weight:800;color:#16a34a;">14</div></div>
+              <div style="padding:10px;background:#fef3c7;border-radius:8px;text-align:center;"><div style="font-size:9px;color:var(--muted);text-transform:uppercase;font-weight:700;">Отстают</div><div style="font-size:20px;font-weight:800;color:#92400e;">6</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SHIPMENTS ===== -->
+    <div class="sec" id="sec-shipments">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div class="tabs">
+          <div class="tab active" onclick="switchShipTab('all',this)">Все</div>
+          <div class="tab" onclick="switchShipTab('ready',this)">Готово к отгрузке</div>
+          <div class="tab" onclick="switchShipTab('shipped',this)">Отгружено</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('new-shipment')">+ Оформить отгрузку</button>
+      </div>
+      <div class="card">
+        <div class="tbl-wrap"><table class="ship-table">
+          <thead><tr><th>Накладная</th><th>Дата</th><th>Покупатель</th><th>Изделие</th><th>Кол-во</th><th>Сумма</th><th>Направление</th><th>Статус</th><th></th></tr></thead>
+          <tbody id="ship-table-body"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- ===== ANALYTICS ===== -->
+    <div class="sec" id="sec-analytics">
+      <div class="analytics-grid">
+        <div class="card">
+          <div class="card-hd">📊 План vs Факт (этот месяц)</div>
+          <svg width="100%" height="200" id="plan-chart" viewBox="0 0 400 200"></svg>
+        </div>
+        <div class="card">
+          <div class="card-hd">🧵 Расход ткани по типам</div>
+          <div id="fabric-consumption" style="display:flex;flex-direction:column;gap:8px;"></div>
+        </div>
+        <div class="card">
+          <div class="card-hd">📦 Выручка по направлениям</div>
+          <div id="revenue-breakdown" style="display:flex;flex-direction:column;gap:10px;"></div>
+        </div>
+        <div class="card">
+          <div class="card-hd">⚠️ Дефекты по сотрудникам <span class="card-hd-sub">топ-5</span></div>
+          <div id="defect-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hd">KPI по сотрудникам за июль 2026</div>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>Сотрудник</th><th>Выработка (шт)</th><th>% плана</th><th>Дефекты</th><th>Дней на смене</th><th>Зарплата</th></tr></thead>
+          <tbody id="kpi-table"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- ===== SETTINGS ===== -->
+    <div class="sec" id="sec-settings">
+      <div class="tabs" style="margin-bottom:16px;">
+        <div class="tab active" onclick="switchSetTab('stages',this)">Этапы производства</div>
+        <div class="tab" onclick="switchSetTab('norms',this)">Нормы расхода</div>
+        <div class="tab" onclick="switchSetTab('integrations',this)">Интеграции</div>
+        <div class="tab" onclick="switchSetTab('company',this)">Компания</div>
+      </div>
+      <div id="set-stages" class="set-tab">
+        <div class="card">
+          <div class="card-hd">Этапы производственного процесса</div>
+          <div style="display:flex;flex-direction:column;gap:8px;" id="stages-list"></div>
+        </div>
+      </div>
+      <div id="set-norms" class="set-tab" style="display:none;">
+        <div class="card">
+          <div class="card-hd">Нормы расхода материалов</div>
+          <div class="tbl-wrap"><table>
+            <thead><tr><th>Изделие</th><th>Ткань основная</th><th>Подкладка</th><th>Нитки</th><th>Фурнитура</th><th>Норма времени (мин)</th></tr></thead>
+            <tbody>
+              <tr><td><b>Куртка зимняя</b></td><td>1.8 м</td><td>1.5 м</td><td>3 катушки</td><td>1 молния, 4 кнопки</td><td>45</td></tr>
+              <tr><td><b>Штаны рабочие</b></td><td>1.2 м</td><td>—</td><td>2 катушки</td><td>1 молния, 2 кнопки</td><td>25</td></tr>
+              <tr><td><b>Жилет утеплённый</b></td><td>0.9 м</td><td>0.8 м</td><td>2 катушки</td><td>1 молния</td><td>20</td></tr>
+              <tr><td><b>Куртка летняя</b></td><td>1.1 м</td><td>0.9 м</td><td>2 катушки</td><td>1 молния, 2 кнопки</td><td>30</td></tr>
+              <tr><td><b>Спортивный костюм</b></td><td>2.0 м</td><td>—</td><td>3 катушки</td><td>2 молнии, резинка 1м</td><td>40</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+      </div>
+      <div id="set-integrations" class="set-tab" style="display:none;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div class="card">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;"><span style="font-size:28px;">💬</span><div><div style="font-weight:700;">WhatsApp (GreenAPI)</div><div style="font-size:11px;color:var(--muted);">Уведомления клиентам о готовности заказа</div></div><span class="badge badge-green" style="margin-left:auto;">Активен</span></div>
+            <button class="btn btn-outline" onclick="toast('Настройки WhatsApp...')">Настроить</button>
+          </div>
+          <div class="card">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;"><span style="font-size:28px;">📊</span><div><div style="font-weight:700;">1С Бухгалтерия</div><div style="font-size:11px;color:var(--muted);">Синхронизация продаж и складских операций</div></div><span class="badge badge-gray" style="margin-left:auto;">Не подключен</span></div>
+            <button class="btn btn-primary" onclick="toast('Подключение 1С...')">Подключить</button>
+          </div>
+          <div class="card">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;"><span style="font-size:28px;">🖨️</span><div><div style="font-weight:700;">Принтер этикеток</div><div style="font-size:11px;color:var(--muted);">Печать штрих-кодов и бирок на изделия</div></div><span class="badge badge-amber" style="margin-left:auto;">Настройка</span></div>
+            <button class="btn btn-outline" onclick="toast('Настройки принтера...')">Настроить</button>
+          </div>
+          <div class="card">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;"><span style="font-size:28px;">📱</span><div><div style="font-weight:700;">Мобильное приложение</div><div style="font-size:11px;color:var(--muted);">PWA для мастеров цеха — учёт выработки</div></div><span class="badge badge-blue" style="margin-left:auto;">В разработке</span></div>
+            <button class="btn btn-outline" onclick="toast('Скоро...')">Подробнее</button>
+          </div>
+        </div>
+      </div>
+      <div id="set-company" class="set-tab" style="display:none;">
+        <div class="card">
+          <div class="card-hd">Данные компании</div>
+          <div class="form-row"><div class="form-group"><label class="form-label">Название компании</label><input class="form-input" value="Швейный цех «АН Пошив»"/></div><div class="form-group"><label class="form-label">Город</label><input class="form-input" value="Бишкек, Кыргызстан"/></div></div>
+          <div class="form-row"><div class="form-group"><label class="form-label">Адрес цеха</label><input class="form-input" value="ул. Ибраимова 112, цех 3"/></div><div class="form-group"><label class="form-label">Телефон</label><input class="form-input" value="+996 700 123 456"/></div></div>
+          <div class="form-row"><div class="form-group"><label class="form-label">Рабочие часы</label><input class="form-input" value="08:00 — 17:00, Пн–Пт"/></div><div class="form-group"><label class="form-label">Кол-во машин</label><input class="form-input" value="28"/></div></div>
+          <button class="btn btn-primary" onclick="toast('Данные сохранены ✓','success')">Сохранить</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- MODAL: ORDER DETAIL -->
+<div class="overlay" id="overlay-order-detail" onclick="closeModal('order-detail')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-hd"><div class="modal-title" id="od-title">Заказ №ЗК-2026-041</div><button class="modal-close" onclick="closeModal('order-detail')">✕</button></div>
+    <div class="modal-body">
+      <div class="stages-flow" id="od-stages"></div>
+      <div class="modal-tabs">
+        <div class="modal-tab active" onclick="switchMTab('od','details',this)">Детали</div>
+        <div class="modal-tab" onclick="switchMTab('od','timeline',this)">История</div>
+        <div class="modal-tab" onclick="switchMTab('od','materials',this)">Материалы</div>
+      </div>
+      <div class="mtab-content active" id="od-details">
+        <div class="form-row">
+          <div><div class="form-label">Клиент</div><div id="od-client" style="font-weight:700;font-size:14px;"></div></div>
+          <div><div class="form-label">Изделие</div><div id="od-item" style="font-weight:700;font-size:14px;"></div></div>
+        </div>
+        <div class="form-row">
+          <div><div class="form-label">Количество</div><div id="od-qty" style="font-weight:700;font-size:22px;color:var(--ac);"></div></div>
+          <div><div class="form-label">Выполнено</div><div id="od-done" style="font-weight:700;font-size:22px;color:var(--green);"></div></div>
+        </div>
+        <div class="form-row">
+          <div><div class="form-label">Срок сдачи</div><div id="od-due" style="font-weight:600;"></div></div>
+          <div><div class="form-label">Ответственный</div><div id="od-resp" style="font-weight:600;"></div></div>
+        </div>
+        <div style="margin-top:12px;"><div class="form-label">Примечание</div><div id="od-note" style="font-size:13px;color:var(--muted);"></div></div>
+        <div style="margin-top:16px;display:flex;gap:8px;">
+          <button class="btn btn-primary" onclick="advanceOrder();toast('Этап обновлён ✓','success')">→ Следующий этап</button>
+          <button class="btn btn-outline" onclick="toast('Печать этикеток...')">🖨 Этикетки</button>
+          <button class="btn btn-outline" onclick="toast('WhatsApp клиенту...')">💬 WA клиенту</button>
+        </div>
+      </div>
+      <div class="mtab-content" id="od-timeline">
+        <div class="timeline" id="od-tl-content"></div>
+      </div>
+      <div class="mtab-content" id="od-materials">
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>Материал</th><th>Норма</th><th>Факт</th><th>Остаток</th></tr></thead>
+          <tbody id="od-mat-table"></tbody>
+        </table></div>
+        <button class="btn btn-outline" style="margin-top:12px;" onclick="toast('Списание со склада оформлено ✓','success')">Оформить списание</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: NEW ORDER -->
+<div class="overlay" id="overlay-new-order" onclick="closeModal('new-order')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-hd"><div class="modal-title">Новый заказ</div><button class="modal-close" onclick="closeModal('new-order')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Клиент / Покупатель *</label><input class="form-input" placeholder="Имя или название" id="no-client"/></div>
+        <div class="form-group"><label class="form-label">Изделие *</label><select class="form-select" id="no-item"><option>Куртка зимняя</option><option>Штаны рабочие</option><option>Жилет утеплённый</option><option>Куртка летняя</option><option>Спортивный костюм</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Количество (шт) *</label><input class="form-input" type="number" placeholder="100" id="no-qty"/></div>
+        <div class="form-group"><label class="form-label">Срок сдачи</label><input class="form-input" type="date" id="no-due"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Мастер / Ответственный</label><select class="form-select"><option>Гуля М.</option><option>Рая Д.</option><option>Надя К.</option><option>Аида Р.</option></select></div>
+        <div class="form-group"><label class="form-label">Приоритет</label><select class="form-select" id="no-priority"><option>Обычный</option><option>Срочный</option></select></div>
+      </div>
+      <div class="form-group"><label class="form-label">Примечание</label><textarea class="form-textarea" placeholder="Цвет, размерный ряд, особые требования..."></textarea></div>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button class="btn btn-primary" onclick="createOrder()">Создать заказ</button>
+        <button class="btn btn-outline" onclick="closeModal('new-order')">Отмена</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: NOMENCLATURE DETAIL -->
+<div class="overlay" id="overlay-nom-detail" onclick="closeModal('nom-detail')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-hd"><div class="modal-title" id="nd-title"></div><button class="modal-close" onclick="closeModal('nom-detail')">✕</button></div>
+    <div class="modal-body">
+      <div class="modal-tabs">
+        <div class="modal-tab active" onclick="switchMTab('nd','spec',this)">Характеристики</div>
+        <div class="modal-tab" onclick="switchMTab('nd','bom',this)">Состав (BOM)</div>
+        <div class="modal-tab" onclick="switchMTab('nd','sizes',this)">Размерный ряд</div>
+      </div>
+      <div class="mtab-content active" id="nd-spec">
+        <div class="form-row">
+          <div><div class="form-label">Код</div><div id="nd-code" style="font-weight:700;font-size:15px;"></div></div>
+          <div><div class="form-label">Категория</div><div id="nd-cat" style="font-weight:600;"></div></div>
+        </div>
+        <div class="form-row">
+          <div><div class="form-label">Норма времени</div><div id="nd-time" style="font-weight:700;font-size:18px;color:var(--ac);"></div></div>
+          <div><div class="form-label">Цена продажи</div><div id="nd-price" style="font-weight:700;font-size:18px;color:var(--green);"></div></div>
+        </div>
+      </div>
+      <div class="mtab-content" id="nd-bom">
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>Материал</th><th>Ед.изм</th><th>Норма</th><th>Цена ед.</th><th>Сумма</th></tr></thead>
+          <tbody id="nd-bom-table"></tbody>
+        </table></div>
+      </div>
+      <div class="mtab-content" id="nd-sizes">
+        <div id="nd-sizes-content" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: RECEIVE STOCK -->
+<div class="overlay" id="overlay-receive-stock" onclick="closeModal('receive-stock')">
+  <div class="modal" onclick="event.stopPropagation()" style="width:500px;">
+    <div class="modal-hd"><div class="modal-title">📦 Принять поставку</div><button class="modal-close" onclick="closeModal('receive-stock')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Тип материала</label><select class="form-select"><option>Ткань</option><option>Фурнитура</option></select></div>
+        <div class="form-group"><label class="form-label">Наименование</label><select class="form-select"><option>Ткань Оксфорд 600D</option><option>Флис 300г/м²</option><option>Дюспо</option><option>Молнии 50см</option><option>Пуговицы</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Количество</label><input class="form-input" type="number" placeholder="500"/></div>
+        <div class="form-group"><label class="form-label">Ед.изм</label><select class="form-select"><option>м (метры)</option><option>кг</option><option>шт</option><option>мот</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Поставщик</label><input class="form-input" placeholder="ООО Текстиль"/></div>
+        <div class="form-group"><label class="form-label">Цена за ед.</label><input class="form-input" type="number" placeholder="120"/></div>
+      </div>
+      <button class="btn btn-primary" style="margin-top:4px;" onclick="closeModal('receive-stock');toast('Поставка принята и оприходована ✓','success')">Оприходовать</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast-wrap"></div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────
+const STAGES=['Принят','Раскрой','Пошив','ОТК','Готово','Отгружен'];
+const STAGE_COLORS=['#6366f1','#f59e0b','#3b82f6','#a855f7','#22c55e','#64748b'];
+
+const ORDERS=[
+  {id:'ЗК-2026-041',client:'ИП Садыков Б.',item:'Куртка зимняя',qty:200,done:80,stage:1,due:'28.06',urgent:true,note:'Синяя, размеры 44-52. Срочно для маркета!',resp:'Гуля М.'},
+  {id:'ЗК-2026-042',client:'Базар Ош',item:'Штаны рабочие',qty:350,done:210,stage:2,due:'05.07',urgent:false,note:'Хаки, р.46-54',resp:'Рая Д.'},
+  {id:'ЗК-2026-043',client:'Стройкомпания KG',item:'Жилет утеплённый',qty:150,done:150,stage:4,due:'01.07',urgent:false,note:'Оранжевый светоотражающий',resp:'Надя К.'},
+  {id:'ЗК-2026-044',client:'ТЦ Дордой',item:'Куртка летняя',qty:500,done:300,stage:2,due:'10.07',urgent:false,note:'Чёрная + серая, 50/50',resp:'Аида Р.'},
+  {id:'ЗК-2026-045',client:'Экспорт Казахстан',item:'Спортивный костюм',qty:1000,done:450,stage:2,due:'15.07',urgent:false,note:'Тёмно-синий, лого заказчика',resp:'Гуля М.'},
+  {id:'ЗК-2026-046',client:'ИП Мамытов',item:'Куртка зимняя',qty:80,done:0,stage:0,due:'20.07',urgent:false,note:'Бежевая',resp:'Рая Д.'},
+  {id:'ЗК-2026-047',client:'Оптовик Токтоматов',item:'Штаны рабочие',qty:200,done:200,stage:5,due:'01.07',urgent:false,note:'Серые, р.46-56',resp:'Надя К.'},
+  {id:'ЗК-2026-038',client:'Базар Ош',item:'Жилет утеплённый',qty:300,done:300,stage:5,due:'25.06',urgent:false,note:'Синий',resp:'Аида Р.'},
+];
+
+const FABRIC=[
+  {art:'ТК-001',name:'Ткань Оксфорд 600D',unit:'м',qty:45,min:200,price:250,cat:'fabric'},
+  {art:'ТК-002',name:'Флис 300г/м²',unit:'м',qty:480,min:100,price:180,cat:'fabric'},
+  {art:'ТК-003',name:'Дюспо (плащёвка)',unit:'м',qty:320,min:150,price:120,cat:'fabric'},
+  {art:'ТК-004',name:'Полиэстер подкладочный',unit:'м',qty:560,min:200,price:80,cat:'fabric'},
+  {art:'ТК-005',name:'Синтепон 150г',unit:'м',qty:280,min:100,price:60,cat:'fabric'},
+  {art:'ТК-006',name:'Рипстоп 240T',unit:'м',qty:94,min:80,price:210,cat:'fabric'},
+];
+const FITTINGS=[
+  {art:'ФУ-001',name:'Молнии 50см',unit:'шт',qty:120,min:500,price:35,cat:'fittings'},
+  {art:'ФУ-002',name:'Пуговицы 18мм',unit:'шт',qty:2400,min:1000,price:5,cat:'fittings'},
+  {art:'ФУ-003',name:'Нитки белые №40',unit:'кат',qty:8,min:20,price:150,cat:'fittings'},
+  {art:'ФУ-004',name:'Нитки чёрные №40',unit:'кат',qty:15,min:20,price:150,cat:'fittings'},
+  {art:'ФУ-005',name:'Резинка 3см',unit:'м',qty:35,min:100,price:40,cat:'fittings'},
+  {art:'ФУ-006',name:'Велкро 2см',unit:'м',qty:145,min:50,price:55,cat:'fittings'},
+  {art:'ФУ-007',name:'Кнопки металл',unit:'шт',qty:3200,min:1000,price:8,cat:'fittings'},
+];
+const FINISHED=[
+  {art:'ГП-001',name:'Куртка зимняя (р.46)',unit:'шт',qty:85,min:0,price:2800,cat:'finished'},
+  {art:'ГП-002',name:'Штаны рабочие (р.48)',unit:'шт',qty:210,min:0,price:950,cat:'finished'},
+  {art:'ГП-003',name:'Жилет утеплённый (р.50)',unit:'шт',qty:150,min:0,price:1200,cat:'finished'},
+  {art:'ГП-004',name:'Куртка летняя (р.46)',unit:'шт',qty:300,min:0,price:1800,cat:'finished'},
+];
+
+const NOMENCLATURE=[
+  {code:'КУ-001',name:'Куртка зимняя',cat:'outerwear',emoji:'🧥',catLabel:'Верхняя одежда',sizes:['42','44','46','48','50','52','54'],time:'45 мин',price:'2 800 сом',bom:[['Ткань Оксфорд 600D','м','1.8','250','450'],['Флис 300г/м²','м','1.5','180','270'],['Синтепон 150г','м','1.2','60','72'],['Нитки','кат','3','150','450'],['Молния 50см','шт','1','35','35'],['Пуговицы','шт','4','5','20']]},
+  {code:'ШТ-001',name:'Штаны рабочие',cat:'work',emoji:'👖',catLabel:'Рабочая одежда',sizes:['46','48','50','52','54','56'],time:'25 мин',price:'950 сом',bom:[['Ткань Оксфорд 600D','м','1.2','250','300'],['Нитки','кат','2','150','300'],['Молния 50см','шт','1','35','35'],['Кнопки металл','шт','2','8','16']]},
+  {code:'ЖИ-001',name:'Жилет утеплённый',cat:'outerwear',emoji:'🦺',catLabel:'Верхняя одежда',sizes:['44','46','48','50','52','54'],time:'20 мин',price:'1 200 сом',bom:[['Дюспо (плащёвка)','м','0.9','120','108'],['Синтепон 150г','м','0.8','60','48'],['Нитки','кат','2','150','300'],['Молния 50см','шт','1','35','35']]},
+  {code:'КУ-002',name:'Куртка летняя',cat:'outerwear',emoji:'🥼',catLabel:'Верхняя одежда',sizes:['42','44','46','48','50','52'],time:'30 мин',price:'1 800 сом',bom:[['Дюспо (плащёвка)','м','1.1','120','132'],['Полиэстер подкл.','м','0.9','80','72'],['Нитки','кат','2','150','300'],['Молния 50см','шт','1','35','35'],['Пуговицы','шт','2','5','10']]},
+  {code:'СП-001',name:'Спортивный костюм',cat:'sport',emoji:'🩱',catLabel:'Спортивная одежда',sizes:['S','M','L','XL','2XL'],time:'40 мин',price:'2 200 сом',bom:[['Флис 300г/м²','м','2.0','180','360'],['Нитки','кат','3','150','450'],['Молния 50см','шт','2','35','70'],['Резинка 3см','м','1.0','40','40']]},
+  {code:'ФТ-001',name:'Футболка рабочая',cat:'work',emoji:'👕',catLabel:'Рабочая одежда',sizes:['S','M','L','XL'],time:'12 мин',price:'350 сом',bom:[['Трикотаж','м','0.9','90','81'],['Нитки','кат','1','150','150']]},
+];
+
+const WORKERS=[
+  {name:'Гуля М.',role:'Мастер крой',color:'#6366f1',output:112,plan:100,machine:'М-01'},
+  {name:'Рая Д.',role:'Оператор пошива',color:'#f59e0b',output:98,plan:100,machine:'М-05'},
+  {name:'Надя К.',role:'Оператор пошива',color:'#22c55e',output:120,plan:100,machine:'М-08'},
+  {name:'Аида Р.',role:'Оператор пошива',color:'#3b82f6',output:87,plan:100,machine:'М-12'},
+  {name:'Сайра Т.',role:'Оператор пошива',color:'#a855f7',output:105,plan:100,machine:'М-15'},
+  {name:'Барчын Э.',role:'ОТК',color:'#f97316',output:95,plan:90,machine:'ОТК-1'},
+  {name:'Нуриза А.',role:'Оператор пошива',color:'#0ea5e9',output:108,plan:100,machine:'М-09'},
+  {name:'Зульфия О.',role:'Оператор пошива',color:'#ec4899',output:77,plan:100,machine:'М-17'},
+  {name:'Айзат Б.',role:'Упаковщик',color:'#14b8a6',output:91,plan:85,machine:'УП-2'},
+  {name:'Канат Ш.',role:'Раскройщик',color:'#64748b',output:125,plan:110,machine:'Р-02'},
+];
+
+const SHIPMENTS=[
+  {num:'НК-2026-089',date:'01.07.26',client:'ТЦ Дордой, маг. 44',item:'Куртка летняя',qty:120,sum:216000,dir:'Базар',status:'ready'},
+  {num:'НК-2026-088',date:'01.07.26',client:'ИП Садыков Б.',item:'Штаны рабочие',qty:200,sum:190000,dir:'Базар',status:'ready'},
+  {num:'НК-2026-087',date:'30.06.26',client:'Стройкомпания KG',item:'Жилет утеплённый',qty:150,sum:180000,dir:'Оптовый',status:'shipped'},
+  {num:'НК-2026-086',date:'28.06.26',client:'Экспорт KZ',item:'Спортивный костюм',qty:200,sum:440000,dir:'Экспорт',status:'shipped'},
+  {num:'НК-2026-085',date:'25.06.26',client:'Базар Ош, ряд 7',item:'Жилет утеплённый',qty:300,sum:360000,dir:'Базар',status:'shipped'},
+];
+
+const MACHINES=[
+  {num:'М-01',status:'working',worker:'Гуля М.',order:'ЗК-2026-044',output:112},
+  {num:'М-02',status:'working',worker:'Алтын С.',order:'ЗК-2026-044',output:98},
+  {num:'М-03',status:'idle',worker:'—',order:'—',output:0},
+  {num:'М-04',status:'working',worker:'Асел Н.',order:'ЗК-2026-045',output:105},
+  {num:'М-05',status:'working',worker:'Рая Д.',order:'ЗК-2026-045',output:98},
+  {num:'М-06',status:'working',worker:'Бегим Р.',order:'ЗК-2026-042',output:110},
+  {num:'М-07',status:'working',worker:'Динара Б.',order:'ЗК-2026-042',output:93},
+  {num:'М-08',status:'working',worker:'Надя К.',order:'ЗК-2026-045',output:120},
+  {num:'М-09',status:'working',worker:'Нуриза А.',order:'ЗК-2026-041',output:108},
+  {num:'М-10',status:'working',worker:'Лейла Т.',order:'ЗК-2026-041',output:89},
+  {num:'М-11',status:'break',worker:'Гулзат А.',order:'ЗК-2026-044',output:76},
+  {num:'М-12',status:'working',worker:'Аида Р.',order:'ЗК-2026-041',output:87},
+  {num:'М-13',status:'working',worker:'Жазгуль С.',order:'ЗК-2026-044',output:115},
+  {num:'М-14',status:'repair',worker:'—',order:'Ремонт',output:0},
+  {num:'М-15',status:'working',worker:'Сайра Т.',order:'ЗК-2026-045',output:105},
+  {num:'М-16',status:'working',worker:'Чынара О.',order:'ЗК-2026-042',output:99},
+  {num:'М-17',status:'working',worker:'Зульфия О.',order:'ЗК-2026-045',output:77},
+  {num:'М-18',status:'working',worker:'Назгуль И.',order:'ЗК-2026-044',output:101},
+  {num:'М-19',status:'idle',worker:'—',order:'—',output:0},
+  {num:'М-20',status:'working',worker:'Айнур Б.',order:'ЗК-2026-041',output:92},
+];
+
+let currentOrder=null;
+
+// ─── NAV ─────────────────────────────────────────────────
+const TITLES={dashboard:'Дашборд производства',orders:'Заказы в производстве',floor:'Цех — план и статус',warehouse:'Склад материалов',nomenclature:'Номенклатура изделий',workers:'Сотрудники цеха',shipments:'Отгрузка продукции',analytics:'Аналитика',settings:'Настройки системы'};
+function nav(id){
+  document.querySelectorAll('.ni').forEach(i=>i.classList.remove('active'));
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.getElementById('sec-'+id).classList.add('active');
+  document.getElementById('tb-title').textContent=TITLES[id]||id;
+  if(id==='floor')renderFloor();
+  if(id==='analytics')renderAnalytics();
+  if(id==='workers')renderWorkers();
+  if(id==='shipments')renderShipments();
+  if(id==='warehouse')renderWarehouse('fabric');
+  if(id==='nomenclature')renderNom('all');
+}
+
+// ─── TOAST ───────────────────────────────────────────────
+function toast(msg,type='info'){
+  const w=document.getElementById('toast-wrap');
+  const t=document.createElement('div');
+  t.className='toast '+(type==='success'?'success':type==='error'?'error':'');
+  t.innerHTML='<span>'+(type==='success'?'✅':type==='error'?'❌':'ℹ️')+'</span>'+msg;
+  w.appendChild(t);
+  setTimeout(()=>t.remove(),3000);
+}
+
+// ─── MODALS ──────────────────────────────────────────────
+function openModal(id,data){
+  if(id==='order-detail'&&data)openOrderDetail(data);
+  if(id==='nom-detail'&&data)openNomDetail(data);
+  document.getElementById('overlay-'+id).classList.add('open');
+}
+function closeModal(id){document.getElementById('overlay-'+id).classList.remove('open');}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.overlay.open').forEach(o=>o.classList.remove('open'));});
+
+function switchMTab(prefix,id,el){
+  document.querySelectorAll(`[id^="${prefix}-"]`).forEach(c=>c.classList.remove('active'));
+  el.parentElement.querySelectorAll('.modal-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(`${prefix}-${id}`).classList.add('active');
+  el.classList.add('active');
+}
+
+// ─── DASHBOARD ───────────────────────────────────────────
+function animateCount(elId,target,decimals,suffix){
+  const el=document.getElementById(elId);
+  if(!el)return;
+  const start=Date.now(),dur=1200;
+  const step=()=>{
+    const p=Math.min((Date.now()-start)/dur,1);
+    const ease=1-Math.pow(1-p,3);
+    const v=target*ease;
+    el.textContent=(decimals?v.toFixed(decimals):Math.round(v))+(suffix||'');
+    if(p<1)requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+function renderDashboard(){
+  animateCount('k1',23,0);
+  animateCount('k2',847,0);
+  animateCount('k3',1580,0);
+  animateCount('k4',38,0);
+  animateCount('k5',2.1,1,'%');
+  animateCount('k6',3.45,2,'M');
+
+  // Order progress
+  const top=[...ORDERS].filter(o=>o.stage>0&&o.stage<5).slice(0,5);
+  document.getElementById('order-prog-list').innerHTML=top.map(o=>{
+    const pct=Math.round(o.done/o.qty*100);
+    return `<div class="op-row"><div class="op-name">№${o.id}</div><div class="op-bar"><div class="op-fill" style="width:${pct}%">${pct}%</div></div><div class="op-pct">${pct}%</div></div>`;
+  }).join('');
+
+  // Bar chart
+  const days=['25.06','26.06','27.06','28.06','29.06','30.06','01.07'];
+  const vals=[820,780,910,850,960,830,847];
+  const maxV=Math.max(...vals);
+  const svg=document.getElementById('dash-chart');
+  const W=300,H=130,pad=20;
+  const bw=(W-pad*2)/days.length*0.6,gap=(W-pad*2)/days.length;
+  svg.innerHTML=vals.map((v,i)=>{
+    const bh=(v/maxV)*(H-30);
+    const x=pad+i*gap+gap*0.2;
+    const y=H-bh-10;
+    return `<rect x="${x}" y="${y}" width="${bw}" height="${bh}" rx="3" fill="${i===6?'#f59e0b':'#e2e8f0'}"/>
+<text x="${x+bw/2}" y="${H}" text-anchor="middle" font-size="9" fill="#94a3b8">${days[i].slice(0,5)}</text>
+<text x="${x+bw/2}" y="${y-3}" text-anchor="middle" font-size="9" font-weight="700" fill="${i===6?'#d97706':'#64748b'}">${v}</text>`;
+  }).join('');
+
+  // Top workers
+  const top3=[...WORKERS].sort((a,b)=>b.output-a.output).slice(0,5);
+  document.getElementById('worker-top').innerHTML=top3.map((w,i)=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);">
+      <div class="worker-table rank ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</div>
+      <div class="ua" style="width:28px;height:28px;font-size:10px;background:${w.color};">${w.name.slice(0,1)}</div>
+      <div style="flex:1;font-size:12px;font-weight:600;">${w.name}</div>
+      <div style="font-size:14px;font-weight:800;color:var(--ac);">${w.output}</div>
+    </div>`).join('');
+}
+
+// ─── ORDERS KANBAN ───────────────────────────────────────
+function renderOrdersKanban(){
+  const cols=STAGES.map((s,si)=>{
+    const cards=ORDERS.filter(o=>o.stage===si);
+    return `<div class="k-col">
+      <div class="k-col-hd" style="color:${STAGE_COLORS[si]}">${s} <span>${cards.length}</span></div>
+      ${cards.map(o=>`<div class="k-card" onclick="openModal('order-detail',${JSON.stringify(o).replace(/'/g,"&#39;")})">
+        <div class="k-num">№${o.id}</div>
+        <div class="k-title">${o.item}</div>
+        <div class="k-meta">${o.client} · ${o.qty} шт</div>
+        <div class="k-prog"><div class="k-prog-fill" style="width:${Math.round(o.done/o.qty*100)}%"></div></div>
+        <div class="k-footer">
+          <span class="k-badge ${o.urgent?'urgent':'ok'}">${o.urgent?'🔴 Срочно':'🟢 В срок'}</span>
+          <span class="k-due">до ${o.due}</span>
+        </div>
+      </div>`).join('')}
+    </div>`;
+  }).join('');
+  document.getElementById('orders-kanban').innerHTML=cols;
+}
+function filterOrders(v){renderOrdersKanban();}
+
+function openOrderDetail(o){
+  currentOrder=o;
+  document.getElementById('od-title').textContent='Заказ №'+o.id;
+  document.getElementById('od-client').textContent=o.client;
+  document.getElementById('od-item').textContent=o.item;
+  document.getElementById('od-qty').textContent=o.qty+' шт';
+  document.getElementById('od-done').textContent=o.done+' шт ('+Math.round(o.done/o.qty*100)+'%)';
+  document.getElementById('od-due').textContent='до '+o.due;
+  document.getElementById('od-resp').textContent=o.resp;
+  document.getElementById('od-note').textContent=o.note;
+  // stages
+  document.getElementById('od-stages').innerHTML=STAGES.map((s,i)=>`
+    <div class="stage-step">
+      <div class="stage-box ${i<o.stage?'done':i===o.stage?'active':'pending'}">${i<o.stage?'✓ ':''+(i+1)+'. '}${s}</div>
+      ${i<STAGES.length-1?'<span class="stage-arrow">›</span>':''}
+    </div>`).join('');
+  // timeline
+  const events=['Заказ создан','Материалы выданы в производство','Начат раскрой','Передан на пошив','ОТК проверка'];
+  document.getElementById('od-tl-content').innerHTML=events.slice(0,o.stage+1).reverse().map((e,i)=>`
+    <div class="tl-item"><div class="tl-dot" style="background:${i===0?'#f59e0b':'#f1f5f9'};">📌</div>
+    <div class="tl-content"><div class="tl-text">${e}</div><div class="tl-time">${i===0?'Сегодня, 09:'+String(10+i*20).padStart(2,'0'):'0'+(i+1)+'.07.2026'}</div></div></div>`).join('');
+  // materials
+  const nom=NOMENCLATURE.find(n=>n.name===o.item)||NOMENCLATURE[0];
+  document.getElementById('od-mat-table').innerHTML=nom.bom.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${(parseFloat(r[2])*o.qty).toFixed(0)} ${r[1]}</td><td>${parseInt(r[4])*o.qty} сом</td></tr>`).join('');
+}
+
+function advanceOrder(){
+  if(currentOrder&&currentOrder.stage<5){currentOrder.stage++;renderOrdersKanban();}
+}
+
+// ─── FLOOR ───────────────────────────────────────────────
+function renderFloor(){
+  const cutting=MACHINES.slice(0,0);// separate cutting zone
+  const sewing=MACHINES.slice(0,20);
+  const map=document.getElementById('floor-map');
+
+  function machineHTML(m){
+    const icons={working:'🟢',idle:'🟡',break:'⏸️',repair:'🔴'};
+    return `<div class="machine ${m.status}" onclick="toast('${m.num}: ${m.worker} → ${m.order}, выработка: ${m.output} шт','${m.status==='repair'?'error':m.status==='idle'?'info':'success'}')">
+      ${icons[m.status]}<div class="machine-num">${m.num}</div>
+      <div class="machine-tooltip">${m.worker} | ${m.order}<br>Выработка: ${m.output} шт</div>
+    </div>`;
+  }
+
+  map.innerHTML=`
+  <div class="zone"><div class="zone-label">✂️ Зона раскроя (2 стола)</div>
+  <div class="machines-grid">
+    <div class="machine working" onclick="toast('Раскройный стол Р-01: Канат Ш. — раскрой ЗК-2026-044, 180 крой/смену','success')">✂️<div class="machine-num">Р-01</div></div>
+    <div class="machine working" onclick="toast('Раскройный стол Р-02: Канат Ш. — раскрой ЗК-2026-045, 125 крой/смену','success')">✂️<div class="machine-num">Р-02</div></div>
+  </div></div>
+  <div class="zone"><div class="zone-label">🧵 Зона пошива (20 машин)</div>
+  <div class="machines-grid">${sewing.map(m=>machineHTML(m)).join('')}</div></div>
+  <div class="zone" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+    <div><div class="zone-label">🔍 ОТК (контроль качества)</div>
+    <div class="machines-grid">
+      <div class="machine working" onclick="toast('ОТК-1: Барчын Э. — проверка ЗК-2026-043, брак: 2 шт','success')">🔍<div class="machine-num">ОТК-1</div></div>
+      <div class="machine idle" onclick="toast('ОТК-2: свободен')">🔍<div class="machine-num">ОТК-2</div></div>
+    </div></div>
+    <div><div class="zone-label">📦 Зона упаковки</div>
+    <div class="machines-grid">
+      <div class="machine working" onclick="toast('УП-1: Айзат Б. — упаковка ЗК-2026-047, 91 шт','success')">📦<div class="machine-num">УП-1</div></div>
+      <div class="machine working" onclick="toast('УП-2: Мира К. — упаковка ЗК-2026-038, 65 шт','success')">📦<div class="machine-num">УП-2</div></div>
+      <div class="machine idle" onclick="toast('УП-3: свободен')">📦<div class="machine-num">УП-3</div></div>
+    </div></div>
+  </div>`;
+
+  // shift table
+  document.getElementById('shift-table').innerHTML=MACHINES.slice(0,8).map(m=>`
+    <tr><td><b>${m.num}</b></td><td>${m.worker}</td><td>${m.order}</td>
+    <td><b>${m.output||'—'}</b></td>
+    <td><span class="badge ${m.status==='working'?'badge-green':m.status==='idle'?'badge-amber':m.status==='repair'?'badge-red':'badge-gray'}">${m.status==='working'?'Работает':m.status==='idle'?'Простой':m.status==='repair'?'Ремонт':'Перерыв'}</span></td></tr>`).join('');
+
+  // floor log
+  const logs=[
+    {time:'09:15',icon:'🔧',text:'М-14 остановлена на ремонт (сломала игла)',color:'#fee2e2'},
+    {time:'09:42',icon:'✅',text:'Партия 80 шт передана в ОТК (ЗК-2026-043)',color:'#f0fdf4'},
+    {time:'10:30',icon:'📦',text:'Упаковано 120 шт — готово к отгрузке',color:'#f0fdf4'},
+    {time:'11:05',icon:'⚠️',text:'М-19 простаивает — нет задания',color:'#fef3c7'},
+    {time:'12:00',icon:'🍽️',text:'Обеденный перерыв — 12:00–12:30',color:'#f1f5f9'},
+    {time:'13:20',icon:'✅',text:'Раскрой ЗК-2026-044 завершён (500 крой)',color:'#f0fdf4'},
+  ];
+  document.getElementById('floor-log').innerHTML=logs.map(l=>`
+    <div style="display:flex;gap:10px;padding:8px 10px;border-radius:8px;background:${l.color};">
+      <span style="font-size:16px;">${l.icon}</span>
+      <div><div style="font-size:12px;font-weight:500;">${l.text}</div><div style="font-size:10px;color:var(--muted);">${l.time}</div></div>
+    </div>`).join('');
+}
+
+// ─── WAREHOUSE ───────────────────────────────────────────
+let currentWarehouseTab='fabric';
+function renderWarehouse(tab){
+  currentWarehouseTab=tab;
+  let data=tab==='fabric'?FABRIC:tab==='fittings'?FITTINGS:FINISHED;
+  const rows=data.map(r=>{
+    const pct=r.min>0?Math.min(r.qty/r.min*100,200):100;
+    const status=r.min===0?'ok':r.qty<r.min*0.3?'crit':r.qty<r.min?'warn':'ok';
+    return `<tr><td><span class="badge badge-gray" style="font-size:9px;">${r.art}</span></td>
+      <td><b>${r.name}</b></td><td>${r.unit}</td>
+      <td style="font-weight:700;font-size:14px;color:${status==='crit'?'#dc2626':status==='warn'?'#92400e':'var(--text)'};">${r.qty}</td>
+      <td>${r.min||'—'}</td>
+      <td><div class="stock-bar"><div class="stock-fill ${status}" style="width:${Math.min(pct,100)}%;"></div></div></td>
+      <td><span class="badge badge-${status==='ok'?'green':status==='warn'?'amber':'red'}">${status==='ok'?'OK':status==='warn'?'Мало':'Критично'}</span></td>
+      <td style="font-size:11px;color:var(--muted);">${(r.qty*r.price).toLocaleString()} сом</td>
+      <td><button class="btn btn-outline" style="font-size:10px;padding:4px 8px;" onclick="toast('Списание оформлено ✓','success')">Списать</button></td>
+    </tr>`;
+  }).join('');
+  const total=data.reduce((s,r)=>s+r.qty*r.price,0);
+  document.getElementById('warehouse-content').innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div style="font-size:13px;color:var(--muted);">Позиций: <b>${data.length}</b> · На сумму: <b style="color:var(--ac);">${total.toLocaleString()} сом</b></div>
+      <input class="form-input" style="width:220px;" placeholder="🔍 Поиск по наименованию..."/>
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Артикул</th><th>Наименование</th><th>Ед.</th><th>Остаток</th><th>Минимум</th><th>Уровень</th><th>Статус</th><th>Сумма</th><th></th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+}
+function switchWarehouseTab(tab,el){
+  el.parentElement.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderWarehouse(tab);
+}
+
+// ─── NOMENCLATURE ────────────────────────────────────────
+function renderNom(filter){
+  const data=filter==='all'?NOMENCLATURE:NOMENCLATURE.filter(n=>n.cat===filter);
+  document.getElementById('nom-grid').innerHTML=data.map(n=>`
+    <div class="nom-card" onclick="openNomDetailModal(${JSON.stringify(n).replace(/"/g,'&quot;')})">
+      <div class="nom-img" style="background:linear-gradient(135deg,#fef3c7,#fffbeb);">${n.emoji}</div>
+      <div class="nom-body">
+        <div class="nom-code">${n.code}</div>
+        <div class="nom-name">${n.name}</div>
+        <div class="nom-cat">${n.catLabel} · ${n.time}</div>
+        <div style="font-weight:700;font-size:13px;color:var(--green);margin-top:4px;">${n.price}</div>
+        <div class="nom-sizes">${n.sizes.map(s=>`<span class="size-tag">${s}</span>`).join('')}</div>
+      </div>
+    </div>`).join('');
+}
+function switchNomTab(f,el){
+  el.parentElement.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderNom(f);
+}
+function openNomDetailModal(n){
+  document.getElementById('nd-title').textContent=n.emoji+' '+n.name;
+  document.getElementById('nd-code').textContent=n.code;
+  document.getElementById('nd-cat').textContent=n.catLabel;
+  document.getElementById('nd-time').textContent=n.time;
+  document.getElementById('nd-price').textContent=n.price;
+  document.getElementById('nd-bom-table').innerHTML=n.bom.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]} сом</td><td>${r[4]} сом</td></tr>`).join('');
+  document.getElementById('nd-sizes-content').innerHTML=n.sizes.map(s=>`<div style="padding:10px 16px;border:1px solid var(--border);border-radius:8px;font-weight:700;font-size:14px;">${s}</div>`).join('');
+  openModal('nom-detail');
+}
+
+// ─── WORKERS ─────────────────────────────────────────────
+function renderWorkers(){
+  const sorted=[...WORKERS].sort((a,b)=>b.output-a.output);
+  document.getElementById('worker-output-table').innerHTML=sorted.map((w,i)=>{
+    const pct=Math.round(w.output/w.plan*100);
+    return `<tr>
+      <td><span style="font-size:12px;font-weight:800;color:${i<3?'#f59e0b':'var(--muted)'};">${i+1}</span></td>
+      <td><div style="display:flex;align-items:center;gap:8px;"><div class="ua" style="width:28px;height:28px;font-size:10px;background:${w.color};">${w.name.slice(0,1)}</div>${w.name}</div></td>
+      <td style="font-size:11px;color:var(--muted);">${w.role}</td>
+      <td><b style="font-size:14px;">${w.output}</b></td>
+      <td>${w.plan}</td>
+      <td><span class="badge ${pct>=100?'badge-green':pct>=80?'badge-amber':'badge-red'}">${pct}%</span></td>
+      <td><span class="badge badge-green">На смене</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── SHIPMENTS ───────────────────────────────────────────
+function renderShipments(filter){
+  const data=filter&&filter!=='all'?SHIPMENTS.filter(s=>filter==='ready'?s.status==='ready':s.status==='shipped'):SHIPMENTS;
+  document.getElementById('ship-table-body').innerHTML=data.map(s=>`
+    <tr class="${s.status==='ready'?'ready':''}">
+      <td><b>${s.num}</b></td><td>${s.date}</td><td>${s.client}</td>
+      <td>${s.item}</td><td><b>${s.qty}</b> шт</td>
+      <td><b>${s.sum.toLocaleString()}</b> сом</td>
+      <td><span class="badge badge-${s.dir==='Экспорт'?'blue':s.dir==='Оптовый'?'amber':'gray'}">${s.dir}</span></td>
+      <td><span class="badge ${s.status==='ready'?'badge-amber':'badge-green'}">${s.status==='ready'?'Готово к отгрузке':'Отгружено'}</span></td>
+      <td>${s.status==='ready'?`<button class="btn btn-primary" style="font-size:10px;padding:4px 8px;" onclick="toast('Отгрузка ${s.num} оформлена ✓','success')">Отгрузить</button>`:''}</td>
+    </tr>`).join('');
+}
+function switchShipTab(f,el){
+  el.parentElement.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderShipments(f);
+}
+
+// ─── ANALYTICS ───────────────────────────────────────────
+function renderAnalytics(){
+  // Plan vs fact bars
+  const months=['Апр','Май','Июн','Июл'];
+  const plan=[18000,20000,22000,24000];
+  const fact=[17800,19500,21400,14200];
+  const maxA=Math.max(...plan,...fact);
+  const svg=document.getElementById('plan-chart');
+  const W=400,H=180,pad=40,barW=30,gap=75;
+  svg.innerHTML=months.map((m,i)=>{
+    const ph=(plan[i]/maxA)*(H-40);
+    const fh=(fact[i]/maxA)*(H-40);
+    const x=pad+i*gap;
+    const y=H-30;
+    return `<rect x="${x}" y="${y-ph}" width="${barW}" height="${ph}" rx="3" fill="#e2e8f0"/>
+<rect x="${x+barW+3}" y="${y-fh}" width="${barW}" height="${fh}" rx="3" fill="${i<3?'#22c55e':'#f59e0b'}"/>
+<text x="${x+barW+1}" y="${H}" text-anchor="middle" font-size="11" fill="#64748b">${m}</text>
+<text x="${x+barW+1}" y="${y-ph-5}" text-anchor="middle" font-size="9" fill="#94a3b8">${(plan[i]/1000).toFixed(0)}k</text>`;
+  }).join('')+`
+<rect x="10" y="5" width="12" height="8" rx="2" fill="#e2e8f0"/>
+<text x="26" y="13" font-size="10" fill="#94a3b8">План</text>
+<rect x="70" y="5" width="12" height="8" rx="2" fill="#22c55e"/>
+<text x="86" y="13" font-size="10" fill="#94a3b8">Факт</text>`;
+
+  // Fabric consumption
+  const fabrics=[{name:'Ткань Оксфорд 600D',used:1250,color:'#f59e0b'},{name:'Флис 300г/м²',used:980,color:'#3b82f6'},{name:'Дюспо',used:640,color:'#22c55e'},{name:'Синтепон',used:520,color:'#a855f7'}];
+  const maxF=Math.max(...fabrics.map(f=>f.used));
+  document.getElementById('fabric-consumption').innerHTML=fabrics.map(f=>`
+    <div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;"><span style="font-weight:600;">${f.name}</span><span style="color:var(--muted);">${f.used} м</span></div>
+    <div style="height:10px;background:var(--border);border-radius:5px;overflow:hidden;"><div style="width:${Math.round(f.used/maxF*100)}%;height:100%;background:${f.color};border-radius:5px;"></div></div></div>`).join('');
+
+  // Revenue breakdown
+  const dirs=[{name:'Базар (Ош, Дордой)',sum:2100000,color:'#f59e0b'},{name:'Оптовые покупатели',sum:850000,color:'#3b82f6'},{name:'Экспорт (Казахстан)',sum:500000,color:'#22c55e'}];
+  const totalR=dirs.reduce((s,d)=>s+d.sum,0);
+  document.getElementById('revenue-breakdown').innerHTML=dirs.map(d=>`
+    <div style="padding:10px 14px;border-radius:8px;background:var(--light);border-left:4px solid ${d.color};">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-size:12px;font-weight:600;">${d.name}</div>
+        <div style="font-size:14px;font-weight:800;">${(d.sum/1000000).toFixed(2)}M <span style="font-size:10px;color:var(--muted);">сом</span></div>
+      </div>
+      <div style="height:4px;background:var(--border);border-radius:2px;margin-top:6px;"><div style="width:${Math.round(d.sum/totalR*100)}%;height:100%;background:${d.color};border-radius:2px;"></div></div>
+    </div>`).join('');
+
+  // Defects
+  const defects=[{name:'Зульфия О.',pct:5.2,count:4},{name:'Аида Р.',pct:3.8,count:3},{name:'Рая Д.',pct:2.4,count:2},{name:'Гуля М.',pct:1.1,count:1},{name:'Надя К.',pct:0.8,count:1}];
+  document.getElementById('defect-list').innerHTML=defects.map(d=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
+      <div style="flex:1;font-size:12px;font-weight:600;">${d.name}</div>
+      <div style="font-size:11px;color:var(--muted);">${d.count} шт</div>
+      <span class="badge ${d.pct>4?'badge-red':d.pct>2?'badge-amber':'badge-green'}">${d.pct}%</span>
+    </div>`).join('');
+
+  // KPI table
+  const kpiData=WORKERS.map(w=>({...w,days:22,salary:Math.round(w.output*22*18/1000)*1000}));
+  document.getElementById('kpi-table').innerHTML=kpiData.map(w=>`
+    <tr><td><div style="display:flex;align-items:center;gap:8px;"><div class="ua" style="width:24px;height:24px;font-size:9px;background:${w.color};">${w.name.slice(0,1)}</div>${w.name}</div></td>
+    <td><b>${w.output*22}</b></td>
+    <td><span class="badge ${Math.round(w.output/w.plan*100)>=100?'badge-green':'badge-amber'}">${Math.round(w.output/w.plan*100)}%</span></td>
+    <td>${Math.floor(Math.random()*5)+1} шт</td>
+    <td>${w.days}</td>
+    <td><b>${w.salary.toLocaleString()}</b> сом</td></tr>`).join('');
+}
+
+// ─── SETTINGS ────────────────────────────────────────────
+function switchSetTab(id,el){
+  document.querySelectorAll('.set-tab').forEach(t=>t.style.display='none');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('set-'+id).style.display='';
+  el.classList.add('active');
+}
+function renderSettings(){
+  const stages=['Принят','Раскрой','Пошив','ОТК','Готово','Отгружен'];
+  document.getElementById('stages-list').innerHTML=stages.map((s,i)=>`
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--light);border-radius:8px;">
+      <span style="cursor:grab;color:var(--muted);">⠿</span>
+      <div style="width:24px;height:24px;border-radius:6px;background:${STAGE_COLORS[i]};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;">${i+1}</div>
+      <input class="form-input" style="flex:1;max-width:200px;" value="${s}"/>
+      <button class="btn btn-red" style="font-size:11px;padding:4px 8px;" onclick="toast('Этап удалён','error')">✕</button>
+    </div>`).join('');
+}
+
+// ─── NOTIF PANEL ─────────────────────────────────────────
+function toggleNotif(){document.getElementById('notif-panel').classList.toggle('open');}
+function markAllRead(){document.querySelectorAll('.notif-item.unread').forEach(i=>i.classList.remove('unread'));toast('Все прочитаны ✓','success');document.querySelector('.ndot').style.display='none';}
+document.addEventListener('click',e=>{if(!e.target.closest('.notif-btn')&&!e.target.closest('.notif-panel'))document.getElementById('notif-panel').classList.remove('open');});
+
+// ─── ORDER CREATE ─────────────────────────────────────────
+function createOrder(){
+  const client=document.getElementById('no-client').value.trim();
+  const qty=parseInt(document.getElementById('no-qty').value)||0;
+  if(!client||!qty){toast('Заполните обязательные поля','error');return;}
+  const item=document.getElementById('no-item').value;
+  const due=document.getElementById('no-due').value;
+  const urgent=document.getElementById('no-priority').value==='Срочный';
+  const id='ЗК-2026-0'+(49+ORDERS.length);
+  ORDERS.unshift({id,client,item,qty,done:0,stage:0,due:due||'—',urgent,note:'',resp:'Гуля М.'});
+  closeModal('new-order');
+  toast('Заказ '+id+' создан ✓','success');
+  if(document.getElementById('sec-orders').classList.contains('active'))renderOrdersKanban();
+}
+
+// ─── INIT ─────────────────────────────────────────────────
+renderDashboard();
+renderOrdersKanban();
+renderSettings();
+renderNom('all');
+renderShipments();
+</script>
+</body>
+</html>
