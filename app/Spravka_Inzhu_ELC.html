@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Справка об обучении · Инжу · ELC Kids Roblox English</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--ink:#1a1a2e;--acc:#6d28d9;--acc2:#8b5cf6;--gold:#f59e0b;--green:#16a34a;--muted:#6b7280;--border:#e5e7eb}
+body{font-family:'Inter',sans-serif;background:#f3f4f6;color:var(--ink);font-size:13.5px;line-height:1.55}
+.page{max-width:820px;margin:0 auto;background:#fff;min-height:297mm;position:relative;overflow:hidden}
+
+/* header */
+.hdr{background:linear-gradient(135deg,#1a1a2e 0%,#2d2b55 60%,#4c1d95 100%);color:#fff;padding:38px 52px 32px;position:relative}
+.hdr::after{content:'🎮📚⭐🧩🎯';position:absolute;right:24px;top:18px;font-size:15px;letter-spacing:8px;opacity:.5}
+.hdr .school{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+.hdr .mark{width:44px;height:44px;background:linear-gradient(135deg,#8b5cf6,#f59e0b);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px}
+.hdr .sname{font-weight:900;font-size:17px;letter-spacing:-.3px}
+.hdr .sname span{display:block;font-size:10px;font-weight:600;color:#c4b5fd;letter-spacing:2px;text-transform:uppercase}
+.hdr h1{font-size:27px;font-weight:900;letter-spacing:-.5px}
+.hdr .sub{font-size:13px;color:#c4b5fd;margin-top:6px}
+
+/* student */
+.student{padding:28px 52px 6px;display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap}
+.st-name{font-size:24px;font-weight:900}
+.st-info{font-size:12.5px;color:var(--muted);margin-top:4px;line-height:1.8}
+.level-badge{background:linear-gradient(135deg,#6d28d9,#8b5cf6);color:#fff;border-radius:14px;padding:14px 22px;text-align:center;box-shadow:0 8px 20px rgba(109,40,217,.3)}
+.level-badge b{font-size:22px;font-weight:900;display:block}
+.level-badge span{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#ddd6fe}
+
+/* progress */
+.progress-wrap{padding:18px 52px 8px}
+.pr-label{display:flex;justify-content:space-between;font-size:11.5px;font-weight:700;color:var(--muted);margin-bottom:6px}
+.pr-bar{height:16px;background:#f3f4f6;border-radius:10px;overflow:hidden;position:relative}
+.pr-fill{height:100%;width:58.6%;background:linear-gradient(90deg,#8b5cf6,#f59e0b);border-radius:10px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;color:#fff;font-size:9.5px;font-weight:800}
+.pr-marks{display:flex;justify-content:space-between;font-size:10px;color:#9ca3af;margin-top:4px}
+
+/* content */
+.section{padding:14px 52px}
+.sec-title{font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--acc);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.sec-title::after{content:'';flex:1;height:1px;background:var(--border)}
+
+.att-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.att{border:1px solid var(--border);border-radius:12px;padding:12px 14px;position:relative}
+.att.done{background:#faf5ff;border-color:#ddd6fe}
+.att.part{background:#fffbeb;border-color:#fde68a}
+.att .check{position:absolute;top:10px;right:12px;font-size:13px}
+.att b{font-size:12.5px;display:block;margin-bottom:2px}
+.att .rng{font-size:10px;color:var(--muted);font-weight:700;margin-bottom:6px}
+.att ul{margin-left:14px;font-size:10.5px;color:#4b5563}
+.att li{margin-bottom:1px}
+
+.summary{margin:8px 52px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:14px 18px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;text-align:center}
+.sum-i b{font-size:20px;font-weight:900;display:block;color:var(--green)}
+.sum-i span{font-size:10px;color:var(--muted);font-weight:600}
+
+/* footer */
+.foot{padding:20px 52px 30px;display:flex;justify-content:space-between;align-items:flex-end;gap:20px}
+.foot .left{font-size:11.5px;color:var(--muted);line-height:1.8}
+.foot .left b{color:var(--ink)}
+.sign{text-align:center}
+.sign .line{width:180px;border-bottom:1.5px solid var(--ink);margin-bottom:6px;height:34px;position:relative}
+.sign .line::after{content:'ELC Kids';position:absolute;left:50%;bottom:4px;transform:translateX(-50%) rotate(-4deg);font-family:cursive;font-size:19px;color:var(--acc)}
+.sign span{font-size:10.5px;color:var(--muted)}
+.stamp{position:absolute;bottom:98px;right:70px;width:110px;height:110px;border:2.5px solid rgba(109,40,217,.45);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;transform:rotate(-12deg);color:rgba(109,40,217,.55);font-weight:800;pointer-events:none}
+.stamp .s1{font-size:9px;letter-spacing:1.5px}
+.stamp .s2{font-size:15px}
+.stamp .s3{font-size:8px;letter-spacing:1px}
+
+@media print{body{background:#fff}.page{max-width:100%}@page{margin:0;size:A4}}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="hdr">
+    <div class="school">
+      <div class="mark">🎮</div>
+      <div class="sname">ELC Kids · Roblox English<span>Онлайн-школа английского языка · Алматы</span></div>
+    </div>
+    <h1>СПРАВКА ОБ ОБУЧЕНИИ</h1>
+    <div class="sub">Certificate of Study Progress · программа «Roblox English» · 70 уроков · A1 → B1 · elc-kids.kz/progress</div>
+  </div>
+
+  <div class="student">
+    <div>
+      <div style="font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Настоящая справка выдана</div>
+      <div class="st-name">Инжу</div>
+      <div class="st-info">Студентка программы «Roblox English»<br>Период обучения: пройдено <b style="color:var(--ink)">уроки 1 – 41</b> из 70<br>Дата выдачи справки: 2 июля 2026 г.</div>
+    </div>
+    <div class="level-badge">
+      <span>Достигнутый уровень</span>
+      <b>A2 ✓</b>
+      <span style="color:#fbbf24">→ Pre-Intermediate</span>
+    </div>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="pr-label"><span>Прогресс по программе</span><span>41 / 70 уроков · 59%</span></div>
+    <div class="pr-bar"><div class="pr-fill">41 урок</div></div>
+    <div class="pr-marks"><span>A1 (1–20) ✓</span><span>A2 (21–40) ✓</span><span>Pre-Int (41–50) · идёт</span><span>B1 (51–70)</span></div>
+  </div>
+
+  <div class="section">
+    <div class="sec-title">Пройденные модули и темы</div>
+    <div class="att-grid">
+      <div class="att done"><span class="check">✅</span><b>🌱 Модуль 1 · A1 Старт</b><div class="rng">Уроки 1–5 · Аттестация 1 сдана</div>
+        <ul><li>My name is… · I am / You are / He is</li><li>Притяжательные: my, your, his, her</li><li>Артикли a / an / the</li><li>Знакомство, приветствие, семья</li></ul></div>
+      <div class="att done"><span class="check">✅</span><b>🌿 Модуль 2 · A1 Основы</b><div class="rng">Уроки 6–10 · Аттестация 2 сдана</div>
+        <ul><li>Числа 1–10, цвета</li><li>There is / There are</li><li>Предлоги места: in, on, under, behind</li></ul></div>
+      <div class="att done"><span class="check">✅</span><b>📗 Модуль 3 · A1 Present Simple</b><div class="rng">Уроки 11–15 · Аттестация 3 сдана</div>
+        <ul><li>Present Simple: I/You + V, He/She + V+s</li><li>Отрицания don't / doesn't</li><li>Wh-вопросы: What / Where / When</li></ul></div>
+      <div class="att done"><span class="check">✅</span><b>⭐ Модуль 4 · A1 Завершение</b><div class="rng">Уроки 16–20 · Аттестация 4 ✦ сдана</div>
+        <ul><li>Семья: This is my… / These are my…</li><li>I like / I don't like</li><li>Свободный диалог — весь материал A1</li></ul></div>
+      <div class="att done"><span class="check">✅</span><b>🔵 Модуль 5 · A2 Прошедшее</b><div class="rng">Уроки 21–25 · Аттестация 5 сдана</div>
+        <ul><li>Past Simple: was / were, V-ed</li><li>Неправильные глаголы: go-went, see-saw…</li><li>Can / Can't (способности)</li></ul></div>
+      <div class="att done"><span class="check">✅</span><b>🔷 Модуль 6 · A2 Будущее</b><div class="rng">Уроки 26–30 · Аттестация 6 сдана</div>
+        <ul><li>Must / Mustn't · Going to (планы)</li><li>Countable / Uncountable + some/any</li><li>Сравнения: bigger, more interesting</li></ul></div>
+      <div class="att done"><span class="check">✅</span><b>💠 Модуль 7 · A2 Непрерывное</b><div class="rng">Уроки 31–35 · Аттестация 7 сдана</div>
+        <ul><li>Превосходная степень: the biggest…</li><li>Present Continuous · Simple vs Continuous</li><li>Предлоги времени at/on/in, направления</li></ul></div>
+      <div class="att done"><span class="check">✅</span><b>🌟 Модуль 8 · A2 Завершение</b><div class="rng">Уроки 36–40 · Аттестация 8 ✦ сдана</div>
+        <ul><li>Расширенные Wh-вопросы</li><li>Наречия: quickly, carefully, well</li><li>Like/love/hate + -ing · приглашения Let's…</li></ul></div>
+      <div class="att part" style="grid-column:1/3"><span class="check">🔶</span><b>🏅 Модуль 9 · Pre-Intermediate Опыт — в процессе</b><div class="rng">Уроки 41–45 · пройден урок 41</div>
+        <ul><li>Past Continuous: was/were + V-ing — начато</li><li>Далее: Present Perfect (have/has + V3), Have you ever…?, for/since</li></ul></div>
+    </div>
+  </div>
+
+  <div class="summary">
+    <div class="sum-i"><b>41</b><span>уроков пройдено</span></div>
+    <div class="sum-i"><b>8</b><span>аттестаций сдано</span></div>
+    <div class="sum-i"><b>A1 + A2</b><span>уровни завершены</span></div>
+    <div class="sum-i"><b>~380</b><span>слов в активном словаре</span></div>
+  </div>
+
+  <div class="foot">
+    <div class="left">
+      <b>ELC Kids · Roblox English</b><br>
+      Онлайн-школа английского языка для детей<br>
+      elc-kids.kz · +7 707 456 9118 · г. Алматы<br>
+      Справка сформирована на основании журнала прогресса elc-kids.kz/progress
+    </div>
+    <div class="sign">
+      <div class="line"></div>
+      <span>Руководитель школы</span>
+    </div>
+  </div>
+
+  <div class="stamp"><span class="s1">ELC KIDS</span><span class="s2">✦ ✦ ✦</span><span class="s1">ROBLOX ENGLISH</span><span class="s3">ALMATY · KZ</span></div>
+
+</div>
+</body>
+</html>
