@@ -8,62 +8,62 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--ink:#1a1a2e;--acc:#6d28d9;--acc2:#8b5cf6;--gold:#f59e0b;--green:#16a34a;--muted:#6b7280;--border:#e5e7eb}
-body{font-family:'Inter',sans-serif;background:#f3f4f6;color:var(--ink);font-size:13.5px;line-height:1.55}
+body{font-family:'Inter',sans-serif;background:#f3f4f6;color:var(--ink);font-size:12.5px;line-height:1.45}
 .page{max-width:820px;margin:0 auto;background:#fff;min-height:297mm;position:relative;overflow:hidden}
 
 /* header */
-.hdr{background:linear-gradient(135deg,#1a1a2e 0%,#2d2b55 60%,#4c1d95 100%);color:#fff;padding:38px 52px 32px;position:relative}
+.hdr{background:linear-gradient(135deg,#1a1a2e 0%,#2d2b55 60%,#4c1d95 100%);color:#fff;padding:22px 46px 18px;position:relative}
 .hdr::after{content:'🎮📚⭐🧩🎯';position:absolute;right:24px;top:18px;font-size:15px;letter-spacing:8px;opacity:.5}
-.hdr .school{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+.hdr .school{display:flex;align-items:center;gap:12px;margin-bottom:12px}
 .hdr .mark{width:44px;height:44px;background:linear-gradient(135deg,#8b5cf6,#f59e0b);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px}
 .hdr .sname{font-weight:900;font-size:17px;letter-spacing:-.3px}
 .hdr .sname span{display:block;font-size:10px;font-weight:600;color:#c4b5fd;letter-spacing:2px;text-transform:uppercase}
-.hdr h1{font-size:27px;font-weight:900;letter-spacing:-.5px}
+.hdr h1{font-size:22px;font-weight:900;letter-spacing:-.5px}
 .hdr .sub{font-size:13px;color:#c4b5fd;margin-top:6px}
 
 /* student */
-.student{padding:28px 52px 6px;display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap}
-.st-name{font-size:24px;font-weight:900}
-.st-info{font-size:12.5px;color:var(--muted);margin-top:4px;line-height:1.8}
-.level-badge{background:linear-gradient(135deg,#6d28d9,#8b5cf6);color:#fff;border-radius:14px;padding:14px 22px;text-align:center;box-shadow:0 8px 20px rgba(109,40,217,.3)}
-.level-badge b{font-size:22px;font-weight:900;display:block}
+.student{padding:14px 46px 2px;display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap}
+.st-name{font-size:20px;font-weight:900}
+.st-info{font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.6}
+.level-badge{background:linear-gradient(135deg,#6d28d9,#8b5cf6);color:#fff;border-radius:14px;padding:8px 18px;text-align:center;box-shadow:0 8px 20px rgba(109,40,217,.3)}
+.level-badge b{font-size:18px;font-weight:900;display:block}
 .level-badge span{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#ddd6fe}
 
 /* progress */
-.progress-wrap{padding:18px 52px 8px}
+.progress-wrap{padding:10px 46px 4px}
 .pr-label{display:flex;justify-content:space-between;font-size:11.5px;font-weight:700;color:var(--muted);margin-bottom:6px}
-.pr-bar{height:16px;background:#f3f4f6;border-radius:10px;overflow:hidden;position:relative}
+.pr-bar{height:12px;background:#f3f4f6;border-radius:10px;overflow:hidden;position:relative}
 .pr-fill{height:100%;width:58.6%;background:linear-gradient(90deg,#8b5cf6,#f59e0b);border-radius:10px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;color:#fff;font-size:9.5px;font-weight:800}
 .pr-marks{display:flex;justify-content:space-between;font-size:10px;color:#9ca3af;margin-top:4px}
 
 /* content */
-.section{padding:14px 52px}
-.sec-title{font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--acc);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.section{padding:8px 46px}
+.sec-title{font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--acc);margin-bottom:8px;display:flex;align-items:center;gap:8px}
 .sec-title::after{content:'';flex:1;height:1px;background:var(--border)}
 
-.att-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.att{border:1px solid var(--border);border-radius:12px;padding:12px 14px;position:relative}
+.att-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.att{border:1px solid var(--border);border-radius:10px;padding:8px 11px;position:relative}
 .att.done{background:#faf5ff;border-color:#ddd6fe}
 .att.part{background:#fffbeb;border-color:#fde68a}
 .att .check{position:absolute;top:10px;right:12px;font-size:13px}
-.att b{font-size:12.5px;display:block;margin-bottom:2px}
-.att .rng{font-size:10px;color:var(--muted);font-weight:700;margin-bottom:6px}
-.att ul{margin-left:14px;font-size:10.5px;color:#4b5563}
+.att b{font-size:11.5px;display:block;margin-bottom:1px}
+.att .rng{font-size:9px;color:var(--muted);font-weight:700;margin-bottom:3px}
+.att ul{margin-left:13px;font-size:9.5px;color:#4b5563}
 .att li{margin-bottom:1px}
 
-.summary{margin:8px 52px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:14px 18px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;text-align:center}
-.sum-i b{font-size:20px;font-weight:900;display:block;color:var(--green)}
+.summary{margin:6px 46px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:9px 16px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;text-align:center}
+.sum-i b{font-size:16px;font-weight:900;display:block;color:var(--green)}
 .sum-i span{font-size:10px;color:var(--muted);font-weight:600}
 
 /* footer */
-.foot{padding:20px 52px 30px;display:flex;justify-content:space-between;align-items:flex-end;gap:20px}
-.foot .left{font-size:11.5px;color:var(--muted);line-height:1.8}
+.foot{padding:10px 46px 18px;display:flex;justify-content:space-between;align-items:flex-end;gap:20px}
+.foot .left{font-size:10.5px;color:var(--muted);line-height:1.6}
 .foot .left b{color:var(--ink)}
 .sign{text-align:center}
-.sign .line{width:180px;border-bottom:1.5px solid var(--ink);margin-bottom:6px;height:34px;position:relative}
+.sign .line{width:170px;border-bottom:1.5px solid var(--ink);margin-bottom:4px;height:26px;position:relative}
 .sign .line::after{content:'ELC Kids';position:absolute;left:50%;bottom:4px;transform:translateX(-50%) rotate(-4deg);font-family:cursive;font-size:19px;color:var(--acc)}
 .sign span{font-size:10.5px;color:var(--muted)}
-.stamp{position:absolute;bottom:98px;right:70px;width:110px;height:110px;border:2.5px solid rgba(109,40,217,.45);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;transform:rotate(-12deg);color:rgba(109,40,217,.55);font-weight:800;pointer-events:none}
+.stamp{position:absolute;bottom:60px;right:62px;width:96px;height:96px;border:2.5px solid rgba(109,40,217,.45);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;transform:rotate(-12deg);color:rgba(109,40,217,.55);font-weight:800;pointer-events:none}
 .stamp .s1{font-size:9px;letter-spacing:1.5px}
 .stamp .s2{font-size:15px}
 .stamp .s3{font-size:8px;letter-spacing:1px}
