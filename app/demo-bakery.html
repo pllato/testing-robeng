@@ -229,6 +229,12 @@ input,select,textarea{font-family:inherit;outline:none}
 .map-agent{background:var(--amber)}
 .map-tt{background:var(--green)}
 .map-tt.skip{background:#a8a29e}
+@keyframes pulse{0%,100%{box-shadow:0 3px 8px rgba(0,0,0,.25)}50%{box-shadow:0 0 0 8px rgba(217,119,6,.25)}}
+.fleet-row{display:flex;gap:9px;align-items:flex-start;padding:8px 6px;border-radius:9px;cursor:pointer;font-size:12px}
+.fleet-row:hover{background:var(--bg)}
+.fleet-row b{display:block;font-size:12.5px}
+.fleet-row span:last-child{color:var(--muted);font-size:11px}
+.fl-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:4px}
 @media(max-width:900px){.stat4{grid-template-columns:1fr 1fr}.p-side{display:none}}
 </style>
 </head>
@@ -244,7 +250,8 @@ input,select,textarea{font-family:inherit;outline:none}
   <button class="role-tab" data-role="wh" onclick="switchRole('wh')"><span>🏭</span> Кладовщик СГП</button>
   <button class="role-tab" data-role="sv" onclick="switchRole('sv')"><span>👁️</span> Супервизор</button>
   <button class="role-tab" data-role="adm" onclick="switchRole('adm')"><span>⚙️</span> Администратор</button>
-  <div class="rb-right">Демо · Pllato · 02.07.2026</div>
+  <a href="demo-bakery-app.html" target="_blank" style="margin-left:auto;display:flex;align-items:center;gap:7px;background:#292524;border:1px solid #44403c;color:#fbbf24;font-size:12px;font-weight:700;padding:8px 14px;border-radius:10px;text-decoration:none">📱 Мобильное приложение <span style="color:#78716c;font-weight:500">открыть отдельно</span></a>
+  <div class="rb-right" style="margin-left:14px">Демо · Pllato · 02.07.2026</div>
 </div>
 
 <!-- ================= AGENT VIEW ================= -->
@@ -536,6 +543,11 @@ input,select,textarea{font-family:inherit;outline:none}
     <div class="agent-side">
       <h2>Мобильное приложение агента</h2>
       <p>Android / iOS · Offline-First (SQLite + фоновая синхронизация) · работа одной рукой на маршруте. Кликайте по нижней навигации телефона.</p>
+      <a href="demo-bakery-app.html" target="_blank" style="display:flex;align-items:center;gap:12px;background:var(--dark);color:#fff;border-radius:14px;padding:14px 18px;text-decoration:none;margin-bottom:14px">
+        <span style="font-size:26px">📱</span>
+        <div><b style="font-size:14px">Открыть мокап приложения отдельно</b><br><span style="font-size:11.5px;color:#a8a29e">pllato.kz/app/demo-bakery-app.html — отправьте ссылку на телефон, откроется как настоящее приложение</span></div>
+        <span style="margin-left:auto;color:#fbbf24;font-size:18px">→</span>
+      </a>
       <div class="feat-list">
         <div class="feat" onclick="aNav('orders')"><span class="fi">📅</span><div><b>Заявки Т-2 / Т-1</b><span>Календарь 30 дней, автоподстановка, потоварные дедлайны ±, статусы модерации (жёлтый/зелёный/красный)</span></div></div>
         <div class="feat" onclick="aNav('visit')"><span class="fi">🛒</span><div><b>Визит и умная корзина</b><span>Радар ТТ по GPS, fuzzy-поиск, Блок А (продажа) + Блок Б (возврат с причиной), сетевые матрицы, сканер штрихкодов</span></div></div>
@@ -752,27 +764,50 @@ input,select,textarea{font-family:inherit;outline:none}
 
       <!-- MAP -->
       <div class="w-screen active" id="sv-map">
-        <div class="p-head"><div><h2>Интерактивная GPS-карта</h2><p>Треки перемещений (точка раз в 5 мин) · маркеры визитов · километраж · анти-дрейф</p></div></div>
+        <div class="p-head"><div><h2>Карта агентов — кто где и в каком статусе</h2><p>Онлайн-позиции всей команды · треки (точка раз в 5 мин) · километраж · анти-дрейф</p></div>
+        <a class="btn btn-out" href="demo-bakery-app.html" target="_blank">📱 Мобильное приложение агента →</a></div>
         <div class="stat4">
-          <div class="stat-c g"><b>5/6</b><span>Агентов онлайн</span></div>
-          <div class="stat-c"><b>84 км</b><span>Пробег Бакыта сегодня</span></div>
-          <div class="stat-c b"><b>14</b><span>Визитов на треке</span></div>
-          <div class="stat-c r"><b>1</b><span>Оффлайн (буфер SQLite)</span></div>
+          <div class="stat-c g"><b>3</b><span>🟢 На маршруте</span></div>
+          <div class="stat-c"><b>1</b><span>🟠 Визит в ТТ сейчас</span></div>
+          <div class="stat-c r"><b>1</b><span>🔴 Ожидает проверки</span></div>
+          <div class="stat-c b"><b>1</b><span>⚫ Оффлайн (буфер SQLite)</span></div>
         </div>
-        <div class="card" style="padding:10px">
-          <div class="map-box">
-            <div class="map-road" style="left:0;right:0;top:120px;height:14px"></div>
-            <div class="map-road" style="left:0;right:0;top:290px;height:10px"></div>
-            <div class="map-road" style="top:0;bottom:0;left:200px;width:12px"></div>
-            <div class="map-road" style="top:0;bottom:0;left:520px;width:10px"></div>
-            <svg style="position:absolute;inset:0;width:100%;height:100%" viewBox="0 0 800 420" preserveAspectRatio="none">
-              <path d="M 60 380 L 60 300 L 206 300 L 206 127 L 380 127 L 380 295 L 525 295 L 525 127 L 690 127" fill="none" stroke="#d97706" stroke-width="3.5" stroke-dasharray="8 5" stroke-linecap="round"/>
-            </svg>
-            <div class="map-marker map-tt" style="left:46px;top:352px" onclick="showToast('Магазин «Нур» · визит 09:12 · продажа 1 548 с · фото полки ✓','ok')"><span>✓</span></div>
-            <div class="map-marker map-tt" style="left:192px;top:262px" onclick="showToast('Киоск «Береке» · визит 10:05 · инкассация 5 000 с','ok')"><span>✓</span></div>
-            <div class="map-marker map-tt" style="left:366px;top:95px" onclick="showToast('ТС «Глобус» №7 · визит 11:20 · сетевая матрица · 6 240 с','ok')"><span>✓</span></div>
-            <div class="map-marker map-tt skip" style="left:512px;top:262px" onclick="showToast('Магазин «Ак-Бата» — запланирован, ещё не посещён','info')"><span>·</span></div>
-            <div class="map-marker map-agent" style="left:676px;top:95px" onclick="showToast('Бакыт Асанов · онлайн · скорость 34 км/ч · точки каждые 5 мин','info')"><span>🚐</span></div>
+        <div style="display:grid;grid-template-columns:1fr 280px;gap:16px">
+          <div class="card" style="padding:10px;margin:0">
+            <div class="map-box">
+              <div class="map-road" style="left:0;right:0;top:120px;height:14px"></div>
+              <div class="map-road" style="left:0;right:0;top:290px;height:10px"></div>
+              <div class="map-road" style="top:0;bottom:0;left:200px;width:12px"></div>
+              <div class="map-road" style="top:0;bottom:0;left:520px;width:10px"></div>
+              <svg style="position:absolute;inset:0;width:100%;height:100%" viewBox="0 0 800 420" preserveAspectRatio="none">
+                <path d="M 60 380 L 60 300 L 206 300 L 206 127 L 380 127 L 380 295 L 525 295 L 525 127 L 690 127" fill="none" stroke="#16a34a" stroke-width="3" stroke-dasharray="8 5" stroke-linecap="round" opacity=".8"/>
+                <path d="M 120 40 L 206 40 L 206 127 L 320 127" fill="none" stroke="#d97706" stroke-width="3" stroke-dasharray="8 5" stroke-linecap="round" opacity=".8"/>
+                <path d="M 700 380 L 620 380 L 620 295 L 525 295" fill="none" stroke="#2563eb" stroke-width="3" stroke-dasharray="8 5" stroke-linecap="round" opacity=".6"/>
+              </svg>
+              <!-- ТТ markers -->
+              <div class="map-marker map-tt" style="left:46px;top:352px;width:22px;height:22px;font-size:9px" onclick="showToast('Магазин «Нур» · визит 09:12 · продажа 1 548 с','ok')"><span>✓</span></div>
+              <div class="map-marker map-tt" style="left:192px;top:262px;width:22px;height:22px;font-size:9px" onclick="showToast('Киоск «Береке» · визит 10:05 · инкассация 5 000 с','ok')"><span>✓</span></div>
+              <div class="map-marker map-tt skip" style="left:512px;top:262px;width:22px;height:22px;font-size:9px" onclick="showToast('Магазин «Ак-Бата» — запланирован, не посещён','info')"><span>·</span></div>
+              <!-- Agent markers: status colors -->
+              <div class="map-marker" style="left:676px;top:95px;background:#16a34a" onclick="showToast('🟢 Бакыт Асанов · НА МАРШРУТЕ · 34 км/ч · 84 км за день · 14/25 визитов · касса 12 480 с','ok')"><span>🚐</span></div>
+              <div class="map-marker" style="left:306px;top:95px;background:#d97706;animation:pulse 1.5s infinite" onclick="showToast('🟠 Эрлан Токтогулов · ВИЗИТ В ТТ · «Павильон №12» · 12 мин на точке · корзина открыта','info')"><span>🛒</span></div>
+              <div class="map-marker" style="left:96px;top:22px;background:#16a34a" onclick="showToast('🟢 Азамат Шералиев · НА МАРШРУТЕ · 41 км/ч · 52 км · 9/22 визитов','ok')"><span>🚐</span></div>
+              <div class="map-marker" style="left:686px;top:352px;background:#dc2626" onclick="showToast('🔴 Нурбек Осмонов · ОЖИДАЕТ ПРОВЕРКИ · подъехал к рампе СГП · отгрузки заблокированы до закрытия смены','err')"><span>⏳</span></div>
+              <div class="map-marker" style="left:410px;top:262px;background:#57534e" onclick="showToast('⚫ Улан Бекешев · ОФФЛАЙН 42 мин (рейс Талас, вне покрытия) · GPS-точки копятся в SQLite, выгрузятся при сети','info')"><span>📵</span></div>
+              <div class="map-marker" style="left:250px;top:352px;background:#2563eb" onclick="showToast('🔵 Тимур Касымов · СМЕНА ЗАКРЫТА в 17:40 · касса сдана · недостач нет','info')"><span>🏁</span></div>
+            </div>
+          </div>
+          <div class="card" style="margin:0;padding:12px">
+            <h3 style="margin-bottom:10px">Команда · живые статусы</h3>
+            <div class="fleet-row" onclick="showToast('Бакыт: трек 84 км, следующая ТТ «Ак-Бата» через 1.2 км','ok')"><span class="fl-dot" style="background:#16a34a"></span><div><b>Бакыт Асанов</b><span>На маршруте · 34 км/ч · 14/25 ТТ</span></div></div>
+            <div class="fleet-row" onclick="showToast('Эрлан: на точке «Павильон №12» уже 12 минут','info')"><span class="fl-dot" style="background:#d97706"></span><div><b>Эрлан Токтогулов</b><span>Визит в ТТ · 12 мин на точке</span></div></div>
+            <div class="fleet-row" onclick="showToast('Азамат: движется по пр. Чуй, 9/22 визитов','ok')"><span class="fl-dot" style="background:#16a34a"></span><div><b>Азамат Шералиев</b><span>На маршруте · 41 км/ч · 9/22 ТТ</span></div></div>
+            <div class="fleet-row" onclick="showToast('Тимур: смена закрыта в 17:40, план 25/25, Strike Rate 84%, касса сдана без недостач','info')"><span class="fl-dot" style="background:#2563eb"></span><div><b>Тимур Касымов</b><span>Смена закрыта 17:40 · 25/25 ТТ ✓</span></div></div>
+            <div class="fleet-row" onclick="showToast('Нурбек у рампы СГП. Кладовщик начал пересчёт машины','err')"><span class="fl-dot" style="background:#dc2626"></span><div><b>Нурбек Осмонов</b><span>Ожидает проверки · у рампы СГП</span></div></div>
+            <div class="fleet-row" onclick="showToast('Улан: последняя точка 42 мин назад (Талас). Буфер SQLite копит трек','info')"><span class="fl-dot" style="background:#57534e"></span><div><b>Улан Бекешев</b><span>Оффлайн 42 мин · рейс Талас (2/3 дн)</span></div></div>
+            <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px;font-size:10.5px;color:var(--muted)">
+              🟢 на маршруте · 🟠 визит в ТТ · 🔴 ожидает проверки<br>🔵 смена закрыта · ⚫ оффлайн (буфер)
+            </div>
           </div>
         </div>
         <div class="card">
