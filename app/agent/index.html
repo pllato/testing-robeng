@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>Мобильный Агент — приложение агента (мокап)</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --amber:#d97706;--amber-d:#b45309;--amber-l:#fef3c7;
+  --dark:#1c1917;--dark2:#292524;
+  --green:#16a34a;--green-l:#dcfce7;
+  --red:#dc2626;--red-l:#fee2e2;
+  --yellow:#ca8a04;--yellow-l:#fef9c3;
+  --blue:#2563eb;--blue-l:#dbeafe;
+  --bg:#f5f5f4;--card:#fff;--border:#e7e5e4;
+  --text:#1c1917;--muted:#78716c;
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;min-height:100vh}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+input,select,textarea{font-family:inherit;outline:none}
+
+/* ============ TOP ROLE SWITCHER ============ */
+.rolebar{background:var(--dark);padding:0 20px;display:flex;align-items:center;gap:6px;height:58px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.25)}
+.rb-logo{display:flex;align-items:center;gap:10px;margin-right:18px}
+.rb-mark{width:34px;height:34px;background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px}
+.rb-name{color:#fff;font-weight:800;font-size:14px;line-height:1.2}
+.rb-name span{display:block;font-size:9px;font-weight:600;color:#a8a29e;letter-spacing:1.5px;text-transform:uppercase}
+.role-tab{display:flex;align-items:center;gap:8px;padding:9px 16px;border-radius:10px;color:#a8a29e;font-size:13px;font-weight:600;transition:all .15s}
+.role-tab:hover{background:var(--dark2);color:#e7e5e4}
+.role-tab.active{background:var(--amber);color:#fff}
+.rb-right{margin-left:auto;color:#78716c;font-size:11px}
+
+/* ============ ROLE VIEWS ============ */
+.role-view{display:none}
+.role-view.active{display:block}
+
+/* ============ AGENT PHONE ============ */
+.agent-wrap{display:flex;gap:32px;justify-content:center;padding:32px 20px;align-items:flex-start;flex-wrap:wrap}
+.phone{width:390px;background:#000;border-radius:44px;padding:10px;box-shadow:0 24px 64px rgba(0,0,0,.35);flex-shrink:0}
+.phone-screen{background:var(--bg);border-radius:36px;overflow:hidden;height:780px;display:flex;flex-direction:column;position:relative}
+.ph-status{background:var(--dark);color:#fff;padding:10px 24px 8px;display:flex;justify-content:space-between;font-size:12px;font-weight:600}
+.ph-header{background:var(--dark);color:#fff;padding:8px 18px 14px;display:flex;align-items:center;justify-content:space-between}
+.ph-header h3{font-size:16px;font-weight:800}
+.ph-header .sub{font-size:11px;color:#a8a29e}
+.ph-shift{background:var(--green);color:#fff;font-size:10px;font-weight:700;padding:3px 10px;border-radius:12px}
+.ph-body{flex:1;overflow-y:auto;padding:14px;padding-bottom:70px}
+.ph-nav{position:absolute;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);display:flex;padding:6px 4px 14px}
+.ph-nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:9px;font-weight:600;color:var(--muted);padding:4px 0}
+.ph-nav button.active{color:var(--amber)}
+.ph-nav button .i{font-size:19px}
+.agent-side{max-width:360px}
+.agent-side h2{font-size:22px;font-weight:800;margin-bottom:8px}
+.agent-side p{font-size:13.5px;color:var(--muted);margin-bottom:14px}
+.feat-list{display:flex;flex-direction:column;gap:8px}
+.feat{background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px 14px;display:flex;gap:12px;align-items:flex-start;font-size:12.5px;cursor:pointer;transition:all .15s}
+.feat:hover{border-color:var(--amber)}
+.feat .fi{font-size:20px;flex-shrink:0}
+.feat b{display:block;font-size:13px;margin-bottom:1px}
+.feat span{color:var(--muted);font-size:11.5px}
+
+/* agent screens */
+.a-screen{display:none}
+.a-screen.active{display:block}
+.a-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px}
+.a-card h4{font-size:13px;font-weight:700;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.a-card h4 .lnk{font-size:11px;color:var(--amber);font-weight:600}
+.vsa-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f5f5f4;font-size:12.5px}
+.vsa-row:last-child{border:none}
+.vsa-qty{font-weight:800;font-size:14px}
+.kpi-mini{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kpi-box{background:var(--bg);border-radius:10px;padding:10px;text-align:center}
+.kpi-box b{font-size:19px;font-weight:800;display:block}
+.kpi-box span{font-size:10px;color:var(--muted)}
+.btn{padding:9px 16px;border-radius:10px;font-size:13px;font-weight:700;transition:all .15s}
+.btn-am{background:var(--amber);color:#fff}
+.btn-am:hover{background:var(--amber-d)}
+.btn-out{border:1.5px solid var(--border);color:var(--text);background:#fff}
+.btn-red{background:var(--red);color:#fff}
+.btn-green{background:var(--green);color:#fff}
+.btn-full{width:100%;text-align:center}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* calendar */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:10px}
+.cal-day{aspect-ratio:1;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid transparent;background:#fff}
+.cal-day.dow{background:none;color:var(--muted);font-size:10px;font-weight:700;aspect-ratio:auto;padding:4px 0}
+.cal-day.sent{background:var(--green-l);color:#166534}
+.cal-day.draft{background:var(--yellow-l);color:#854d0e}
+.cal-day.off{background:#f5f5f4;color:#a8a29e;text-decoration:line-through}
+.cal-day.today{border-color:var(--amber)}
+.cal-day .dd{font-size:8px;font-weight:700}
+.order-line{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:10px;margin-bottom:6px;font-size:12px;border:1px solid var(--border)}
+.order-line.st-wait{background:var(--yellow-l);border-color:#fde68a}
+.order-line.st-ok{background:var(--green-l);border-color:#bbf7d0}
+.order-line.st-no{background:var(--red-l);border-color:#fecaca}
+.ol-name{flex:1;font-weight:600}
+.ol-qty{display:flex;align-items:center;gap:6px}
+.qbtn{width:26px;height:26px;border-radius:8px;background:#fff;border:1.5px solid var(--border);font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.qbtn:disabled{opacity:.3}
+.ol-n{font-weight:800;min-width:28px;text-align:center}
+.ol-st{font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px}
+.st-wait .ol-st{background:#fbbf24;color:#fff}
+.st-ok .ol-st{background:var(--green);color:#fff}
+.st-no .ol-st{background:var(--red);color:#fff}
+.deadline-bar{display:flex;gap:8px;margin-bottom:12px}
+.dl-chip{flex:1;background:#fff;border:1px solid var(--border);border-radius:10px;padding:8px 10px;font-size:10.5px}
+.dl-chip b{display:block;font-size:12px}
+.dl-chip.hot{border-color:#fca5a5;background:var(--red-l)}
+
+/* visit / cart */
+.tt-item{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:11px 12px;margin-bottom:7px;cursor:pointer}
+.tt-item:hover{border-color:var(--amber)}
+.tt-dist{font-size:10px;font-weight:700;color:var(--amber);background:var(--amber-l);padding:2px 8px;border-radius:8px;white-space:nowrap}
+.tt-item b{font-size:13px;display:block}
+.tt-item span{font-size:11px;color:var(--muted)}
+.tt-badge-net{font-size:9px;font-weight:800;background:var(--blue-l);color:var(--blue);padding:2px 6px;border-radius:6px}
+.cart-block{border-radius:14px;padding:12px;margin-bottom:10px}
+.cart-a{background:#f0fdf4;border:1.5px solid #bbf7d0}
+.cart-b{background:#fef2f2;border:1.5px solid #fecaca}
+.cart-block h5{font-size:12px;font-weight:800;margin-bottom:8px;display:flex;justify-content:space-between}
+.cart-row{display:flex;align-items:center;gap:6px;background:#fff;border-radius:9px;padding:7px 9px;margin-bottom:5px;font-size:11.5px}
+.cart-row .cn{flex:1;font-weight:600}
+.cart-row .cp{color:var(--muted);white-space:nowrap}
+.cart-row .cs{font-weight:800;white-space:nowrap}
+.cart-total{font-size:12px;font-weight:800;text-align:right;padding-top:6px}
+.visit-footer{position:sticky;bottom:0;background:var(--dark);border-radius:14px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;color:#fff}
+.visit-footer b{font-size:18px;font-weight:900}
+.visit-footer span{font-size:10px;color:#a8a29e;display:block}
+.reason-sel{font-size:10px;border:1px solid #fecaca;border-radius:6px;padding:2px 4px;background:#fff;color:var(--red)}
+.scen-btn{display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px;width:100%;text-align:left;font-size:12.5px}
+.scen-btn:hover{border-color:var(--amber)}
+.scen-btn b{display:block;font-size:13px}
+.scen-btn span{font-size:11px;color:var(--muted)}
+.scen-btn.blocked{opacity:.55;background:#fafaf9}
+
+/* debts */
+.debt-tt{background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px}
+.debt-tt .dh{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.debt-tt b{font-size:13px}
+.debt-sum{font-weight:800;color:var(--red)}
+.debt-inv{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);padding:4px 0;border-top:1px dashed var(--border)}
+.overdue{color:var(--red);font-weight:700}
+
+/* KPI screen */
+.kpi-tabs{display:flex;gap:5px;margin-bottom:12px}
+.kpi-tabs button{flex:1;padding:7px 4px;border-radius:9px;font-size:10px;font-weight:700;background:#fff;border:1px solid var(--border);color:var(--muted)}
+.kpi-tabs button.active{background:var(--amber);color:#fff;border-color:var(--amber)}
+.fin-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f5f5f4;font-size:12.5px}
+.fin-row b{font-weight:800}
+.ring-wrap{display:flex;align-items:center;gap:14px}
+.topbar-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:11.5px}
+.topbar-row .tb-name{width:110px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar-row .tb-bar{flex:1;height:14px;background:var(--bg);border-radius:7px;overflow:hidden}
+.topbar-row .tb-fill{height:100%;border-radius:7px;background:linear-gradient(90deg,#f59e0b,#d97706)}
+.topbar-row .tb-val{font-weight:700;white-space:nowrap;font-size:10.5px}
+
+/* receipt */
+.receipt{background:#fff;border:1px dashed #a8a29e;border-radius:4px;padding:14px;font-family:'Courier New',monospace;font-size:10.5px;line-height:1.55;max-width:270px;margin:0 auto}
+.receipt .rc{text-align:center}
+.receipt .rb{font-weight:700}
+.receipt hr{border:none;border-top:1px dashed #d6d3d1;margin:6px 0}
+.receipt table{width:100%;font-size:9.5px}
+.receipt .rr{color:#dc2626;font-size:8.5px}
+
+/* ============ WEB PANELS (warehouse/supervisor/admin) ============ */
+.panel{display:flex;min-height:calc(100vh - 58px)}
+.p-side{width:216px;background:#fff;border-right:1px solid var(--border);padding:16px 10px;flex-shrink:0}
+.p-side .ps-label{font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#a8a29e;padding:10px 10px 4px}
+.p-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:9px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;margin-bottom:2px}
+.p-item:hover{background:var(--bg);color:var(--text)}
+.p-item.active{background:var(--amber-l);color:var(--amber-d);font-weight:700}
+.p-item .cnt{margin-left:auto;background:var(--red);color:#fff;font-size:9px;font-weight:800;padding:2px 7px;border-radius:10px}
+.p-main{flex:1;padding:24px;overflow-x:auto}
+.p-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:12px;flex-wrap:wrap}
+.p-head h2{font-size:20px;font-weight:800}
+.p-head p{font-size:12.5px;color:var(--muted)}
+.w-screen{display:none}
+.w-screen.active{display:block}
+.card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:16px}
+.card h3{font-size:14px;font-weight:700;margin-bottom:12px}
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{background:#fafaf9;text-align:left;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);padding:9px 12px;border-bottom:1px solid var(--border)}
+.tbl td{padding:10px 12px;border-bottom:1px solid #f5f5f4;font-size:12.5px;vertical-align:middle}
+.tbl tr:hover td{background:#fafaf9}
+.tag{font-size:10px;font-weight:700;padding:3px 9px;border-radius:10px;white-space:nowrap}
+.tag-g{background:var(--green-l);color:#166534}
+.tag-y{background:var(--yellow-l);color:#854d0e}
+.tag-r{background:var(--red-l);color:#b91c1c}
+.tag-b{background:var(--blue-l);color:#1d4ed8}
+.tag-gr{background:#f5f5f4;color:var(--muted)}
+.stat4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.stat-c{background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px;position:relative;overflow:hidden}
+.stat-c::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--amber)}
+.stat-c.g::before{background:var(--green)}.stat-c.r::before{background:var(--red)}.stat-c.b::before{background:var(--blue)}
+.stat-c b{font-size:24px;font-weight:800;display:block}
+.stat-c span{font-size:11.5px;color:var(--muted)}
+.mini-btns{display:flex;gap:6px}
+.mb{padding:5px 10px;border-radius:8px;font-size:11px;font-weight:700}
+.mb-ok{background:var(--green);color:#fff}
+.mb-no{background:#fff;border:1.5px solid var(--red);color:var(--red)}
+.pill-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.pill{padding:7px 14px;border-radius:20px;font-size:12px;font-weight:600;background:#fff;border:1px solid var(--border);color:var(--muted)}
+.pill.active{background:var(--dark);color:#fff;border-color:var(--dark)}
+.rec-pos{color:var(--green);font-weight:800}
+.rec-neg{color:var(--red);font-weight:800}
+
+/* toast */
+#toast{position:fixed;top:74px;right:20px;z-index:999;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--dark);color:#fff;padding:12px 18px;border-radius:12px;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.3);display:flex;gap:10px;align-items:center;animation:tin .3s ease}
+.toast.ok{border-left:4px solid var(--green)}
+.toast.err{border-left:4px solid var(--red)}
+.toast.info{border-left:4px solid var(--amber)}
+@keyframes tin{from{transform:translateX(60px);opacity:0}to{transform:none;opacity:1}}
+
+/* modal */
+.overlay{position:fixed;inset:0;background:rgba(28,25,23,.55);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+.overlay.show{display:flex}
+.modal{background:#fff;border-radius:18px;max-width:520px;width:100%;max-height:85vh;overflow-y:auto;padding:24px}
+.modal h3{font-size:16px;font-weight:800;margin-bottom:4px}
+.modal .msub{font-size:12px;color:var(--muted);margin-bottom:16px}
+
+/* map */
+.map-box{background:linear-gradient(160deg,#e7f0e7,#dde8dd);border-radius:14px;position:relative;height:420px;overflow:hidden;border:1px solid var(--border)}
+.map-road{position:absolute;background:#fff;opacity:.7}
+.map-marker{position:absolute;width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:0 3px 8px rgba(0,0,0,.25);cursor:pointer}
+.map-marker span{transform:rotate(45deg)}
+.map-agent{background:var(--amber)}
+.map-tt{background:var(--green)}
+.map-tt.skip{background:#a8a29e}
+@media(max-width:900px){.stat4{grid-template-columns:1fr 1fr}.p-side{display:none}}
+
+/* standalone app-mode overrides */
+body{background:#292524;display:flex;align-items:flex-start;justify-content:center;min-height:100vh;padding:24px 8px}
+.app-topnote{position:fixed;top:0;left:0;right:0;background:var(--dark);color:#a8a29e;font-size:11px;text-align:center;padding:6px;z-index:50}
+.app-topnote a{color:#fbbf24;text-decoration:none;font-weight:700}
+@media(max-width:440px){
+  body{padding:0}
+  .phone{width:100%;border-radius:0;padding:0;box-shadow:none}
+  .phone-screen{border-radius:0;height:100vh}
+  .app-topnote{display:none}
+}
+</style>
+</head>
+<body>
+<div class="app-topnote">Мокап мобильного приложения торгового агента · откройте с телефона для полного эффекта · <a href="demo-bakery.html">← вся система</a></div>
+<div style="height:20px"></div>
+<!-- PHONE -->
+
+    <div class="phone">
+      <div class="phone-screen">
+        <div class="ph-status"><span>09:41</span><span>📶 4G &nbsp;🔋 87%</span></div>
+        <div class="ph-header">
+          <div><h3 id="aTitle">Главная</h3><div class="sub">Бакыт Асанов · Район №4 Ош</div></div>
+          <span class="ph-shift">СМЕНА ОТКРЫТА</span>
+        </div>
+        <div class="ph-body">
+
+          <!-- HOME -->
+          <div class="a-screen active" id="as-home">
+            <div class="a-card">
+              <h4>Мой виртуальный склад (ВСА) <span class="lnk">онлайн-остаток</span></h4>
+              <div class="vsa-row"><span>🥖 Лепешка домашняя</span><span class="vsa-qty">64 шт</span></div>
+              <div class="vsa-row"><span>🥐 Слоеный пирог с малиной 350г</span><span class="vsa-qty">28 шт</span></div>
+              <div class="vsa-row"><span>🍞 Хлеб отрубной 500г</span><span class="vsa-qty">41 шт</span></div>
+              <div class="vsa-row"><span>🧁 Кекс ванильный 120г</span><span class="vsa-qty">55 шт</span></div>
+              <div class="vsa-row"><span>🎂 Торт заказной (весовой)</span><span class="vsa-qty">4.2 кг</span></div>
+            </div>
+            <div class="a-card">
+              <h4>Сегодня на маршруте</h4>
+              <div class="kpi-mini">
+                <div class="kpi-box"><b>14/25</b><span>План визитов</span></div>
+                <div class="kpi-box"><b style="color:var(--green)">71%</b><span>Strike Rate</span></div>
+                <div class="kpi-box"><b>12 480</b><span>Наличные, сом</span></div>
+                <div class="kpi-box"><b style="color:var(--red)">3 150</b><span>В долг (ДЗ), сом</span></div>
+              </div>
+            </div>
+            <button class="btn btn-am btn-full" onclick="aNav('visit')">🛒 Начать визит в ТТ</button>
+            <div style="height:8px"></div>
+            <button class="btn btn-out btn-full" onclick="showToast('Смена зафиксирована. Остатки ВСА заблокированы. Статус: Ожидает проверки','info')">🌙 Инициировать закрытие смены</button>
+          </div>
+
+          <!-- ORDERS / CALENDAR -->
+          <div class="a-screen" id="as-orders">
+            <div class="deadline-bar">
+              <div class="dl-chip"><b>Т-2 · до 15:00</b>Базовая заявка + тумблер выходного</div>
+              <div class="dl-chip hot"><b>Т-1 · сегодня</b>Потоварные дедлайны корректировок</div>
+            </div>
+            <div class="a-card">
+              <h4>Июль 2026 <span class="lnk">глубина 30 дней</span></h4>
+              <div class="cal-grid">
+                <div class="cal-day dow">Пн</div><div class="cal-day dow">Вт</div><div class="cal-day dow">Ср</div><div class="cal-day dow">Чт</div><div class="cal-day dow">Пт</div><div class="cal-day dow">Сб</div><div class="cal-day dow">Вс</div>
+                <div class="cal-day sent">1<span class="dd">✓</span></div>
+                <div class="cal-day sent today">2<span class="dd">Т</span></div>
+                <div class="cal-day sent">3<span class="dd">Т-1</span></div>
+                <div class="cal-day draft" onclick="showToast('Заявка на 4 июля — черновик. Дедлайн Т-2: 15:00','info')">4<span class="dd">Т-2</span></div>
+                <div class="cal-day">5</div>
+                <div class="cal-day off" onclick="showToast('Выходной утверждён автоматически (не отклонён до 12:00 Т-1)','ok')">6</div>
+                <div class="cal-day">7</div>
+                <div class="cal-day">8</div><div class="cal-day">9</div><div class="cal-day">10</div><div class="cal-day">11</div><div class="cal-day">12</div><div class="cal-day off">13</div><div class="cal-day">14</div>
+              </div>
+              <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;background:var(--bg);border-radius:10px;padding:10px">
+                <input type="checkbox" onchange="showToast(this.checked?'Запрос выходного отправлен. Руководство может отклонить до 12:00 Т-1':'Тумблер снят','info')"> Отметить 5 июля как нерабочий <span style="margin-left:auto;font-size:10px;color:var(--muted)">до 15:00 Т-2</span>
+              </label>
+            </div>
+            <div class="a-card">
+              <h4>Заявка на 3 июля (Т-1) <span class="lnk">корректировки</span></h4>
+              <div class="order-line st-ok">
+                <span class="ol-name">Лепешка домашняя</span>
+                <div class="ol-qty"><button class="qbtn" onclick="corrQty(this,-1)">−</button><span class="ol-n">80</span><button class="qbtn" onclick="corrQty(this,1)">+</button></div>
+                <span class="ol-st">✓ ПРИНЯТО</span>
+              </div>
+              <div class="order-line st-wait">
+                <span class="ol-name">Слоеный пирог с малиной</span>
+                <div class="ol-qty"><button class="qbtn" onclick="corrQty(this,-1)">−</button><span class="ol-n">36</span><button class="qbtn" onclick="corrQty(this,1)">+</button></div>
+                <span class="ol-st">⏳ НА РАССМОТР.</span>
+              </div>
+              <div class="order-line st-no" onclick="showToast('Кладовщик отклонил изменения и вернул базовое количество','err')">
+                <span class="ol-name">Кекс ванильный 120г</span>
+                <div class="ol-qty"><button class="qbtn" disabled>−</button><span class="ol-n">60</span><button class="qbtn" disabled>+</button></div>
+                <span class="ol-st">✕ ОТКЛОНЕНО</span>
+              </div>
+              <div class="order-line">
+                <span class="ol-name">Хлеб отрубной 500г</span>
+                <div class="ol-qty"><button class="qbtn" disabled title="Дедлайн в минус наступил">−</button><span class="ol-n">50</span><button class="qbtn" onclick="corrQty(this,1)">+</button></div>
+                <span class="ol-st" style="background:#f5f5f4;color:var(--muted)">−ЗАМОРОЖЕН</span>
+              </div>
+              <p style="font-size:10.5px;color:var(--muted);margin-top:8px">💡 «+» и «−» блокируются по потоварным дедлайнам SKU. Любая корректировка уходит на модерацию кладовщику.</p>
+            </div>
+            <div class="a-card" style="background:var(--amber-l);border-color:#fde68a">
+              <h4 style="margin-bottom:4px">⚡ Автоподстановка</h4>
+              <p style="font-size:11.5px">Забыли заявку до 15:00 Т-2? Система скопирует финальную заявку за тот же день прошлой недели с флагом «Сформировано автоматически».</p>
+            </div>
+          </div>
+
+          <!-- VISIT -->
+          <div class="a-screen" id="as-visit">
+            <div id="visit-search">
+              <div class="a-card">
+                <h4>📍 Радар ТТ <span class="lnk">100–500 м</span></h4>
+                <input type="text" placeholder="Поиск: магазин, адрес, ЛПР…" style="width:100%;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-size:13px;margin-bottom:10px" oninput="showToast('Fuzzy-поиск: фильтрация в реальном времени','info')">
+                <div class="tt-item" onclick="openCart('Магазин «Нур»', false)">
+                  <div><b>Магазин «Нур»</b><span>ул. Ленина 42 · ЛПР: Айгуль</span></div>
+                  <span class="tt-dist">120 м</span>
+                </div>
+                <div class="tt-item" onclick="openCart('ТС «Глобус» №7', true)">
+                  <div><b>ТС «Глобус» №7 <span class="tt-badge-net">СЕТЬ</span></b><span>пр. Чуй 155 · матрица + сетевой прайс</span></div>
+                  <span class="tt-dist">340 м</span>
+                </div>
+                <div class="tt-item" onclick="openCart('Киоск «Береке»', false)">
+                  <div><b>Киоск «Береке»</b><span>ост. Аламедин · ЛПР: Марат</span></div>
+                  <span class="tt-dist">410 м</span>
+                </div>
+              </div>
+            </div>
+            <div id="visit-cart" style="display:none">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+                <button class="btn btn-out" style="padding:5px 10px" onclick="closeCart()">←</button>
+                <div><b id="cartTT" style="font-size:14px">Магазин «Нур»</b><div id="cartMode" style="font-size:10px;color:var(--muted)">Стандартный прайс агента · весь каталог</div></div>
+              </div>
+              <div class="cart-block cart-a">
+                <h5>🟢 БЛОК А — ПРОДАЖА <button class="btn btn-out" style="padding:3px 8px;font-size:10px" onclick="showToast('Сканер штрихкодов: камера активна (EAN-13). +1 шт за считывание','info')">📷 Штрихкод</button></h5>
+                <div class="cart-row"><span class="cn">Лепешка домашняя</span><span class="cp">25 с × 20</span><span class="cs">500 с</span></div>
+                <div class="cart-row"><span class="cn">Слоеный пирог с малиной</span><span class="cp">95 с × 6</span><span class="cs">570 с</span></div>
+                <div class="cart-row"><span class="cn">Торт заказной <i style="font-size:9px;color:var(--amber)">весовой</i></span><span class="cp">420 с/кг × 1.5</span><span class="cs">630 с</span></div>
+                <div class="cart-total">Итого продажа: <span id="sumA">1 700</span> сом</div>
+              </div>
+              <div class="cart-block cart-b">
+                <h5>🔴 БЛОК Б — ВОЗВРАТ</h5>
+                <div class="cart-row"><span class="cn">Хлеб отрубной</span><select class="reason-sel"><option>Истек срок</option><option>Брак</option><option>Плесень</option></select><span class="cp">38 с × 4</span><span class="cs">152 с</span></div>
+                <div class="cart-total" style="color:var(--red)">Итого возврат: 152 сом</div>
+              </div>
+              <div class="visit-footer">
+                <div><span>СУММА К ОПЛАТЕ</span><b>1 548 сом</b></div>
+                <button class="btn btn-am" onclick="openScen()">Завершить визит →</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- DEBTS -->
+          <div class="a-screen" id="as-debts">
+            <div class="a-card" style="background:var(--dark);color:#fff;border:none">
+              <div style="font-size:11px;color:#a8a29e">ОБЩАЯ ДЗ ПО РАЙОНУ</div>
+              <div style="font-size:26px;font-weight:900">47 320 сом</div>
+              <div style="font-size:11px;color:#a8a29e">9 торговых точек · FIFO-гашение</div>
+            </div>
+            <div class="debt-tt">
+              <div class="dh"><b>Магазин «Нур»</b><span class="debt-sum">8 400 с</span></div>
+              <div class="debt-inv"><span>№ 10412 · 24.06.2026</span><span>5 200 с · <span class="overdue">8 дн проср.</span></span></div>
+              <div class="debt-inv"><span>№ 10498 · 29.06.2026</span><span>3 200 с · 3 дн</span></div>
+              <button class="btn btn-green btn-full" style="margin-top:8px" onclick="showToast('Внесено 5 000 с → FIFO: накладная №10412 погашена частично (5000/5200). Касса смены +5 000 с','ok')">💵 Принять оплату долга</button>
+            </div>
+            <div class="debt-tt">
+              <div class="dh"><b>Киоск «Береке»</b><span class="debt-sum">12 750 с</span></div>
+              <div class="debt-inv"><span>№ 10366 · 18.06.2026</span><span>12 750 с · <span class="overdue">14 дн проср. 🔒</span></span></div>
+              <p style="font-size:10.5px;color:var(--red);margin-top:6px">Отгрузка в долг заблокирована! Превышен срок отсрочки.</p>
+              <button class="btn btn-out btn-full" style="margin-top:6px" onclick="showToast('Экстренный запрос отправлен Супервизору на разовое снятие блокировки','info')">📨 Запросить разблокировку</button>
+            </div>
+          </div>
+
+          <!-- TRANSFER -->
+          <div class="a-screen" id="as-transfer">
+            <div class="a-card">
+              <h4>🔄 Перегруз в полях <span class="lnk">без склада</span></h4>
+              <p style="font-size:11.5px;color:var(--muted);margin-bottom:10px">Прямое перемещение выпечки между машинами. Строго в штуках, цены игнорируются. Схема: Запрос → Подтверждение.</p>
+              <select style="width:100%;border:1.5px solid var(--border);border-radius:10px;padding:9px;font-size:13px;margin-bottom:8px"><option>Агент-отдатчик: Эрлан Токтогулов</option><option>Азамат Шералиев</option></select>
+              <div class="order-line"><span class="ol-name">Лепешка домашняя</span><div class="ol-qty"><button class="qbtn">−</button><span class="ol-n">20</span><button class="qbtn">+</button></div></div>
+              <div class="order-line"><span class="ol-name">Кекс ванильный</span><div class="ol-qty"><button class="qbtn">−</button><span class="ol-n">10</span><button class="qbtn">+</button></div></div>
+              <button class="btn btn-am btn-full" onclick="showToast('Push отправлен Эрлану. После [Подтвердить передачу]: списание с его ВСА → зачисление на ваш ВСА. Плановые кассы пересчитаны','ok')">Отправить запрос →</button>
+            </div>
+            <div class="a-card" style="background:var(--green-l);border-color:#bbf7d0">
+              <h4 style="margin-bottom:4px">Входящий запрос</h4>
+              <p style="font-size:12px;margin-bottom:8px"><b>Азамат Ш.</b> просит: Хлеб отрубной × 15 шт</p>
+              <div class="mini-btns"><button class="mb mb-ok" onclick="showToast('Передача подтверждена. Проверка остатка ВСА пройдена. Транзакция проведена','ok')">Подтвердить передачу</button><button class="mb mb-no" onclick="showToast('Запрос отклонён','err')">Отклонить</button></div>
+            </div>
+          </div>
+
+          <!-- EXPENSES -->
+          <div class="a-screen" id="as-exp">
+            <div class="a-card">
+              <h4>💸 Добавить расход</h4>
+              <select style="width:100%;border:1.5px solid var(--border);border-radius:10px;padding:9px;font-size:13px;margin-bottom:8px"><option>ГСМ</option><option>Пробники</option><option>Закуп сырья</option><option>Прочее</option></select>
+              <input type="number" placeholder="Сумма, сом" style="width:100%;border:1.5px solid var(--border);border-radius:10px;padding:9px;font-size:13px;margin-bottom:8px">
+              <textarea id="expComment" placeholder="Комментарий-обоснование (обязательно!)" style="width:100%;border:1.5px solid var(--border);border-radius:10px;padding:9px;font-size:13px;margin-bottom:8px;height:60px;resize:none"></textarea>
+              <button class="btn btn-out btn-full" style="margin-bottom:8px" onclick="showToast('Фото чека прикреплено (необязательно)','info')">📷 Фото чека (необязательно)</button>
+              <button class="btn btn-am btn-full" onclick="saveExpense()">Сохранить расход</button>
+              <p style="font-size:10.5px;color:var(--muted);margin-top:8px">Без модерации: статус «Проведён» мгновенно. Сумма вычитается из кассы к сдаче.</p>
+            </div>
+            <div class="a-card">
+              <h4>Журнал за сегодня</h4>
+              <div class="fin-row"><span>⛽ ГСМ · «Заправка 15л АИ-92»</span><b>1 200 с</b></div>
+              <div class="fin-row"><span>🎁 Пробники · «Дегустация в Глобусе»</span><b>340 с</b></div>
+            </div>
+          </div>
+
+          <!-- KPI -->
+          <div class="a-screen" id="as-kpi">
+            <div class="kpi-tabs">
+              <button class="active" onclick="kpiTab(this,'d')">Сегодня</button>
+              <button onclick="kpiTab(this,'w')">Неделя</button>
+              <button onclick="kpiTab(this,'m')">Месяц</button>
+              <button onclick="kpiTab(this,'s')">Зарплата</button>
+            </div>
+            <div class="a-card">
+              <h4>Финансовые показатели, сом</h4>
+              <div class="fin-row"><span>Всего отгружено</span><b id="kf1">18 340</b></div>
+              <div class="fin-row"><span>Сумма возвратов</span><b id="kf2" style="color:var(--red)">1 120</b></div>
+              <div class="fin-row"><span>Сумма в долг</span><b id="kf3">3 150</b></div>
+              <div class="fin-row"><span>Расчёт долгов (инкассация)</span><b id="kf4" style="color:var(--green)">5 000</b></div>
+              <div class="fin-row"><span>Сумма расходов</span><b id="kf5">1 540</b></div>
+            </div>
+            <div class="a-card" id="kpiToday">
+              <h4>Эффективность · <span id="kpiEffLabel">Strike Rate</span></h4>
+              <div class="ring-wrap">
+                <svg viewBox="0 0 70 70" width="70" height="70">
+                  <circle cx="35" cy="35" r="28" fill="none" stroke="#e7e5e4" stroke-width="8"/>
+                  <circle cx="35" cy="35" r="28" fill="none" stroke="#d97706" stroke-width="8" stroke-dasharray="125 176" stroke-linecap="round" transform="rotate(-90 35 35)"/>
+                  <text x="35" y="40" text-anchor="middle" font-size="14" font-weight="800" fill="#1c1917">71%</text>
+                </svg>
+                <div style="font-size:12px"><b id="kpiEffMain" style="font-size:15px">14 / 25 визитов</b><br><span style="color:var(--muted)" id="kpiEffSub">10 ТТ с продажей (71%)</span></div>
+              </div>
+            </div>
+            <div class="a-card" id="kpiSalary" style="display:none;background:#fffbeb;border-color:#fde68a">
+              <h4>Зарплатный период · удержания</h4>
+              <div class="fin-row"><span>Отклонения кассы за месяц</span><b style="color:var(--red)">−430 с</b></div>
+              <div class="fin-row"><span>Личные покупки под ЗП (Регистр Б)</span><b style="color:var(--red)">−780 с</b></div>
+              <p style="font-size:10.5px;color:var(--muted);margin-top:6px">Регистры А и Б строго изолированы — не суммируются в одну строку.</p>
+            </div>
+            <div class="a-card">
+              <h4>ТОП-5 товаров, шт</h4>
+              <div class="topbar-row"><span class="tb-name">Лепешка домашняя</span><div class="tb-bar"><div class="tb-fill" style="width:100%"></div></div><span class="tb-val">86</span></div>
+              <div class="topbar-row"><span class="tb-name">Кекс ванильный</span><div class="tb-bar"><div class="tb-fill" style="width:72%"></div></div><span class="tb-val">62</span></div>
+              <div class="topbar-row"><span class="tb-name">Хлеб отрубной</span><div class="tb-bar"><div class="tb-fill" style="width:55%"></div></div><span class="tb-val">47</span></div>
+              <div class="topbar-row"><span class="tb-name">Слоеный пирог</span><div class="tb-bar"><div class="tb-fill" style="width:38%"></div></div><span class="tb-val">33</span></div>
+              <div class="topbar-row"><span class="tb-name">Булочка с маком</span><div class="tb-bar"><div class="tb-fill" style="width:24%"></div></div><span class="tb-val">21</span></div>
+            </div>
+            <div class="a-card">
+              <h4>ТОП-5 магазинов, сом</h4>
+              <div class="topbar-row"><span class="tb-name">ТС «Глобус» №7</span><div class="tb-bar"><div class="tb-fill" style="width:100%"></div></div><span class="tb-val">6 240</span></div>
+              <div class="topbar-row"><span class="tb-name">Магазин «Нур»</span><div class="tb-bar"><div class="tb-fill" style="width:64%"></div></div><span class="tb-val">4 010</span></div>
+              <div class="topbar-row"><span class="tb-name">Киоск «Береке»</span><div class="tb-bar"><div class="tb-fill" style="width:41%"></div></div><span class="tb-val">2 550</span></div>
+              <div class="topbar-row"><span class="tb-name">Магазин «Ак-Бата»</span><div class="tb-bar"><div class="tb-fill" style="width:29%"></div></div><span class="tb-val">1 820</span></div>
+              <div class="topbar-row"><span class="tb-name">Павильон №12</span><div class="tb-bar"><div class="tb-fill" style="width:18%"></div></div><span class="tb-val">1 130</span></div>
+            </div>
+          </div>
+
+          <!-- PRINT -->
+          <div class="a-screen" id="as-print">
+            <div class="a-card" style="text-align:center;background:var(--blue-l);border-color:#bfdbfe">
+              <p style="font-size:12px;font-weight:600">🖨️ Bluetooth-принтер: <b>подключен (80 мм)</b> · ESC/POS</p>
+            </div>
+            <div class="receipt">
+              <div class="rc rb">ОсОО «НАН-ДАН»<br>+996 555 123 456</div>
+              <hr>
+              Накладная № 10512<br>02.07.2026 14:32 · Агент: Бакыт Асанов<br>
+              Покупатель: Магазин «Нур» (ИП Айгуль К.)
+              <hr>
+              <div class="rb">ОТГРУЗКА</div>
+              <table>
+                <tr><td>Лепешка домашняя</td><td>20</td><td>25</td><td>500</td></tr>
+                <tr><td>Слоеный пирог 350г</td><td>6</td><td>95</td><td>570</td></tr>
+                <tr><td>Торт заказной</td><td>1.5кг</td><td>420</td><td>630</td></tr>
+              </table>
+              <hr>
+              <div class="rb">ПРИНЯТО (ВОЗВРАТ)</div>
+              <table>
+                <tr><td>Хлеб отрубной<br><span class="rr">Причина: Истек срок годности</span></td><td>4</td><td>38</td><td>152</td></tr>
+              </table>
+              <hr>
+              Итого отгрузка: 1 700 сом<br>
+              Итого принято возврата: 152 сом<br>
+              <div class="rb" style="font-size:13px">СУММА К ОПЛАТЕ: 1 548 сом</div>
+            </div>
+            <div style="height:10px"></div>
+            <button class="btn btn-am btn-full" onclick="showToast('Печать на термопринтер 80мм отправлена (ESC/POS)','ok')">🖨️ Распечатать накладную</button>
+          </div>
+
+        </div>
+        <div class="ph-nav">
+          <button class="active" data-as="home" onclick="aNav('home')"><span class="i">🏠</span>Главная</button>
+          <button data-as="orders" onclick="aNav('orders')"><span class="i">📅</span>Заявки</button>
+          <button data-as="visit" onclick="aNav('visit')"><span class="i">🛒</span>Визит</button>
+          <button data-as="debts" onclick="aNav('debts')"><span class="i">💰</span>Долги</button>
+          <button data-as="transfer" onclick="aNav('transfer')"><span class="i">🔄</span>Перегруз</button>
+          <button data-as="exp" onclick="aNav('exp')"><span class="i">💸</span>Расходы</button>
+          <button data-as="kpi" onclick="aNav('kpi')"><span class="i">📊</span>KPI</button>
+          <button data-as="print" onclick="aNav('print')"><span class="i">🖨️</span>Чек</button>
+        </div>
+      </div>
+    </div>
+    
+<!-- SCENARIO MODAL -->
+
+<div class="overlay" id="scenModal">
+  <div class="modal">
+    <h3>Выбор сценария оплаты</h3>
+    <div class="msub">Продажа не сохранится без выбора сценария · Сумма к оплате: 1 548 сом</div>
+    <button class="scen-btn" onclick="pickScen('Наличные приняты. Накладная [Оплачено наличными]. Касса смены +1 548 с')"><span>💵</span><div><b>1 · Прямая наличная оплата</b><span>Деньги на месте, ДЗ не возникает</span></div></button>
+    <button class="scen-btn" onclick="pickScen('Отгрузка в консигнацию. Долг ТТ +1 548 с привязан к накладной №10512')"><span>📝</span><div><b>2 · Консигнация (в долг)</b><span>Отсрочка / перевод на кошелёк = долг до сдачи наличных</span></div></button>
+    <button class="scen-btn" onclick="pickScen('Инкассация: деньги распределены по FIFO на старейшие накладные')"><span>🏦</span><div><b>3 · Чистый сбор денег</b><span>Только гашение прошлых долгов, без отгрузки</span></div></button>
+    <button class="scen-btn" onclick="pickScen('Акт взаимозачёта: возврат минусует старейшую накладную по FIFO. Наличные не выдаются')"><span>↩️</span><div><b>4 · Возврат в счёт долгов</b><span>Тумблер [В счёт прошлых долгов], FIFO-вычет</span></div></button>
+    <button class="scen-btn" onclick="pickScen('Чистый возврат: ДЗ нет → выплата из кассы, графа «Выданные чистые возвраты». Кладовщик сверит брак вечером!')"><span>💸</span><div><b>5 · Чистый возврат с выдачей денег</b><span>Развилка: есть ДЗ → FIFO; нет ДЗ → выдача из кассы</span></div></button>
+    <button class="scen-btn blocked" onclick="showToast('Отгрузка в долг заблокирована! Превышен лимит ДЗ или есть просрочка','err')"><span>🔒</span><div><b>Продажа в долг — ЗАБЛОКИРОВАНА</b><span>Лимит ДЗ превышен → запрос супервизору</span></div></button>
+  </div>
+</div>
+
+
+<div id="toast"></div>
+<script>
+
+/* ============ CORE ============ */
+function switchRole(r){
+  document.querySelectorAll('.role-view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+r).classList.add('active');
+  document.querySelectorAll('.role-tab').forEach(t=>t.classList.toggle('active',t.dataset.role===r));
+  window.scrollTo(0,0);
+}
+function showToast(msg,type){
+  const t=document.createElement('div');
+  t.className='toast '+(type||'info');
+  t.innerHTML=(type==='ok'?'✅':type==='err'?'⛔':'🔔')+' <span>'+msg+'</span>';
+  document.getElementById('toast').appendChild(t);
+  setTimeout(()=>{t.style.opacity='0';t.style.transition='.3s';setTimeout(()=>t.remove(),300)},4200);
+}
+/* ============ AGENT ============ */
+const A_TITLES={home:'Главная',orders:'Заявки на производство',visit:'Оформление визита',debts:'Дебиторская задолженность',transfer:'Перегруз в полях',exp:'Расходы на маршруте',kpi:'Личная статистика',print:'Чек-накладная'};
+function aNav(id){
+  document.querySelectorAll('.a-screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('as-'+id).classList.add('active');
+  document.querySelectorAll('.ph-nav button').forEach(b=>b.classList.toggle('active',b.dataset.as===id));
+  document.getElementById('aTitle').textContent=A_TITLES[id];
+}
+function corrQty(btn,d){
+  const n=btn.parentElement.querySelector('.ol-n');
+  const v=Math.max(0,parseInt(n.textContent)+d);
+  n.textContent=v;
+  const line=btn.closest('.order-line');
+  line.classList.remove('st-ok','st-no');line.classList.add('st-wait');
+  const st=line.querySelector('.ol-st');if(st){st.textContent='⏳ НА РАССМОТР.';}
+  showToast('Корректировка отправлена на модерацию кладовщику СГП','info');
+}
+function openCart(name,isNet){
+  document.getElementById('visit-search').style.display='none';
+  document.getElementById('visit-cart').style.display='block';
+  document.getElementById('cartTT').textContent=name;
+  document.getElementById('cartMode').textContent=isNet?'⚠️ Сетевая матрица: скрыты внематричные SKU, сетевой прайс':'Стандартный прайс агента · весь каталог';
+  if(isNet)showToast('Сетевая ТТ: каталог отфильтрован по матрице, цены пересчитаны по сетевому прайсу','info');
+}
+function closeCart(){
+  document.getElementById('visit-search').style.display='block';
+  document.getElementById('visit-cart').style.display='none';
+}
+function openScen(){switchRole('agent');aNav('visit');document.getElementById('scenModal').classList.add('show')}
+function pickScen(msg){document.getElementById('scenModal').classList.remove('show');showToast(msg,'ok')}
+document.getElementById('scenModal').addEventListener('click',e=>{if(e.target.id==='scenModal')e.target.classList.remove('show')});
+function saveExpense(){
+  const c=document.getElementById('expComment');
+  if(!c.value.trim()){showToast('Комментарий-обоснование обязателен! Сохранение заблокировано','err');return}
+  showToast('Расход проведён мгновенно (без модерации). Вычтен из кассы к сдаче','ok');c.value='';
+}
+const KPI_DATA={
+  d:{f:['18 340','1 120','3 150','5 000','1 540'],eff:'Strike Rate',main:'14 / 25 визитов',sub:'10 ТТ с продажей (71%)'},
+  w:{f:['96 210','5 830','14 400','21 300','6 220'],eff:'АКБ за неделю',main:'38 уникальных ТТ',sub:'с положительным оборотом'},
+  m:{f:['412 850','24 660','58 200','91 450','27 300'],eff:'АКБ за месяц',main:'54 уникальных ТТ',sub:'из 61 в районе (89%)'},
+  s:{f:['412 850','24 660','58 200','91 450','27 300'],eff:'АКБ за период',main:'54 уникальных ТТ',sub:'зарплатный период 1–31 июля'}
+};
+function kpiTab(btn,p){
+  document.querySelectorAll('.kpi-tabs button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const d=KPI_DATA[p];
+  ['kf1','kf2','kf3','kf4','kf5'].forEach((id,i)=>document.getElementById(id).textContent=d.f[i]);
+  document.getElementById('kpiEffLabel').textContent=d.eff;
+  document.getElementById('kpiEffMain').textContent=d.main;
+  document.getElementById('kpiEffSub').textContent=d.sub;
+  document.getElementById('kpiSalary').style.display=p==='s'?'block':'none';
+}
+/* ============ PANEL NAV (shared) ============ */
+function wNav(prefix,id,el){
+  document.querySelectorAll('#view-'+prefix+' .w-screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(prefix+'-'+id).classList.add('active');
+  document.querySelectorAll('#view-'+prefix+' .p-item').forEach(i=>i.classList.remove('active'));
+  el.classList.add('active');
+}
+function moderate(btn,ok){
+  const row=btn.closest('tr');
+  row.style.background=ok?'#f0fdf4':'#fef2f2';
+  row.querySelectorAll('.mb').forEach(b=>b.disabled=true);
+  const cell=btn.closest('td');
+  cell.innerHTML=ok?'<span class="tag tag-g">✓ Принято</span>':'<span class="tag tag-r">✕ Отклонено</span>';
+  showToast(ok?'Корректировка принята. Агент видит зелёный статус':'Отклонено. У агента вернулось базовое количество (красный статус)',ok?'ok':'err');
+  const cnt=document.getElementById('modCount');
+  if(cnt){const v=parseInt(cnt.textContent)-1;if(v>0)cnt.textContent=v;else cnt.remove()}
+}
+function sumSelected(){
+  const checked=document.querySelectorAll('.agsel:checked').length;
+  if(!checked){showToast('Отметьте агентов галочками','err');return}
+  document.getElementById('sumResult').style.display='block';
+  showToast('Суммировано выбранных: '+checked+' агента — сводный итог по SKU выведен','ok');
+}
+
+
+/* standalone overrides */
+switchRole=function(){};
+openScen=function(){aNav('visit');document.getElementById('scenModal').classList.add('show')};
+</script>
+</body>
+</html>
