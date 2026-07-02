@@ -1,6 +1,17 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+<script>
+/* time-limited access gate */
+(function(){
+  var SECRET='pllato-nan-dan-2026';
+  function h(s){var x=7;for(var i=0;i<s.length;i++){x=((x*31)+s.charCodeAt(i))>>>0}return x.toString(36)}
+  var q=new URLSearchParams(location.search),tok=q.get('k')||localStorage.getItem('plk'),ok=false,exp=0;
+  if(tok){try{var d=atob(tok).split('.');exp=parseInt(d[0]);if(h(d[0]+SECRET)===d[1]&&Date.now()<exp){ok=true;localStorage.setItem('plk',tok)}}catch(e){}}
+  if(!ok){location.replace('expired.html')}
+})();
+</script>
+
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Мобильный Агент — Продажа выпечки · Демо</title>
