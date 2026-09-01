@@ -1,0 +1,961 @@
+{
+  "generated_for_lessons": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60,
+    61,
+    62,
+    63,
+    64,
+    65,
+    66,
+    67,
+    68,
+    69,
+    70
+  ],
+  "flagged": [
+    {
+      "lesson": 1,
+      "topic": "Greetings & Introductions",
+      "duplicates": [
+        [
+          "hello",
+          "hi",
+          "introduce",
+          "meet"
+        ],
+        [
+          "bye",
+          "goodbye"
+        ],
+        [
+          "yes",
+          "friend"
+        ]
+      ]
+    },
+    {
+      "lesson": 2,
+      "topic": "I am / You are",
+      "duplicates": [
+        [
+          "boy",
+          "girl",
+          "child"
+        ],
+        [
+          "student",
+          "teacher"
+        ],
+        [
+          "happy",
+          "tall"
+        ],
+        [
+          "sad",
+          "short"
+        ]
+      ]
+    },
+    {
+      "lesson": 3,
+      "topic": "He / She / It",
+      "duplicates": [
+        [
+          "man",
+          "woman",
+          "cat",
+          "dog",
+          "phone",
+          "parent",
+          "player"
+        ]
+      ]
+    },
+    {
+      "lesson": 4,
+      "topic": "We / They",
+      "duplicates": [
+        [
+          "friends",
+          "children",
+          "people",
+          "boys",
+          "girls",
+          "students",
+          "teams",
+          "players",
+          "neighbors",
+          "classmates"
+        ]
+      ]
+    },
+    {
+      "lesson": 5,
+      "topic": "Possessive adjectives",
+      "duplicates": [
+        [
+          "my",
+          "your",
+          "his",
+          "her",
+          "sister",
+          "brother",
+          "our",
+          "their"
+        ],
+        [
+          "mother",
+          "father",
+          "house"
+        ]
+      ]
+    },
+    {
+      "lesson": 6,
+      "topic": "Articles a / an / the",
+      "duplicates": [
+        [
+          "apple",
+          "orange",
+          "banana",
+          "house",
+          "room",
+          "chair",
+          "table",
+          "egg"
+        ],
+        [
+          "car",
+          "bus"
+        ]
+      ]
+    },
+    {
+      "lesson": 7,
+      "topic": "Numbers & Colors",
+      "duplicates": [
+        [
+          "one",
+          "two",
+          "three",
+          "four",
+          "five"
+        ],
+        [
+          "red",
+          "blue",
+          "green",
+          "yellow",
+          "black",
+          "white",
+          "purple"
+        ]
+      ]
+    },
+    {
+      "lesson": 8,
+      "topic": "There is / There are",
+      "duplicates": [
+        [
+          "bed",
+          "window",
+          "lamp",
+          "room",
+          "chair",
+          "shelf",
+          "floor"
+        ]
+      ]
+    },
+    {
+      "lesson": 9,
+      "topic": "Prepositions of place",
+      "duplicates": [
+        [
+          "in",
+          "on",
+          "under",
+          "near",
+          "left",
+          "middle"
+        ]
+      ]
+    },
+    {
+      "lesson": 10,
+      "topic": "Review & Speaking: Foundation Check",
+      "duplicates": [
+        [
+          "student",
+          "teacher"
+        ],
+        [
+          "room",
+          "table",
+          "chair"
+        ],
+        [
+          "color",
+          "play"
+        ]
+      ]
+    },
+    {
+      "lesson": 11,
+      "topic": "Present Simple (I / You)",
+      "duplicates": [
+        [
+          "like",
+          "love",
+          "learn"
+        ],
+        [
+          "play",
+          "eat",
+          "drink"
+        ]
+      ]
+    },
+    {
+      "lesson": 12,
+      "topic": "Present Simple (He / She)",
+      "duplicates": [
+        [
+          "plays",
+          "drinks"
+        ],
+        [
+          "eats",
+          "watches",
+          "goes",
+          "has",
+          "studies",
+          "helps"
+        ],
+        [
+          "lives",
+          "works"
+        ]
+      ]
+    },
+    {
+      "lesson": 13,
+      "topic": "Negatives",
+      "duplicates": [
+        [
+          "don't",
+          "doesn't"
+        ],
+        [
+          "play",
+          "eat",
+          "drink",
+          "want"
+        ],
+        [
+          "have",
+          "need"
+        ]
+      ]
+    },
+    {
+      "lesson": 14,
+      "topic": "Questions",
+      "duplicates": [
+        [
+          "do",
+          "does",
+          "what",
+          "where",
+          "who",
+          "how",
+          "which",
+          "question"
+        ]
+      ]
+    },
+    {
+      "lesson": 15,
+      "topic": "Daily routine",
+      "duplicates": [
+        [
+          "wake up",
+          "eat",
+          "study",
+          "play",
+          "sleep",
+          "morning"
+        ]
+      ]
+    },
+    {
+      "lesson": 16,
+      "topic": "Family",
+      "duplicates": [
+        [
+          "parents",
+          "grandma",
+          "grandpa",
+          "uncle",
+          "aunt",
+          "baby",
+          "family",
+          "home"
+        ],
+        [
+          "children",
+          "cousin",
+          "brother",
+          "sister"
+        ]
+      ]
+    },
+    {
+      "lesson": 17,
+      "topic": "Home",
+      "duplicates": [
+        [
+          "kitchen",
+          "bathroom",
+          "bedroom",
+          "living room",
+          "bed",
+          "sofa",
+          "table",
+          "chair",
+          "window",
+          "wall",
+          "floor"
+        ]
+      ]
+    },
+    {
+      "lesson": 18,
+      "topic": "Food & Preferences",
+      "duplicates": [
+        [
+          "bread",
+          "milk",
+          "water",
+          "juice",
+          "rice",
+          "meat",
+          "fish",
+          "soup",
+          "cake",
+          "fruit",
+          "snack",
+          "dinner"
+        ]
+      ]
+    },
+    {
+      "lesson": 19,
+      "topic": "Animals & Adjectives",
+      "duplicates": [
+        [
+          "dog",
+          "cat",
+          "bird",
+          "fish",
+          "cow",
+          "horse",
+          "wild"
+        ]
+      ]
+    },
+    {
+      "lesson": 20,
+      "topic": "Review & Speaking: About Me",
+      "duplicates": [
+        [
+          "family",
+          "home"
+        ]
+      ]
+    },
+    {
+      "lesson": 22,
+      "topic": "Past Simple (regular verbs)",
+      "duplicates": [
+        [
+          "played",
+          "helped",
+          "visited"
+        ]
+      ]
+    },
+    {
+      "lesson": 23,
+      "topic": "Past Simple (irregular verbs)",
+      "duplicates": [
+        [
+          "went",
+          "ate",
+          "drank",
+          "had",
+          "got",
+          "found"
+        ]
+      ]
+    },
+    {
+      "lesson": 24,
+      "topic": "Time expressions (past)",
+      "duplicates": [
+        [
+          "yesterday",
+          "earlier"
+        ],
+        [
+          "last night",
+          "ago"
+        ],
+        [
+          "last year",
+          "later"
+        ]
+      ]
+    },
+    {
+      "lesson": 25,
+      "topic": "Can / Can’t (ability)",
+      "duplicates": [
+        [
+          "swim",
+          "run",
+          "cook",
+          "skate"
+        ],
+        [
+          "read",
+          "write"
+        ],
+        [
+          "sing",
+          "dance"
+        ]
+      ]
+    },
+    {
+      "lesson": 26,
+      "topic": "Must / Mustn’t (rules)",
+      "duplicates": [
+        [
+          "rule",
+          "listen",
+          "careful",
+          "phone",
+          "clean"
+        ]
+      ]
+    },
+    {
+      "lesson": 27,
+      "topic": "Future: going to",
+      "duplicates": [
+        [
+          "plan",
+          "visit",
+          "study",
+          "play",
+          "next",
+          "pack",
+          "prepare"
+        ],
+        [
+          "party",
+          "weekend"
+        ]
+      ]
+    },
+    {
+      "lesson": 28,
+      "topic": "Countable / Uncountable nouns",
+      "duplicates": [
+        [
+          "water",
+          "milk",
+          "bread",
+          "rice",
+          "apple",
+          "banana",
+          "sugar",
+          "salt",
+          "cheese",
+          "juice",
+          "flour",
+          "oil"
+        ]
+      ]
+    },
+    {
+      "lesson": 29,
+      "topic": "Much / Many",
+      "duplicates": [
+        [
+          "much",
+          "food",
+          "water",
+          "questions"
+        ],
+        [
+          "people",
+          "friends"
+        ]
+      ]
+    },
+    {
+      "lesson": 30,
+      "topic": "Comparatives: Making choices",
+      "duplicates": [
+        [
+          "worse",
+          "cheaper",
+          "safer",
+          "easier",
+          "harder"
+        ],
+        [
+          "more expensive",
+          "more useful",
+          "more comfortable",
+          "more popular",
+          "more exciting",
+          "more difficult"
+        ]
+      ]
+    },
+    {
+      "lesson": 40,
+      "topic": "Review & Speaking: My past, my plans, my day",
+      "duplicates": [
+        [
+          "yesterday",
+          "routine"
+        ]
+      ]
+    },
+    {
+      "lesson": 42,
+      "topic": "Past Simple vs Past Continuous",
+      "duplicates": [
+        [
+          "appeared",
+          "opened"
+        ]
+      ]
+    },
+    {
+      "lesson": 44,
+      "topic": "Present Perfect vs Past Simple",
+      "duplicates": [
+        [
+          "this week",
+          "last month"
+        ],
+        [
+          "this month",
+          "before",
+          "yesterday"
+        ]
+      ]
+    },
+    {
+      "lesson": 45,
+      "topic": "For / Since",
+      "duplicates": [
+        [
+          "for",
+          "year",
+          "Monday"
+        ],
+        [
+          "since",
+          "month"
+        ]
+      ]
+    },
+    {
+      "lesson": 46,
+      "topic": "Future Forms: Will / Going to",
+      "duplicates": [
+        [
+          "probably",
+          "plan",
+          "predict"
+        ],
+        [
+          "definitely",
+          "believe"
+        ]
+      ]
+    },
+    {
+      "lesson": 47,
+      "topic": "Zero Conditional",
+      "duplicates": [
+        [
+          "freeze",
+          "melt"
+        ]
+      ]
+    },
+    {
+      "lesson": 48,
+      "topic": "First Conditional",
+      "duplicates": [
+        [
+          "fail",
+          "lose"
+        ]
+      ]
+    },
+    {
+      "lesson": 49,
+      "topic": "Should: Giving advice",
+      "duplicates": [
+        [
+          "stressed",
+          "mistake"
+        ]
+      ]
+    },
+    {
+      "lesson": 50,
+      "topic": "Review & Speaking: A strange day",
+      "duplicates": [
+        [
+          "strange",
+          "happened",
+          "problem"
+        ],
+        [
+          "advice",
+          "explain"
+        ]
+      ]
+    },
+    {
+      "lesson": 51,
+      "topic": "Passive Voice: Present Simple",
+      "duplicates": [
+        [
+          "made",
+          "created"
+        ],
+        [
+          "produced",
+          "built"
+        ]
+      ]
+    },
+    {
+      "lesson": 52,
+      "topic": "Passive Voice: Past Simple",
+      "duplicates": [
+        [
+          "was created",
+          "were made"
+        ],
+        [
+          "was discovered",
+          "was invented",
+          "was repaired",
+          "was broken",
+          "was chosen"
+        ]
+      ]
+    },
+    {
+      "lesson": 53,
+      "topic": "Advanced Comparisons",
+      "duplicates": [
+        [
+          "much better",
+          "a little worse",
+          "far easier",
+          "slightly harder"
+        ],
+        [
+          "less useful",
+          "weaker"
+        ],
+        [
+          "more reliable",
+          "more creative",
+          "more serious",
+          "more confident",
+          "more valuable"
+        ]
+      ]
+    },
+    {
+      "lesson": 54,
+      "topic": "Too / Enough",
+      "duplicates": [
+        [
+          "old enough",
+          "fast enough",
+          "strong enough",
+          "clear enough",
+          "comfortable enough"
+        ]
+      ]
+    },
+    {
+      "lesson": 55,
+      "topic": "Gerund vs Infinitive",
+      "duplicates": [
+        [
+          "enjoy",
+          "learn"
+        ],
+        [
+          "finish",
+          "need"
+        ]
+      ]
+    },
+    {
+      "lesson": 56,
+      "topic": "Relative Clauses: who / which / that",
+      "duplicates": [
+        [
+          "person",
+          "player",
+          "game"
+        ]
+      ]
+    },
+    {
+      "lesson": 57,
+      "topic": "Reported Speech: Statements",
+      "duplicates": [
+        [
+          "told",
+          "explained"
+        ],
+        [
+          "wanted",
+          "could"
+        ]
+      ]
+    },
+    {
+      "lesson": 58,
+      "topic": "Used to",
+      "duplicates": [
+        [
+          "habit",
+          "before"
+        ],
+        [
+          "village",
+          "city"
+        ]
+      ]
+    },
+    {
+      "lesson": 59,
+      "topic": "Question Tags",
+      "duplicates": [
+        [
+          "isn't it",
+          "aren't you",
+          "don't you",
+          "doesn't he",
+          "didn't they",
+          "wasn't it",
+          "won't you"
+        ]
+      ]
+    },
+    {
+      "lesson": 61,
+      "topic": "Second Conditional",
+      "duplicates": [
+        [
+          "famous",
+          "successful"
+        ]
+      ]
+    },
+    {
+      "lesson": 62,
+      "topic": "Wish",
+      "duplicates": [
+        [
+          "improve",
+          "better"
+        ]
+      ]
+    },
+    {
+      "lesson": 63,
+      "topic": "Phrasal Verbs: Basic actions",
+      "duplicates": [
+        [
+          "get up",
+          "wake up",
+          "turn on"
+        ]
+      ]
+    },
+    {
+      "lesson": 64,
+      "topic": "Articles: a / an / the / zero article",
+      "duplicates": [
+        [
+          "school",
+          "university"
+        ],
+        [
+          "work",
+          "home"
+        ]
+      ]
+    },
+    {
+      "lesson": 65,
+      "topic": "Linking Words",
+      "duplicates": [
+        [
+          "and",
+          "also"
+        ],
+        [
+          "but",
+          "however"
+        ],
+        [
+          "so",
+          "therefore"
+        ]
+      ]
+    },
+    {
+      "lesson": 66,
+      "topic": "Opinion Language",
+      "duplicates": [
+        [
+          "agree",
+          "fair"
+        ],
+        [
+          "useless",
+          "unfair"
+        ]
+      ]
+    },
+    {
+      "lesson": 68,
+      "topic": "Problems & Safety",
+      "duplicates": [
+        [
+          "problem",
+          "emergency"
+        ],
+        [
+          "danger",
+          "police"
+        ],
+        [
+          "lost",
+          "stolen"
+        ],
+        [
+          "broken",
+          "mistake"
+        ]
+      ]
+    },
+    {
+      "lesson": 69,
+      "topic": "Formal vs Informal English",
+      "duplicates": [
+        [
+          "informal",
+          "message"
+        ]
+      ]
+    },
+    {
+      "lesson": 70,
+      "topic": "Review & Assessment: Extended speaking test",
+      "duplicates": [
+        [
+          "progress",
+          "improve"
+        ],
+        [
+          "challenge",
+          "goal"
+        ],
+        [
+          "advice",
+          "explain"
+        ]
+      ]
+    }
+  ]
+}

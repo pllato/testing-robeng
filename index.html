@@ -16,6 +16,8 @@
 <meta name="apple-mobile-web-app-title" content="Robeng ELC"/>
 <link rel="manifest" href="manifest.json"/>
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./program.css"/>
+<script src="./program.js" defer></script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -549,6 +551,7 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
     <div class="ni admin-only" data-p="freeSlots" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">✦</span>Свободные слоты</div>
     <div class="nav-sec">Ученики и работа</div>
     <div class="ni" data-p="students" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">🎓</span>Ученики</div>
+    <div class="ni" data-p="program" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">📚</span>Программа</div>
     <div class="ni admin-only" data-p="crm" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">💼</span>CRM <span id="crm-badge" style="display:none;background:var(--ac);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
     <div class="ni admin-only" data-p="wachats" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">💬</span>Чаты <span id="wachats-badge" style="display:none;background:var(--gn);color:var(--bg);font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
     <div class="ni admin-only" data-p="callslog" onclick="nav(this)"><span style="font-size:14px;width:18px;text-align:center">📞</span>Звонки <span id="missed-badge" style="display:none;background:var(--rd);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:2px"></span></div>
@@ -814,6 +817,8 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
         <div id="stu-lost-list"></div>
       </div>
     </div>
+    <!-- PROGRAM (70 уроков) -->
+    <div class="panel" id="panel-program"></div>
     <!-- JOURNAL -->
     <div class="panel" id="panel-journal">
       <div class="filters">
@@ -2594,8 +2599,8 @@ function countFree(){
 }
 
 // ── NAVIGATION ───────────────────────────────────────────────────
-const TITLES={today:'Сегодня ☀️',tasks:'Задачи',taskautomations:'Автоматические задачи',teamchat:'Командный чат',dashboard:'Главная',subjects:'Предметы',teachers:'Преподаватели',availability:'Время работы',schedule:'Расписание',freeSlots:'Свободные слоты',students:'Ученики',reports:'Отчёты по преподавателям',journal:'Журнал действий',notifylog:'📨 Журнал уведомлений',analytics:'🧠 Аналитика',trash:'Корзина',backups:'Резервные копии',users:'Пользователи',videoreviews:'Видео уроков',surveys:'Опросы',crm:'CRM — Клиенты',wachats:'Чаты',callslog:'Журнал звонков',parentreq:'Запросы родителей'};
-const ACTS={today:'',tasks:'',taskautomations:'+ Автозадача',teamchat:'',dashboard:'+',subjects:'',teachers:'+ Преподаватель',availability:'',schedule:'',freeSlots:'',students:'+ Ученик',reports:'',journal:'',notifylog:'',analytics:'',trash:'',backups:'',users:'',videoreviews:'',surveys:'',crm:'',wachats:'',callslog:'📞 Позвонить',parentreq:''};
+const TITLES={today:'Сегодня ☀️',tasks:'Задачи',taskautomations:'Автоматические задачи',teamchat:'Командный чат',dashboard:'Главная',subjects:'Предметы',teachers:'Преподаватели',availability:'Время работы',schedule:'Расписание',freeSlots:'Свободные слоты',students:'Ученики',program:'📚 Программа',reports:'Отчёты по преподавателям',journal:'Журнал действий',notifylog:'📨 Журнал уведомлений',analytics:'🧠 Аналитика',trash:'Корзина',backups:'Резервные копии',users:'Пользователи',videoreviews:'Видео уроков',surveys:'Опросы',crm:'CRM — Клиенты',wachats:'Чаты',callslog:'Журнал звонков',parentreq:'Запросы родителей'};
+const ACTS={today:'',tasks:'',taskautomations:'+ Автозадача',teamchat:'',dashboard:'+',subjects:'',teachers:'+ Преподаватель',availability:'',schedule:'',freeSlots:'',students:'+ Ученик',program:'',reports:'',journal:'',notifylog:'',analytics:'',trash:'',backups:'',users:'',videoreviews:'',surveys:'',crm:'',wachats:'',callslog:'📞 Позвонить',parentreq:''};
 function curPanel(){return document.querySelector('.ni.active')?.dataset.p||'dashboard';}
 function nav(el){
   // Close more menu on nav
@@ -2627,6 +2632,7 @@ function renderPanel(p){
   if(p==='tasks'){renderTasks();return;}
   if(p==='taskautomations'){renderTaskAutomations();return;}
   if(p==='teamchat'){initTeamChat();updateChatBadge(0);return;}
+  if(p==='program'){if(typeof renderProgram==='function')renderProgram();return;}
   if(p==='dashboard'){renderDashboard();if(currentRole==='admin')updateReminderFailureBadge();}
   else if(p==='subjects')renderSubjects();
   else if(p==='teachers'){fillSubjSel();renderTeachers();}

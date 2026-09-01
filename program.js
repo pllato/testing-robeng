@@ -1,0 +1,279 @@
+/* ─────────────────────────────────────────────────────────────────
+   Программа (70 уроков): чек-лист по ученику + ссылка на материал
+   + отправка в WhatsApp.
+   Зависимости из index.html (глобалы):
+     - S.students[]              — массив учеников {id,name,phone,parent,parentPhone,subjId}
+     - S.enrollments[]           — связи (для фильтра по teacherId)
+     - currentRole, currentTeacherId
+     - fbDb (firebase.database())
+   Хранилище в RTDB:
+     eduSchedule/programProgress/{studentId}/{lessonNum}
+       = { done: true, date: ISO, teacherId, note? }
+   ───────────────────────────────────────────────────────────────── */
+
+(function () {
+  const CURRICULUM_URL = 'https://pub-4a4bf55405d74fe58e817b5fb86955d4.r2.dev/curriculum.json';
+  // База URL для родителя: пока локальное превью, позже сменим на elc-kids.kz
+  const LESSON_PUBLIC_BASE = 'http://127.0.0.1:8800';
+  const LS_CURRICULUM = 'pg_curriculum_v1';
+  const LS_TTL_MIN = 60;
+
+  const state = {
+    curriculum: null,
+    progress: {},            // { studentId: { lessonNum: {done, date, ...} } }
+    progressUnsub: null,     // для off()
+    gameResults: {},         // { studentId: { lessonNum: { self?:{...}, parent?:{...} } } }
+    gameResultsUnsub: null,
+    selectedStudentId: null,
+    studentFilter: '',
+  };
+
+  // ── Curriculum loading (с кэшем в localStorage на час) ────────
+  async function loadCurriculum() {
+    if (state.curriculum) return state.curriculum;
+    try {
+      const raw = localStorage.getItem(LS_CURRICULUM);
+      if (raw) {
+        const c = JSON.parse(raw);
+        const ageMin = (Date.now() - c._cachedAt) / 60000;
+        if (ageMin < LS_TTL_MIN && c.lessons) { state.curriculum = c; return c; }
+      }
+    } catch {}
+    const r = await fetch(CURRICULUM_URL, { cache: 'no-cache' });
+    if (!r.ok) throw new Error('Не удалось загрузить программу: HTTP ' + r.status);
+    const c = await r.json();
+    c._cachedAt = Date.now();
+    try { localStorage.setItem(LS_CURRICULUM, JSON.stringify(c)); } catch {}
+    state.curriculum = c;
+    return c;
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  function visibleStudents() {
+    const all = (window.S && Array.isArray(S.students)) ? S.students : [];
+    let list = all;
+    // Если роль teacher — показываем только тех, у кого есть enrollment с этим teacherId
+    if (currentRole === 'teacher' && currentTeacherId != null && Array.isArray(S.enrollments)) {
+      const myStudIds = new Set(
+        S.enrollments.filter(e => e.teacherId === currentTeacherId).map(e => e.studentId)
+      );
+      list = list.filter(s => myStudIds.has(s.id));
+    }
+    const q = state.studentFilter.trim().toLowerCase();
+    if (q) list = list.filter(s => (s.name || '').toLowerCase().includes(q));
+    return list.slice().sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ru'));
+  }
+
+  function progressForStudent(studentId) {
+    return state.progress[studentId] || {};
+  }
+  function doneCount(studentId) {
+    const p = progressForStudent(studentId);
+    return Object.values(p).filter(x => x && x.done).length;
+  }
+
+  // ── RTDB subscription для выбранного ученика ──────────────────
+  function subscribeProgress(studentId) {
+    if (state.progressUnsub) { state.progressUnsub(); state.progressUnsub = null; }
+    if (state.gameResultsUnsub) { state.gameResultsUnsub(); state.gameResultsUnsub = null; }
+    if (!studentId || !window.fbDb) return;
+
+    const ref = fbDb.ref('eduSchedule/programProgress/' + studentId);
+    const handler = ref.on('value', (snap) => {
+      state.progress[studentId] = snap.val() || {};
+      renderDetail();
+      const el = document.querySelector('.pg-stu[data-sid="' + studentId + '"] .pg-progress');
+      if (el) el.textContent = doneCount(studentId) + '/70';
+    });
+    state.progressUnsub = () => ref.off('value', handler);
+
+    // подписка на результаты мини-игры
+    const grRef = fbDb.ref('eduSchedule/programGameResults/' + studentId);
+    const grHandler = grRef.on('value', (snap) => {
+      state.gameResults[studentId] = snap.val() || {};
+      renderDetail();
+    });
+    state.gameResultsUnsub = () => grRef.off('value', grHandler);
+  }
+
+  function gameResultFor(studentId, lessonNum) {
+    const r = state.gameResults[studentId];
+    if (!r) return null;
+    return r[lessonNum] || null;
+  }
+  function bestPctFor(r) {
+    // r это {self?:{pct,...}, parent?:{pct,...}} — возвращаем макс
+    if (!r) return null;
+    const arr = [r.self?.pct, r.parent?.pct].filter(x => typeof x === "number");
+    return arr.length ? Math.max(...arr) : null;
+  }
+
+  async function toggleLesson(studentId, lessonNum) {
+    const cur = progressForStudent(studentId)[lessonNum];
+    const ref = fbDb.ref(`eduSchedule/programProgress/${studentId}/${lessonNum}`);
+    if (cur && cur.done) {
+      await ref.remove();
+    } else {
+      await ref.set({
+        done: true,
+        date: new Date().toISOString(),
+        teacherId: currentTeacherId || null,
+        teacherEmail: (window.fbAuth && fbAuth.currentUser && fbAuth.currentUser.email) || null,
+      });
+    }
+  }
+
+  // ── WhatsApp ─────────────────────────────────────────────────
+  function cleanPhone(p) { return String(p || '').replace(/[^\d]/g, ''); }
+
+  function sendToWhatsApp(student, lesson) {
+    const phone = cleanPhone(student.parentPhone || student.phone);
+    if (!phone) { alert('У ученика не указан номер родителя/ученика'); return; }
+    const n = lesson.lesson;
+    const sid = encodeURIComponent(student.id || '');
+    const sidParam = sid ? `&sid=${sid}` : '';
+    const lessonUrl = `${LESSON_PUBLIC_BASE}/lesson.html?n=${n}`;
+    const playSelf  = `${LESSON_PUBLIC_BASE}/play.html?n=${n}&mode=self${sidParam}`;
+    const playPar   = `${LESSON_PUBLIC_BASE}/play.html?n=${n}&mode=parent${sidParam}`;
+    const wordsLine = (lesson.words || []).join(', ');
+    const text =
+      `Здравствуйте! Сегодня прошли урок ${n}: ${lesson.topic || ''}.\n` +
+      (wordsLine ? `Слова: ${wordsLine}\n\n` : '\n') +
+      `📖 Материал для повторения:\n${lessonUrl}\n\n` +
+      `🎯 Тренировка для ребёнка (сам):\n${playSelf}\n\n` +
+      `👨‍👧 Игра вместе с ребёнком:\n${playPar}`;
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank');
+  }
+
+  // ── Rendering ─────────────────────────────────────────────────
+  function renderProgramRoot() {
+    const root = document.getElementById('panel-program');
+    if (!root) return;
+    if (!root.dataset.inited) {
+      root.innerHTML = `
+        <div class="pg-wrap">
+          <div class="pg-students">
+            <input type="text" id="pg-search" placeholder="Поиск ученика…"/>
+            <div id="pg-stu-list"></div>
+          </div>
+          <div class="pg-detail" id="pg-detail">
+            <div class="pg-empty">← Выберите ученика, чтобы увидеть программу.</div>
+          </div>
+        </div>`;
+      root.dataset.inited = '1';
+      const inp = document.getElementById('pg-search');
+      inp.addEventListener('input', (e) => {
+        state.studentFilter = e.target.value;
+        renderStudentsList();
+      });
+    }
+  }
+
+  function renderStudentsList() {
+    const wrap = document.getElementById('pg-stu-list');
+    if (!wrap) return;
+    const list = visibleStudents();
+    if (!list.length) {
+      wrap.innerHTML = '<div class="pg-empty" style="padding:20px">Учеников не найдено.</div>';
+      return;
+    }
+    wrap.innerHTML = list.map(s => {
+      const done = doneCount(s.id);
+      const active = s.id === state.selectedStudentId ? ' active' : '';
+      return `<div class="pg-stu${active}" data-sid="${s.id}">
+        <span>${esc(s.name || '—')}</span>
+        <span class="pg-progress">${done}/70</span>
+      </div>`;
+    }).join('');
+    wrap.querySelectorAll('.pg-stu').forEach(el => {
+      el.addEventListener('click', () => {
+        state.selectedStudentId = parseInt(el.dataset.sid, 10);
+        renderStudentsList();
+        subscribeProgress(state.selectedStudentId);
+        renderDetail();
+      });
+    });
+  }
+
+  function renderDetail() {
+    const root = document.getElementById('pg-detail');
+    if (!root) return;
+    const sid = state.selectedStudentId;
+    if (!sid) { root.innerHTML = '<div class="pg-empty">← Выберите ученика, чтобы увидеть программу.</div>'; return; }
+    const stu = (S.students || []).find(x => x.id === sid);
+    if (!stu) { root.innerHTML = '<div class="pg-empty">Ученик не найден.</div>'; return; }
+    const c = state.curriculum;
+    if (!c) { root.innerHTML = '<div class="pg-loading">Загружаем программу…</div>'; return; }
+    const prog = progressForStudent(sid);
+    const done = doneCount(sid);
+
+    const cardsHtml = c.lessons.map(L => {
+      const p = prog[L.lesson];
+      const isDone = !!(p && p.done);
+      const dateStr = isDone && p.date ? new Date(p.date).toLocaleDateString('ru-RU') : '';
+      const gr = gameResultFor(sid, L.lesson);
+      const pct = bestPctFor(gr);
+      // цвет бейджа от %: <50 красный, 50-79 жёлтый, 80+ зелёный
+      let pctColor = '#1db870';
+      if (pct != null) {
+        if (pct < 50) pctColor = '#e0394e';
+        else if (pct < 80) pctColor = '#ff9b3d';
+      }
+      const gameBadge = (pct != null)
+        ? `<div class="pg-game" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#fff;background:${pctColor};padding:3px 7px;border-radius:6px;margin-top:4px" title="результат мини-игры (max self/parent)">🎯 ${pct}%</div>`
+        : '';
+      return `<div class="pg-card${isDone ? ' done' : ''}">
+        <div class="pg-num">Урок ${L.lesson}</div>
+        <div class="pg-topic">${esc(L.topic || '')}</div>
+        ${dateStr ? `<div class="pg-meta">проведён ${esc(dateStr)}</div>` : ''}
+        ${gameBadge}
+        <div class="pg-actions">
+          <button class="pg-btn pg-mark ${isDone ? 'is-done' : ''}" data-act="mark" data-n="${L.lesson}">${isDone ? '✓ Проведён' : 'Отметить'}</button>
+          <button class="pg-btn pg-wa" data-act="wa" data-n="${L.lesson}" title="Отправить материал в WhatsApp">WA</button>
+        </div>
+      </div>`;
+    }).join('');
+
+    root.innerHTML = `
+      <div class="pg-head">
+        <h3>${esc(stu.name || '')}</h3>
+        <span class="pg-stat">пройдено ${done} из 70</span>
+      </div>
+      <div class="pg-grid">${cardsHtml}</div>`;
+
+    root.querySelectorAll('.pg-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const n = parseInt(btn.dataset.n, 10);
+        const lesson = c.lessons.find(L => L.lesson === n);
+        if (!lesson) return;
+        if (btn.dataset.act === 'mark') {
+          btn.disabled = true;
+          try { await toggleLesson(sid, n); } catch (e) { alert('Ошибка: ' + e.message); }
+          btn.disabled = false;
+        } else if (btn.dataset.act === 'wa') {
+          sendToWhatsApp(stu, lesson);
+        }
+      });
+    });
+  }
+
+  // ── Public entry ──────────────────────────────────────────────
+  window.renderProgram = async function () {
+    renderProgramRoot();
+    renderStudentsList();
+    try {
+      await loadCurriculum();
+    } catch (e) {
+      const root = document.getElementById('pg-detail');
+      if (root) root.innerHTML = `<div class="pg-empty" style="color:var(--rd)">${esc(e.message)}</div>`;
+      return;
+    }
+    if (state.selectedStudentId) {
+      subscribeProgress(state.selectedStudentId);
+      renderDetail();
+    }
+  };
+})();

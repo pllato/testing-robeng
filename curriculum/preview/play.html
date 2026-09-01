@@ -1,0 +1,1012 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="theme-color" content="#fafaf7"/>
+<title>ELC Kids — игра</title>
+
+<!-- Firebase (compat SDK so the same call style как в index.html/program.js) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#fafaf7;--card:#fff;--ink:#1a1828;--mute:#6b6985;--line:#ececf2;
+    --ac:#7c5cfc;--acbg:rgba(124,92,252,.08);
+    --ok:#1db870;--okbg:rgba(29,184,112,.10);
+    --bad:#e0394e;--badbg:rgba(224,57,78,.10);
+    --warm:#ff9b3d;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 Manrope,system-ui,sans-serif;-webkit-text-size-adjust:100%}
+  body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+  .wrap{max-width:880px;margin:0 auto;padding:16px 16px 90px}
+  button,.opt,.opt-img,.letter,.slot,.audio-btn,.pbtn,.back,.num,.mode-pick button{touch-action:manipulation}
+
+  /* top bar */
+  .top{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+  .back{color:var(--mute);text-decoration:none;font-size:13px;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:#fff}
+  .back:hover{color:var(--ac);border-color:var(--ac)}
+  .num{font-size:11px;font-weight:600;color:var(--ac);background:var(--acbg);padding:4px 10px;border-radius:6px;letter-spacing:.04em;text-transform:uppercase}
+  .mode-pick{margin-left:auto;display:inline-flex;background:#fff;border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
+  .mode-pick button{border:0;background:transparent;color:var(--mute);font:600 12px Manrope,sans-serif;padding:7px 12px;border-radius:8px;cursor:pointer}
+  .mode-pick button.on{background:var(--ac);color:#fff}
+
+  h1{font-size:22px;margin:0 0 18px;letter-spacing:-.01em;line-height:1.25}
+  h1 small{display:block;font-size:13px;color:var(--mute);font-weight:500;margin-top:4px}
+
+  /* progress + score */
+  .hud{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 16px;margin-bottom:16px}
+  .hud .bar{flex:1;height:8px;background:#f0eff5;border-radius:99px;overflow:hidden}
+  .hud .bar > i{display:block;height:100%;background:var(--ac);width:0;transition:.3s}
+  .hud .score{font-weight:700;font-size:14px;white-space:nowrap}
+  .hud .score .ok{color:var(--ok)}
+  .hud .score .bad{color:var(--bad)}
+
+  /* card */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px;margin:0 0 16px}
+  .qkind{font-size:11px;font-weight:600;color:var(--mute);text-transform:uppercase;letter-spacing:.06em;margin:0 0 14px}
+  .prompt{font-size:24px;font-weight:700;line-height:1.3;margin:0 0 16px}
+  .prompt.big{font-size:32px}
+  .prompt .blank{display:inline-block;min-width:90px;border-bottom:3px dashed var(--ac);margin:0 6px;color:var(--ac)}
+
+  /* big image */
+  .big-img{display:block;margin:0 auto 16px;width:240px;max-width:80vw;aspect-ratio:1/1;object-fit:cover;background:#f0eff5;border-radius:18px}
+
+  /* play audio button */
+  .audio-btn{display:inline-flex;align-items:center;gap:8px;background:var(--acbg);color:var(--ac);border:0;border-radius:99px;padding:10px 18px;font:700 14px Manrope,sans-serif;cursor:pointer}
+  .audio-btn:hover{background:var(--ac);color:#fff}
+  .audio-btn .ico{width:22px;height:22px;border-radius:50%;background:var(--ac);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px}
+  .audio-btn:hover .ico{background:#fff;color:var(--ac)}
+  .audio-row{text-align:center;margin:0 0 18px}
+
+  /* options grid (text) */
+  .opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .opt{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 16px;min-height:56px;cursor:pointer;font:600 17px Manrope,sans-serif;color:var(--ink);text-align:center;transition:.12s;user-select:none;display:flex;align-items:center;justify-content:center}
+  .opt:hover{border-color:var(--ac);transform:translateY(-1px)}
+  .opt.ok{background:var(--okbg);border-color:var(--ok);color:var(--ok)}
+  .opt.bad{background:var(--badbg);border-color:var(--bad);color:var(--bad)}
+  .opt.dim{opacity:.45;pointer-events:none}
+
+  /* options grid (image) */
+  .opts-img{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .opt-img{position:relative;background:#fff;border:2px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;transition:.12s}
+  .opt-img:hover{border-color:var(--ac);transform:translateY(-1px)}
+  .opt-img img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;background:#f0eff5}
+  .opt-img.ok{border-color:var(--ok)}
+  .opt-img.bad{border-color:var(--bad)}
+  .opt-img.dim{opacity:.4;pointer-events:none}
+  .opt-img .badge{position:absolute;top:8px;right:8px;width:26px;height:26px;border-radius:50%;display:none;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px}
+  .opt-img.ok .badge{display:flex;background:var(--ok)}
+  .opt-img.bad .badge{display:flex;background:var(--bad)}
+
+  /* parent controls */
+  .parent-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+  .pbtn{flex:1;min-width:120px;border:0;border-radius:12px;padding:14px 18px;font:700 15px Manrope,sans-serif;cursor:pointer;transition:.12s}
+  .pbtn:hover{transform:translateY(-1px)}
+  .pbtn.show{background:var(--acbg);color:var(--ac)}
+  .pbtn.ok{background:var(--ok);color:#fff}
+  .pbtn.bad{background:var(--bad);color:#fff}
+  .pbtn.skip{background:#f0eff5;color:var(--mute)}
+
+  .reveal{margin:14px 0;padding:14px 16px;background:var(--okbg);border:1px solid rgba(29,184,112,.25);border-radius:12px;font-size:18px;font-weight:700;color:var(--ok);text-align:center}
+  .reveal.hidden{display:none}
+  .reveal small{display:block;font-weight:500;color:var(--ink);margin-top:4px;font-size:13px;opacity:.7}
+
+  .ru-hint{display:inline-block;font-size:13px;font-weight:500;color:var(--mute);margin-top:8px;padding:4px 10px;background:#f6f5fb;border-radius:8px}
+  .ru-hint::before{content:"🇷🇺 ";opacity:.7}
+  .ru-prompt{display:inline-block;font-size:13px;font-weight:600;color:var(--ac);margin-bottom:8px;padding:5px 12px;background:var(--acbg);border-radius:99px}
+  .ru-prompt::before{content:"🇷🇺 ";font-size:14px}
+  .ru-block{text-align:center;margin:0 0 8px}
+
+  /* spelling — slots and letters */
+  .slots{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:6px 0 18px;min-height:50px}
+  .slot{width:38px;height:48px;border:2px dashed var(--line);border-radius:10px;display:flex;align-items:center;justify-content:center;font:700 22px Manrope,sans-serif;color:var(--ink);background:#fff;cursor:pointer;transition:.12s;text-transform:lowercase}
+  .slot.filled{border-style:solid;border-color:var(--ac);background:#fff}
+  .slot.space{border-color:transparent;background:transparent;width:14px}
+  .slot.ok{border-color:var(--ok);background:var(--okbg);color:var(--ok)}
+  .slot.bad{border-color:var(--bad);background:var(--badbg);color:var(--bad)}
+  .letters{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:0 0 16px}
+  .letter{width:42px;height:50px;border:1px solid var(--line);border-radius:10px;display:flex;align-items:center;justify-content:center;font:700 22px Manrope,sans-serif;color:var(--ink);background:#fff;cursor:pointer;transition:.1s;user-select:none;text-transform:lowercase}
+  .letter:hover{border-color:var(--ac);transform:translateY(-1px)}
+  .letter.used{opacity:.25;pointer-events:none}
+  .letter.bad{background:var(--badbg);border-color:var(--bad);color:var(--bad);animation:shake .35s}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+
+  /* typed input */
+  .type-row{display:flex;flex-direction:column;gap:10px;align-items:center;margin:6px 0 12px}
+  /* font-size:18px на input критичен на iOS — иначе Safari зумит при фокусе */
+  .type-input{width:100%;max-width:320px;border:2px solid var(--line);border-radius:12px;padding:14px 18px;font:700 18px Manrope,sans-serif;text-align:center;outline:none;text-transform:lowercase;letter-spacing:.04em;-webkit-appearance:none}
+  .type-input:focus{border-color:var(--ac)}
+  .type-input.ok{border-color:var(--ok);background:var(--okbg);color:var(--ok)}
+  .type-input.bad{border-color:var(--bad);background:var(--badbg);color:var(--bad)}
+  .type-submit{border:0;background:var(--ac);color:#fff;font:700 15px Manrope,sans-serif;padding:13px 26px;border-radius:12px;cursor:pointer;min-height:46px;min-width:140px}
+  .type-submit:disabled{opacity:.4;cursor:default}
+
+  /* review header (между основной программой и повтором ошибок) */
+  .review-hdr{text-align:center;padding:30px 18px}
+  .review-hdr .emoji{font-size:54px;margin:0 0 8px;color:var(--ac)}
+  .review-hdr h3{margin:0 0 6px;font-size:22px}
+  .review-hdr p{margin:0 0 18px;color:var(--mute);font-size:14px}
+  .review-hdr .rev-go{border:0;background:var(--ac);color:#fff;font:700 15px Manrope,sans-serif;padding:13px 28px;border-radius:12px;cursor:pointer;min-height:48px;min-width:160px}
+  .review-tag{display:inline-block;background:var(--warm);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;letter-spacing:.04em;text-transform:uppercase;margin-right:6px;vertical-align:1px}
+
+  /* study (flashcard slideshow) */
+  .study-card{text-align:center;padding:14px 16px}
+  .study-card .step{font-size:11px;font-weight:600;color:var(--mute);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+  .study-card img{display:block;margin:0 auto 14px;width:280px;max-width:75vw;aspect-ratio:1/1;object-fit:cover;background:#f0eff5;border-radius:18px}
+  .study-card .word{font-size:34px;font-weight:800;letter-spacing:-.01em;margin:0 0 4px}
+  .study-card .ru{font-size:16px;color:var(--mute);margin:0 0 14px}
+  .study-card .audio-row{margin:6px 0 18px}
+  .study-nav{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap}
+  .study-nav button{border:0;border-radius:12px;padding:11px 18px;font:700 14px Manrope,sans-serif;cursor:pointer;transition:.12s}
+  .study-nav button:hover{transform:translateY(-1px)}
+  .study-nav .prev{background:#fff;color:var(--mute);border:1px solid var(--line)}
+  .study-nav .prev:disabled{opacity:.35;cursor:default}
+  .study-nav .next{background:var(--ac);color:#fff;min-width:120px}
+  .study-skip{display:inline-block;margin-top:14px;font-size:12px;color:var(--mute);text-decoration:underline;cursor:pointer;background:transparent;border:0}
+  .study-skip:hover{color:var(--ac)}
+
+  /* finish */
+  .finish{text-align:center;padding:30px 16px}
+  .finish .emoji{font-size:64px;margin:0 0 12px}
+  .finish h2{margin:0 0 8px;font-size:26px}
+  .finish .stat{display:inline-flex;gap:24px;margin:18px 0 24px;padding:14px 22px;background:#fff;border:1px solid var(--line);border-radius:14px}
+  .finish .stat b{display:block;font-size:24px;color:var(--ink)}
+  .finish .stat span{font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.06em}
+  .finish .stat .ok b{color:var(--ok)}
+  .finish .stat .bad b{color:var(--bad)}
+  .finish-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  .finish-actions a, .finish-actions button{border:0;background:var(--ac);color:#fff;padding:12px 22px;border-radius:12px;font:700 14px Manrope,sans-serif;cursor:pointer;text-decoration:none;display:inline-block}
+  .finish-actions .alt{background:#fff;color:var(--ink);border:1px solid var(--line)}
+
+  .loading{color:var(--mute);padding:60px 0;text-align:center}
+  .err{color:var(--bad)}
+
+  @media(max-width:540px){
+    .prompt{font-size:20px}
+    .prompt.big{font-size:24px}
+    .big-img{width:200px}
+    .card{padding:18px 16px;border-radius:16px}
+    h1{font-size:20px}
+    .top{gap:8px}
+    .num{font-size:10px;padding:3px 8px}
+    .mode-pick{margin-left:0;width:100%;justify-content:stretch}
+    .mode-pick button{flex:1;padding:9px 6px;font-size:11px}
+    .study-card .word{font-size:30px}
+    .study-card img{width:230px}
+    .letter{width:46px;height:54px;font-size:24px}
+    .slot{width:36px;height:48px;font-size:22px}
+    .opt{padding:14px 12px;font-size:16px;min-height:52px}
+    .pbtn{padding:13px 14px;font-size:14px}
+    .audio-btn{padding:12px 22px;font-size:15px;min-height:46px}
+  }
+  @media(max-width:380px){
+    .letter{width:40px;height:48px;font-size:21px}
+    .slot{width:32px;height:42px;font-size:19px}
+    .opts{gap:8px}
+    .opt{font-size:15px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap" id="root">
+  <div class="loading">Загружаем урок…</div>
+</div>
+
+<script>
+const BASE = "https://pub-4a4bf55405d74fe58e817b5fb86955d4.r2.dev";
+const CURRICULUM_URL = BASE + "/curriculum.json";
+const TRANSLATIONS_URL = "translations.json"; // локальный файл рядом с play.html
+const IMAGE_DUPES_URL  = "image_dupes.json";  // отчёт о визуально-одинаковых картинках (по урокам)
+
+// ── Firebase (тот же проект что у CRM в index.html) ──
+// Пишем результат игры в eduSchedule/programGameResults/{studentId}/{lessonNum}.
+// Чтение этого пути в CRM уже из учительского кабинета по обычным правилам.
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCC61xh7Rdwkrw63BIzgdDqVq5_FOBUlgI",
+  authDomain: "elc-robeng.firebaseapp.com",
+  projectId: "elc-robeng",
+  storageBucket: "elc-robeng.firebasestorage.app",
+  messagingSenderId: "787056352049",
+  appId: "1:787056352049:web:988906f19d87fca3056e10",
+  databaseURL: "https://elc-robeng-default-rtdb.firebaseio.com"
+};
+let fbDb = null;
+try {
+  if (typeof firebase !== "undefined") {
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    fbDb = firebase.database();
+    // анонимная аутентификация, чтобы правила могли требовать auth != null
+    firebase.auth().signInAnonymously().catch(()=>{ /* пользователь играет — молча */ });
+  }
+} catch(e) { console.warn("firebase init failed", e); fbDb = null; }
+
+const params = new URLSearchParams(location.search);
+const lessonNum = parseInt(params.get("n") || "1", 10);
+let mode = params.get("mode") === "parent" ? "parent" : "self";
+const studentId = params.get("sid") || ""; // приходит из WhatsApp/кабинета родителя
+
+const root = document.getElementById("root");
+
+const esc = s => (s||"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const shuffle = a => { a = a.slice(); for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+const sample = (a,n) => shuffle(a).slice(0,n);
+
+let currentAudio = null;
+function playAudio(url){
+  if (currentAudio){ try{ currentAudio.pause(); }catch{} }
+  if (!url) return;
+  currentAudio = new Audio(url);
+  currentAudio.play().catch(()=>{});
+}
+
+let lesson = null;        // current lesson object
+let allWordAssets = [];   // word_assets pool from this lesson
+let translations = {};    // { "hello": "привет", ... }
+let ambiguousWords = new Set();  // слова текущего урока, чья картинка совпадает с >=1 другим словом
+
+// Программа = последовательность шагов, каждый шаг — либо студи-карточка,
+// либо вопрос. Блок: [study × N, quiz × N], где N=BLOCK_SIZE. После всех
+// блоков — повтор ошибочных слов (review). После — финиш.
+const BLOCK_SIZE = 3;
+const MAX_REVIEW = 5;
+let sequence = [];        // [{kind:"study"|<quiz_kind>, target, options?, ...}]
+let ptr = 0;              // указатель в sequence
+let score = { ok:0, bad:0 };
+let answered = false;     // for self mode — block double-clicks
+let revealed = false;     // for parent mode
+let wrongs = [];          // word_assets, ответы на которые были неверны
+let reviewAdded = false;  // повтор уже добавлен (чтобы не дублировался)
+const skipStudyParam = params.get("skip") === "study";
+
+const tr = w => translations[(w||'').toLowerCase().trim()] || '';
+
+async function init(){
+  let data;
+  let dupesData = null;
+  try{
+    const [cR, tR, dR] = await Promise.all([
+      fetch(CURRICULUM_URL, { cache: "no-cache" }),
+      fetch(TRANSLATIONS_URL, { cache: "no-cache" }).catch(()=>null),
+      fetch(IMAGE_DUPES_URL,  { cache: "no-cache" }).catch(()=>null),
+    ]);
+    if (!cR.ok) throw new Error("HTTP " + cR.status);
+    data = await cR.json();
+    if (tR && tR.ok){
+      const tj = await tR.json();
+      translations = (tj && tj.translations) ? tj.translations : {};
+    }
+    if (dR && dR.ok){
+      dupesData = await dR.json();
+    }
+  }catch(e){
+    root.innerHTML = `<div class="loading err">Не удалось загрузить программу: ${esc(e.message)}</div>`;
+    return;
+  }
+  lesson = data.lessons.find(x => x.lesson === lessonNum);
+  if (!lesson){
+    root.innerHTML = `<div class="loading err">Урок ${lessonNum} не найден</div>`;
+    return;
+  }
+  document.title = `Урок ${lesson.lesson}. Игра — ELC Kids`;
+  allWordAssets = (lesson.media && lesson.media.word_assets) || [];
+
+  // Собираем set «слов с картинкой-дублем» в этом уроке
+  ambiguousWords = new Set();
+  if (dupesData && Array.isArray(dupesData.flagged)){
+    const entry = dupesData.flagged.find(x => x.lesson === lessonNum);
+    if (entry){
+      (entry.duplicates || []).forEach(group => {
+        group.forEach(w => ambiguousWords.add(String(w).toLowerCase()));
+      });
+    }
+  }
+
+  sequence = buildSequence(lesson, mode);
+  ptr = 0;
+  score = { ok:0, bad:0 };
+  wrongs = [];
+  reviewAdded = false;
+  render();
+}
+
+/* ──────────── Question builders ────────────
+   Каждый вопрос = объект {kind, ...}
+   kinds:
+     - "audio2img"   : проиграть аудио → выбрать картинку
+     - "img2word"    : показать картинку → выбрать слово
+     - "ru2en"       : показать перевод → выбрать слово
+     - "ru2img"      : показать перевод → выбрать картинку
+     - "scramble"    : собрать слово из букв
+     - "type"        : напечатать слово в поле
+     - "gap"         : паттерн с пропуском → выбрать слово
+     - "convo"       : показать строку диалога → попросить повторить (parent only)
+*/
+function isSpellable(w){
+  // подходит для письменных заданий: одно слово из букв, разумная длина
+  if (!w) return false;
+  const s = String(w).trim();
+  if (s.length < 2 || s.length > 12) return false;
+  if (/[\s'’\-]/.test(s)) return false;   // фразы / апострофы / дефисы — пропускаем
+  return /^[a-zA-Z]+$/.test(s);
+}
+
+// Визуальные типы — задание показывает картинку или просит выбрать из картинок
+const VISUAL_KINDS = new Set(["audio2img", "ru2img", "img2word"]);
+
+function isAmbiguous(word){
+  return ambiguousWords.has(String(word||'').toLowerCase());
+}
+
+function makeQuizItem(w, kind){
+  const wordKey = String(w.word).toLowerCase();
+  // Если у слова дублируется картинка с другим словом в уроке, визуальные
+  // задания на нём бесполезны (4 одинаковые картинки или одна общая для двух разных слов).
+  // Подменяем на текстовый формат.
+  if (VISUAL_KINDS.has(kind) && isAmbiguous(wordKey)){
+    if (tr(w.word))           kind = "ru2en";
+    else if (isSpellable(w.word)) kind = "scramble";
+    else                       kind = "type";
+  }
+  // safety: переводные требуют перевода
+  if ((kind === "ru2en" || kind === "ru2img") && !tr(w.word)) {
+    kind = isSpellable(w.word) ? "scramble" : "img2word";
+  }
+  // письменные — только для коротких «чистых» слов
+  if ((kind === "scramble" || kind === "type") && !isSpellable(w.word)) {
+    kind = tr(w.word) ? "ru2en" : "img2word";
+  }
+  // финальная защита: если после всех подмен мы всё-таки на визуальном
+  // типе для двусмысленного слова — насильно переходим к scramble/type
+  if (VISUAL_KINDS.has(kind) && isAmbiguous(wordKey)){
+    kind = isSpellable(w.word) ? "scramble" : "ru2en";
+  }
+
+  // gather distractors. Для визуальных вопросов — только из не-двусмысленных,
+  // чтобы среди 4 картинок не оказалось ещё одна, неотличимая от целевой.
+  let pool = allWordAssets.filter(x => x.word !== w.word);
+  if (VISUAL_KINDS.has(kind)){
+    const cleaner = pool.filter(x => !isAmbiguous(x.word));
+    if (cleaner.length >= 3) pool = cleaner;
+  }
+  const distractors = sample(pool, Math.min(3, pool.length));
+  const opts = shuffle([w, ...distractors]);
+  return { kind, target: w, options: opts };
+}
+
+function buildSequence(L, currentMode){
+  const seq = [];
+  const wa = allWordAssets;
+  if (!wa.length){
+    (L.words || []).forEach(w => seq.push({ kind:"text-recall", word:w }));
+    return seq;
+  }
+
+  // распределяем тип задания по кругу — варьируем форматы
+  const KINDS = ["ru2img", "audio2img", "scramble", "ru2en", "img2word", "type"];
+  let kindIdx = 0;
+  const shuffled = shuffle(wa);
+
+  // нарезаем на блоки по BLOCK_SIZE
+  for (let i = 0; i < shuffled.length; i += BLOCK_SIZE){
+    const block = shuffled.slice(i, i + BLOCK_SIZE);
+    // 1) знакомство — только если не запросили skip=study
+    if (!skipStudyParam){
+      for (const w of block) seq.push({ kind:"study", target: w });
+    }
+    // 2) тренировка — по 1 вопросу на каждое слово блока
+    for (const w of block){
+      seq.push(makeQuizItem(w, KINDS[kindIdx++ % KINDS.length]));
+    }
+  }
+
+  // 3) грамматика gap-fill — 1-2 в самом конце
+  const gaps = [];
+  (L.grammar_patterns || []).forEach(p => {
+    if (!/_/.test(p)) return;
+    const pool = (L.words || []).slice();
+    if (!pool.length) return;
+    const correct = pool[Math.floor(Math.random()*pool.length)];
+    const distractors = sample(pool.filter(x => x !== correct), Math.min(3, pool.length-1));
+    const opts = shuffle([correct, ...distractors]);
+    gaps.push({ kind:"gap", pattern:p, correct, options:opts });
+  });
+  shuffle(gaps).slice(0, 2).forEach(g => seq.push(g));
+
+  // 4) диалог — для parent режима, в самом конце, 2 строки максимум
+  if (currentMode === "parent"){
+    shuffle(L.conversation || []).slice(0, 2).forEach(line => seq.push({ kind:"convo", line }));
+  }
+
+  return seq;
+}
+
+// Когда основная программа пройдена и есть ошибки — добавляем review
+function maybeAppendReview(){
+  if (reviewAdded) return;
+  reviewAdded = true;
+  if (!wrongs.length) return;
+  // уникальные слова из ошибочных
+  const seen = new Set();
+  const uniq = wrongs.filter(w => { const k = w.word; if (seen.has(k)) return false; seen.add(k); return true; });
+  const pick = sample(uniq, Math.min(MAX_REVIEW, uniq.length));
+  // вставляем разделитель + до 5 повторных вопросов (в облегчённой форме — ru2img/ru2en)
+  sequence.push({ kind:"review-hdr" });
+  pick.forEach((w, i) => {
+    const easyKind = (i % 2 === 0 && tr(w.word)) ? "ru2img" : "img2word";
+    sequence.push({ ...makeQuizItem(w, easyKind), isReview: true });
+  });
+}
+
+/* ──────────── Render ──────────── */
+function render(){
+  // если дошли до конца программы и ошибки есть — однократно добавляем review
+  if (ptr >= sequence.length && !reviewAdded){
+    maybeAppendReview();
+  }
+  if (ptr >= sequence.length){
+    return renderFinish();
+  }
+  const item = sequence[ptr];
+  answered = false;
+  revealed = false;
+
+  // study card?
+  if (item.kind === "study") return renderStudyCard(item);
+  if (item.kind === "review-hdr") return renderReviewHeader();
+
+  // обычный вопрос
+  const total = sequence.filter(x => isQuiz(x)).length;
+  const done  = sequence.slice(0, ptr).filter(x => isQuiz(x)).length;
+  const pct = Math.round((done / Math.max(total,1)) * 100);
+
+  let body = "";
+  if (item.kind === "audio2img")   body = renderAudio2Img(item);
+  else if (item.kind === "img2word") body = renderImg2Word(item);
+  else if (item.kind === "ru2en")    body = renderRu2En(item);
+  else if (item.kind === "ru2img")   body = renderRu2Img(item);
+  else if (item.kind === "scramble") body = renderScramble(item);
+  else if (item.kind === "type")     body = renderType(item);
+  else if (item.kind === "gap")      body = renderGap(item);
+  else if (item.kind === "convo")    body = renderConvo(item);
+  else if (item.kind === "text-recall") body = renderTextRecall(item);
+
+  const reviewTag = item.isReview ? `<span class="review-tag">↻ повтор</span>` : "";
+
+  root.innerHTML = `
+    <div class="top">
+      <a class="back" href="lesson.html?n=${lesson.lesson}">← Урок</a>
+      <span class="num">Урок ${lesson.lesson} · ${esc(lesson.topic||"")}</span>
+      <div class="mode-pick" id="modePick">
+        <button data-m="self"   class="${mode==='self'?'on':''}">🎯 Сам</button>
+        <button data-m="parent" class="${mode==='parent'?'on':''}">👨‍👧 С родителем</button>
+      </div>
+    </div>
+
+    <div class="hud">
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      <div class="score">
+        ${reviewTag}
+        <span class="ok">✓ ${score.ok}</span> · <span class="bad">✗ ${score.bad}</span>
+      </div>
+    </div>
+
+    <div class="card">${body}</div>
+  `;
+
+  bindModeToggle();
+  bindHandlers(item);
+}
+
+function isQuiz(item){
+  return item && item.kind && item.kind !== "study" && item.kind !== "review-hdr";
+}
+
+function bindModeToggle(){
+  const pick = document.getElementById("modePick");
+  if (!pick) return;
+  pick.addEventListener("click", e => {
+    const b = e.target.closest("button[data-m]");
+    if (!b) return;
+    const m = b.dataset.m;
+    if (m !== mode){
+      mode = m;
+      sequence = buildSequence(lesson, mode);
+      ptr = 0; score = { ok:0, bad:0 }; wrongs = []; reviewAdded = false;
+      const u = new URL(location.href); u.searchParams.set("mode", mode);
+      history.replaceState(null,"",u);
+      render();
+    }
+  });
+}
+
+/* helpers — общие блоки */
+function parentBlock(targetWord, hintText){
+  if (mode !== "parent") return "";
+  const ru = tr(targetWord);
+  return `
+    <div class="reveal hidden" id="reveal">
+      <div>${esc(targetWord)}</div>
+      ${ru ? `<small>🇷🇺 ${esc(ru)}</small>` : ""}
+      ${hintText ? `<small>${esc(hintText)}</small>` : ""}
+    </div>
+    <div class="parent-actions">
+      <button class="pbtn show" id="pShow">Показать ответ</button>
+      <button class="pbtn ok"   id="pOk">✓ Знает</button>
+      <button class="pbtn bad"  id="pBad">✗ Не знает</button>
+      <button class="pbtn skip" id="pSkip">Пропустить</button>
+    </div>`;
+}
+function ruHint(word){
+  const ru = tr(word);
+  return ru ? `<div class="ru-block"><span class="ru-hint">${esc(ru)}</span></div>` : "";
+}
+
+/* ── kinds ── */
+function renderAudio2Img(q){
+  const opts = q.options.map((o,i) => `
+    <div class="opt-img" data-i="${i}" data-correct="${o.word === q.target.word ? '1':'0'}">
+      <img src="${BASE}/${esc(o.image)}" alt="" loading="lazy"/>
+      <span class="badge">✓</span>
+    </div>
+  `).join("");
+  return `
+    <div class="qkind">Послушай и выбери картинку</div>
+    <div class="audio-row">
+      <button class="audio-btn" id="play"><span class="ico">▶</span> Слушать</button>
+    </div>
+    <div class="opts-img">${opts}</div>
+    ${parentBlock(q.target.word, "правильная картинка обведена зелёным")}
+  `;
+}
+
+function renderImg2Word(q){
+  const opts = q.options.map((o,i) => `
+    <div class="opt" data-i="${i}" data-correct="${o.word === q.target.word ? '1':'0'}">${esc(o.word)}</div>
+  `).join("");
+  const parentExtra = mode === "parent" ? `<div class="audio-row" style="margin:8px 0"><button class="audio-btn" id="play"><span class="ico">▶</span> Произношение</button></div>` : "";
+  return `
+    <div class="qkind">Что на картинке?</div>
+    <img class="big-img" src="${BASE}/${esc(q.target.image)}" alt=""/>
+    <div class="opts">${opts}</div>
+    ${parentExtra}
+    ${parentBlock(q.target.word, "попроси ребёнка произнести вслух")}
+  `;
+}
+
+function renderRu2En(q){
+  const opts = q.options.map((o,i) => `
+    <div class="opt" data-i="${i}" data-correct="${o.word === q.target.word ? '1':'0'}">${esc(o.word)}</div>
+  `).join("");
+  const ruWord = tr(q.target.word);
+  return `
+    <div class="qkind">Как сказать по-английски?</div>
+    <div class="ru-block"><span class="ru-prompt">${esc(ruWord)}</span></div>
+    <div class="opts">${opts}</div>
+    ${parentBlock(q.target.word, "попроси ребёнка перевести и сказать вслух")}
+  `;
+}
+
+function renderRu2Img(q){
+  const opts = q.options.map((o,i) => `
+    <div class="opt-img" data-i="${i}" data-correct="${o.word === q.target.word ? '1':'0'}">
+      <img src="${BASE}/${esc(o.image)}" alt="" loading="lazy"/>
+      <span class="badge">✓</span>
+    </div>
+  `).join("");
+  const ruWord = tr(q.target.word);
+  return `
+    <div class="qkind">Найди картинку</div>
+    <div class="ru-block"><span class="ru-prompt">${esc(ruWord)}</span></div>
+    <div class="opts-img">${opts}</div>
+    ${parentBlock(q.target.word, "правильная картинка обведена зелёным")}
+  `;
+}
+
+function renderScramble(q){
+  const word = q.target.word.toLowerCase();
+  // shuffle letters but ensure the result actually differs from the original
+  let letters;
+  do {
+    letters = shuffle(word.split(""));
+  } while (letters.join("") === word && word.length > 1);
+
+  const slotsHtml = Array.from(word).map((_,i)=>`<div class="slot" data-pos="${i}"></div>`).join("");
+  const lettersHtml = letters.map((ch,i)=>`<div class="letter" data-li="${i}">${esc(ch)}</div>`).join("");
+  const ruWord = tr(q.target.word);
+  const ruBlock = ruWord ? `<div class="ru-block"><span class="ru-prompt">${esc(ruWord)}</span></div>` : "";
+  return `
+    <div class="qkind">Собери слово из букв</div>
+    ${ruBlock}
+    <div class="audio-row"><button class="audio-btn" id="play"><span class="ico">▶</span> Слушать</button></div>
+    <div class="slots" id="slots">${slotsHtml}</div>
+    <div class="letters" id="letters">${lettersHtml}</div>
+    ${parentBlock(q.target.word, "ребёнок составляет слово из букв")}
+  `;
+}
+
+function renderType(q){
+  const word = q.target.word;
+  const ruWord = tr(word);
+  const ruBlock = ruWord ? `<div class="ru-block"><span class="ru-prompt">${esc(ruWord)}</span></div>` : "";
+  return `
+    <div class="qkind">Напиши слово по-английски</div>
+    ${ruBlock}
+    <div class="audio-row"><button class="audio-btn" id="play"><span class="ico">▶</span> Слушать</button></div>
+    <div class="type-row">
+      <input class="type-input" id="typeInput" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="введите слово…" maxlength="${Math.max(word.length+4, 16)}"/>
+      <button class="type-submit" id="typeSubmit" disabled>Проверить</button>
+    </div>
+    ${parentBlock(q.target.word, "ребёнок печатает слово")}
+  `;
+}
+
+function renderGap(q){
+  const promptHtml = esc(q.pattern).replace(/_+/g, '<span class="blank">?</span>');
+  const opts = q.options.map((o,i) => `
+    <div class="opt" data-i="${i}" data-correct="${o === q.correct ? '1':'0'}">${esc(o)}</div>
+  `).join("");
+  return `
+    <div class="qkind">Заполни пропуск</div>
+    <div class="prompt">${promptHtml}</div>
+    <div class="opts">${opts}</div>
+    ${parentBlock(q.correct, "в пропуск подходит это слово")}
+  `;
+}
+
+function renderConvo(q){
+  // только для parent
+  return `
+    <div class="qkind">Диалог — попроси повторить</div>
+    <div class="prompt big">«${esc(q.line)}»</div>
+    <div class="parent-actions">
+      <button class="pbtn ok"   id="pOk">✓ Повторил</button>
+      <button class="pbtn bad"  id="pBad">✗ Не смог</button>
+      <button class="pbtn skip" id="pSkip">Пропустить</button>
+    </div>
+  `;
+}
+
+function renderTextRecall(q){
+  return `
+    <div class="qkind">Слово</div>
+    <div class="prompt big">${esc(q.word)}</div>
+    ${ruHint(q.word)}
+    <div class="parent-actions">
+      <button class="pbtn ok"   id="pOk">✓ Знает</button>
+      <button class="pbtn bad"  id="pBad">✗ Не знает</button>
+      <button class="pbtn skip" id="pSkip">Пропустить</button>
+    </div>
+  `;
+}
+
+/* ── handlers ── */
+function bindHandlers(q){
+  // play button
+  const pb = document.getElementById("play");
+  if (pb){
+    const url = q.target ? `${BASE}/${q.target.audio}` : null;
+    pb.addEventListener("click", () => playAudio(url));
+    if (q.kind === "audio2img"){
+      // авто-проиграть при появлении
+      setTimeout(() => playAudio(url), 200);
+    }
+  }
+
+  // image options
+  document.querySelectorAll(".opt-img").forEach(el => {
+    el.addEventListener("click", () => onPick(el));
+  });
+  // text options
+  document.querySelectorAll(".opt").forEach(el => {
+    el.addEventListener("click", () => onPick(el));
+  });
+
+  // ── scramble: tap letter → fills next empty slot; tap filled slot → returns letter
+  if (q.kind === "scramble"){
+    const slots = Array.from(document.querySelectorAll("#slots .slot"));
+    const letters = Array.from(document.querySelectorAll("#letters .letter"));
+    const target = q.target.word.toLowerCase();
+    const placed = new Array(slots.length).fill(null); // {li, ch} per slot
+
+    function checkComplete(){
+      if (placed.some(p => p === null)) return;
+      const guess = placed.map(p => p.ch).join("");
+      const ok = guess === target;
+      if (mode === "self"){
+        if (answered) return;
+        answered = true;
+        slots.forEach(s => s.classList.add(ok ? "ok" : "bad"));
+        if (ok){
+          score.ok++;
+        } else {
+          score.bad++;
+          if (q.target) wrongs.push(q.target);
+          // показать правильный ответ через 600мс
+          setTimeout(() => {
+            slots.forEach((s,i) => { s.classList.remove("bad"); s.classList.add("ok"); s.textContent = target[i]; });
+          }, 700);
+        }
+        if (q.target.audio) playAudio(`${BASE}/${q.target.audio}`);
+        // показать перевод
+        const ruText = tr(target);
+        if (ruText && !document.querySelector(".answer-hint")){
+          const hint = document.createElement("div");
+          hint.className = "ru-block answer-hint";
+          hint.style.marginTop = "12px";
+          hint.innerHTML = `<span class="ru-hint"><b>${esc(target)}</b> — ${esc(ruText)}</span>`;
+          document.querySelector(".card").appendChild(hint);
+        }
+        setTimeout(() => nextQ(), ok ? 1300 : 2200);
+      }
+    }
+    function placeLetter(li){
+      const letterEl = letters[li];
+      if (letterEl.classList.contains("used")) return;
+      const idx = placed.findIndex(p => p === null);
+      if (idx < 0) return;
+      placed[idx] = { li, ch: letterEl.textContent };
+      slots[idx].textContent = letterEl.textContent;
+      slots[idx].classList.add("filled");
+      letterEl.classList.add("used");
+      checkComplete();
+    }
+    function returnFromSlot(slotIdx){
+      if (answered) return;
+      const p = placed[slotIdx];
+      if (!p) return;
+      letters[p.li].classList.remove("used");
+      placed[slotIdx] = null;
+      slots[slotIdx].textContent = "";
+      slots[slotIdx].classList.remove("filled");
+    }
+    letters.forEach((el, li) => el.addEventListener("click", () => placeLetter(li)));
+    slots.forEach((el, si) => el.addEventListener("click", () => returnFromSlot(si)));
+  }
+
+  // ── type: input + submit
+  if (q.kind === "type"){
+    const input = document.getElementById("typeInput");
+    const btn   = document.getElementById("typeSubmit");
+    const target = q.target.word.toLowerCase();
+    function doCheck(){
+      if (mode !== "self" || answered) return;
+      const guess = (input.value || "").trim().toLowerCase();
+      if (!guess) return;
+      answered = true;
+      const ok = guess === target;
+      input.classList.add(ok ? "ok" : "bad");
+      input.disabled = true;
+      btn.disabled = true;
+      if (ok){
+        score.ok++;
+      } else {
+        score.bad++;
+        if (q.target) wrongs.push(q.target);
+        // показать правильное слово рядом
+        setTimeout(() => {
+          input.value = target;
+          input.classList.remove("bad");
+          input.classList.add("ok");
+        }, 800);
+      }
+      if (q.target.audio) playAudio(`${BASE}/${q.target.audio}`);
+      const ruText = tr(target);
+      if (ruText && !document.querySelector(".answer-hint")){
+        const hint = document.createElement("div");
+        hint.className = "ru-block answer-hint";
+        hint.style.marginTop = "12px";
+        hint.innerHTML = `<span class="ru-hint"><b>${esc(target)}</b> — ${esc(ruText)}</span>`;
+        document.querySelector(".card").appendChild(hint);
+      }
+      setTimeout(() => nextQ(), ok ? 1200 : 2200);
+    }
+    input.addEventListener("input", () => { btn.disabled = !input.value.trim(); });
+    input.addEventListener("keydown", e => { if (e.key === "Enter") doCheck(); });
+    btn.addEventListener("click", doCheck);
+    setTimeout(() => input.focus(), 50);
+  }
+
+  // parent buttons
+  const pShow = document.getElementById("pShow");
+  if (pShow) pShow.addEventListener("click", () => {
+    revealed = true;
+    const r = document.getElementById("reveal");
+    if (r) r.classList.remove("hidden");
+    // подсветим правильный для наглядности
+    document.querySelectorAll(".opt[data-correct='1'], .opt-img[data-correct='1']").forEach(el => el.classList.add("ok"));
+    // в parent режиме можно проиграть и аудио сразу
+    if (q.target) playAudio(`${BASE}/${q.target.audio}`);
+  });
+  const pOk = document.getElementById("pOk");
+  if (pOk) pOk.addEventListener("click", () => { score.ok++; nextQ(); });
+  const pBad = document.getElementById("pBad");
+  if (pBad) pBad.addEventListener("click", () => { score.bad++; nextQ(); });
+  const pSkip = document.getElementById("pSkip");
+  if (pSkip) pSkip.addEventListener("click", () => { nextQ(); });
+}
+
+function onPick(el){
+  if (mode !== "self" || answered) return;
+  answered = true;
+  const q = sequence[ptr];
+  const ok = el.dataset.correct === "1";
+  if (ok){
+    el.classList.add("ok");
+    score.ok++;
+  } else {
+    el.classList.add("bad");
+    score.bad++;
+    if (q && q.target) wrongs.push(q.target);
+    document.querySelectorAll("[data-correct='1']").forEach(e => e.classList.add("ok"));
+  }
+  // dim others
+  document.querySelectorAll(".opt, .opt-img").forEach(e => {
+    if (e !== el && !e.classList.contains("ok")) e.classList.add("dim");
+  });
+  // show translation hint after answer (для слов)
+  const targetWord = q && q.target ? q.target.word : null;
+  const ruText = targetWord ? tr(targetWord) : "";
+  if (ruText && !document.querySelector(".answer-hint")){
+    const hint = document.createElement("div");
+    hint.className = "ru-block answer-hint";
+    hint.style.marginTop = "14px";
+    hint.innerHTML = `<span class="ru-hint"><b>${esc(targetWord)}</b> — ${esc(ruText)}</span>`;
+    document.querySelector(".card").appendChild(hint);
+  }
+  // play audio of the correct word so the child hears it
+  if (q && q.target && q.target.audio) playAudio(`${BASE}/${q.target.audio}`);
+  setTimeout(() => nextQ(), ok ? 1100 : 1900);
+}
+
+function nextQ(){
+  ptr++;
+  render();
+}
+
+/* ── study card (одна карточка из interleaved блока) ── */
+function renderStudyCard(item){
+  const w = item.target;
+  const ru = tr(w.word);
+  // прогресс — по всему sequence
+  const total = sequence.length;
+  const pct = Math.round((ptr / Math.max(total,1)) * 100);
+  // позиция в текущем «знакомстве»: считаем подряд идущие study от начала блока
+  let blockStart = ptr; while (blockStart > 0 && sequence[blockStart-1].kind === "study") blockStart--;
+  let blockEnd = ptr; while (blockEnd+1 < sequence.length && sequence[blockEnd+1].kind === "study") blockEnd++;
+  const studyN = ptr - blockStart + 1;
+  const studyTot = blockEnd - blockStart + 1;
+  const isLastInBlock = ptr === blockEnd;
+
+  root.innerHTML = `
+    <div class="top">
+      <a class="back" href="lesson.html?n=${lesson.lesson}">← Урок</a>
+      <span class="num">Урок ${lesson.lesson} · знакомство</span>
+      <div class="mode-pick" id="modePick">
+        <button data-m="self"   class="${mode==='self'?'on':''}">🎯 Сам</button>
+        <button data-m="parent" class="${mode==='parent'?'on':''}">👨‍👧 С родителем</button>
+      </div>
+    </div>
+
+    <div class="hud">
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      <div class="score" style="color:var(--mute)">${studyN} / ${studyTot}</div>
+    </div>
+
+    <div class="card study-card">
+      <div class="step">Новое слово ${studyN} из ${studyTot}</div>
+      <img src="${BASE}/${esc(w.image)}" alt="${esc(w.word)}"/>
+      <div class="word">${esc(w.word)}</div>
+      ${ru ? `<div class="ru">🇷🇺 ${esc(ru)}</div>` : ""}
+      <div class="audio-row"><button class="audio-btn" id="play"><span class="ico">▶</span> Слушать</button></div>
+      <div class="study-nav">
+        <button class="next" id="next">${isLastInBlock ? "К тренировке →" : "Дальше →"}</button>
+      </div>
+      <div><button class="study-skip" id="skip">пропустить знакомство</button></div>
+    </div>
+  `;
+
+  bindModeToggle();
+
+  // audio — авто-проигрыш при показе
+  const audioUrl = `${BASE}/${w.audio}`;
+  document.getElementById("play").addEventListener("click", () => playAudio(audioUrl));
+  setTimeout(() => playAudio(audioUrl), 250);
+
+  document.getElementById("next").addEventListener("click", () => { ptr++; render(); });
+  document.getElementById("skip").addEventListener("click", () => {
+    // прыгаем за все следующие подряд study — сразу к ближайшему вопросу
+    while (ptr < sequence.length && sequence[ptr].kind === "study") ptr++;
+    render();
+  });
+}
+
+/* ── review-hdr — показывается перед блоком повтора ─── */
+function renderReviewHeader(){
+  root.innerHTML = `
+    <div class="top">
+      <a class="back" href="lesson.html?n=${lesson.lesson}">← Урок</a>
+      <span class="num">Урок ${lesson.lesson} · повтор ошибок</span>
+    </div>
+    <div class="card review-hdr">
+      <div class="emoji">↻</div>
+      <h3>Давай повторим то, что не получилось</h3>
+      <p>Несколько слов для закрепления — потом финиш.</p>
+      <button class="rev-go" id="revGo">Поехали →</button>
+    </div>
+  `;
+  document.getElementById("revGo").addEventListener("click", () => { ptr++; render(); });
+}
+
+/* ── finish screen ── */
+function renderFinish(){
+  const total = score.ok + score.bad;
+  const pct = total ? Math.round(score.ok / total * 100) : 0;
+  let emoji = "🎉", title = "Отлично!";
+  if (pct < 50)      { emoji = "💪"; title = "Нужно повторить"; }
+  else if (pct < 80) { emoji = "👍"; title = "Хорошо!"; }
+
+  // Сохраняем результат — в localStorage всегда, в RTDB если есть studentId
+  saveGameResult({ total, ok: score.ok, bad: score.bad, pct }).catch(()=>{});
+
+  root.innerHTML = `
+    <div class="top">
+      <a class="back" href="lesson.html?n=${lesson.lesson}">← Урок</a>
+      <span class="num">Урок ${lesson.lesson}</span>
+    </div>
+    <div class="card finish">
+      <div class="emoji">${emoji}</div>
+      <h2>${title}</h2>
+      <div class="stat">
+        <div class="ok"><b>${score.ok}</b><span>верно</span></div>
+        <div class="bad"><b>${score.bad}</b><span>ошибок</span></div>
+        <div><b>${pct}%</b><span>результат</span></div>
+      </div>
+      <div class="finish-actions">
+        <button onclick="location.reload()">↻ Ещё раз</button>
+        <a class="alt" href="lesson.html?n=${lesson.lesson}">К уроку</a>
+        <a class="alt" href="index.html">К программе</a>
+      </div>
+    </div>
+  `;
+}
+
+async function saveGameResult({ total, ok, bad, pct }){
+  const payload = {
+    total, ok, bad, pct,
+    mode,
+    finishedAt: new Date().toISOString(),
+    // список слов, которые были не сразу узнаны (уникальные имена)
+    wrongs: Array.from(new Set(wrongs.map(w => w && w.word).filter(Boolean))).slice(0, 30),
+    studentId: studentId || null,
+    lessonNum,
+  };
+  // 1) localStorage — всегда, так что хотя бы локально хранится прогресс
+  try {
+    localStorage.setItem(`elc_game_${lessonNum}_${mode}`, JSON.stringify(payload));
+  } catch {}
+  // 2) Firebase RTDB — если есть studentId и SDK инициализирован
+  if (studentId && fbDb){
+    try {
+      // ждём анонимного входа максимум 2с (правила могут требовать auth)
+      await new Promise(res => {
+        if (firebase.auth().currentUser) return res();
+        const off = firebase.auth().onAuthStateChanged(u => { if (u){ off(); res(); } });
+        setTimeout(res, 2000);
+      });
+      // Пишем под ключом mode, чтобы self/parent не затирали друг друга
+      await fbDb.ref(`eduSchedule/programGameResults/${studentId}/${lessonNum}/${mode}`).set(payload);
+    } catch (e) { /* offline / правила не пускают / пользователь не критичен */ }
+  }
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ELC Kids — урок</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#fafaf7;--card:#fff;--ink:#1a1828;--mute:#6b6985;--line:#ececf2;
+    --ac:#7c5cfc;--acbg:rgba(124,92,252,.08);--ok:#1db870;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Manrope,system-ui,sans-serif}
+  .wrap{max-width:1080px;margin:0 auto;padding:24px 20px 80px}
+  .top{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+  .back{color:var(--mute);text-decoration:none;font-size:13px;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:#fff}
+  .back:hover{color:var(--ac);border-color:var(--ac)}
+  .num{font-size:11px;font-weight:600;color:var(--ac);background:var(--acbg);padding:4px 10px;border-radius:6px;letter-spacing:.04em;text-transform:uppercase}
+  h1{font-size:26px;margin:0 0 28px;letter-spacing:-.02em;line-height:1.25}
+
+  section{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px 22px;margin:0 0 18px}
+  section h2{font-size:13px;font-weight:600;color:var(--mute);text-transform:uppercase;letter-spacing:.06em;margin:0 0 16px}
+
+  .words{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+  .word{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;transition:.15s;position:relative}
+  .word:hover{transform:translateY(-2px);border-color:var(--ac);box-shadow:0 6px 20px rgba(124,92,252,.13)}
+  .word img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;background:#f0eff5}
+  .word .lbl{padding:8px 10px 10px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .word .lbl .w{font-weight:600;font-size:14px}
+  .word .ru{padding:0 10px 8px;color:var(--mute);font-size:12px;line-height:1.3}
+  .word .play{width:26px;height:26px;border-radius:50%;border:1px solid var(--line);background:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--ac);flex-shrink:0}
+  .word.playing .play{background:var(--ac);color:#fff;border-color:var(--ac)}
+
+  .gram{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+  @media(max-width:680px){.gram{grid-template-columns:1fr}}
+  .gram-left{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;line-height:1.7;color:#34344b;background:#f6f5fb;padding:14px 16px;border-radius:12px}
+  .gram-imgs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .gram-imgs img{width:100%;border-radius:10px;background:#f0eff5;aspect-ratio:1/1;object-fit:cover}
+  .examples{margin-top:14px;color:var(--mute);font-size:13px}
+
+  .conv{display:grid;grid-template-columns:1.1fr 1fr;gap:18px;align-items:start}
+  @media(max-width:680px){.conv{grid-template-columns:1fr}}
+  .conv ul{list-style:none;padding:0;margin:0}
+  .conv li{padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+  .conv li:last-child{border:0}
+  .conv li::before{content:"— ";color:var(--mute)}
+  .conv img{width:100%;border-radius:14px;background:#f0eff5}
+
+  .play-row{display:flex;gap:10px;margin:0 0 22px;flex-wrap:wrap}
+  .play-row a{flex:1;min-width:200px;display:flex;align-items:center;gap:10px;justify-content:center;background:var(--ac);color:#fff;text-decoration:none;font:700 15px Manrope,sans-serif;padding:14px 18px;border-radius:14px;transition:.15s}
+  .play-row a:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(124,92,252,.25)}
+  .play-row a.alt{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  .play-row a.alt:hover{border-color:var(--ac);color:var(--ac)}
+
+  .loading{color:var(--mute);padding:40px 0;text-align:center}
+  .err{color:#d63355}
+</style>
+</head>
+<body>
+<div class="wrap" id="root">
+  <div class="loading">Загружаем урок…</div>
+</div>
+
+<script>
+const BASE = "https://pub-4a4bf55405d74fe58e817b5fb86955d4.r2.dev";
+const CURRICULUM_URL = BASE + "/curriculum.json";
+const TRANSLATIONS_URL = "translations.json";
+
+const params = new URLSearchParams(location.search);
+const lessonNum = parseInt(params.get("n") || "1", 10);
+
+const root = document.getElementById("root");
+let translations = {};
+const tr = w => translations[(w||'').toLowerCase().trim()] || '';
+
+function escapeHtml(s){return (s||"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+
+let currentAudio = null;
+function playWord(audioUrl, cardEl){
+  if (currentAudio){ currentAudio.pause(); document.querySelectorAll(".word.playing").forEach(e=>e.classList.remove("playing")); }
+  currentAudio = new Audio(audioUrl);
+  cardEl.classList.add("playing");
+  currentAudio.onended = () => cardEl.classList.remove("playing");
+  currentAudio.onerror = () => cardEl.classList.remove("playing");
+  currentAudio.play().catch(()=>cardEl.classList.remove("playing"));
+}
+
+async function main(){
+  let data;
+  try{
+    const [cR, tR] = await Promise.all([
+      fetch(CURRICULUM_URL, { cache: "no-cache" }),
+      fetch(TRANSLATIONS_URL, { cache: "no-cache" }).catch(()=>null)
+    ]);
+    if (!cR.ok) throw new Error("HTTP " + cR.status);
+    data = await cR.json();
+    if (tR && tR.ok){
+      const tj = await tR.json();
+      translations = (tj && tj.translations) ? tj.translations : {};
+    }
+  }catch(e){
+    root.innerHTML = `<div class="loading err">Ошибка загрузки программы: ${e.message}</div>`;
+    return;
+  }
+  const L = data.lessons.find(x => x.lesson === lessonNum);
+  if (!L){
+    root.innerHTML = `<div class="loading err">Урок ${lessonNum} не найден</div>`;
+    return;
+  }
+  document.title = `Урок ${L.lesson}. ${L.topic} — ELC Kids`;
+  render(L);
+}
+
+function render(L){
+  const wordsHtml = L.media.word_assets.map((wa, i) => {
+    const ru = tr(wa.word);
+    return `
+    <div class="word" data-audio="${BASE}/${wa.audio}">
+      <img src="${BASE}/${wa.image}" alt="${escapeHtml(wa.word)}" loading="lazy"/>
+      <div class="lbl">
+        <span class="w">${escapeHtml(wa.word)}</span>
+        <span class="play">▶</span>
+      </div>
+      ${ru ? `<div class="ru">${escapeHtml(ru)}</div>` : ""}
+    </div>
+  `;}).join("");
+
+  const grammarTextHtml = L.grammar_patterns.map(p => escapeHtml(p)).join("<br>");
+  const grammarImgsHtml = L.media.grammar_images.map(g => `<img src="${BASE}/${g}" alt="" loading="lazy"/>`).join("");
+  const examplesHtml = L.examples && L.examples.length
+    ? `<div class="examples"><b>Examples:</b> ${L.examples.map(escapeHtml).join(" · ")}</div>` : "";
+
+  const convHtml = L.conversation.map(c => `<li>${escapeHtml(c)}</li>`).join("");
+  const convImgHtml = L.media.conversation_image
+    ? `<img src="${BASE}/${L.media.conversation_image}" alt="" loading="lazy"/>` : "";
+
+  root.innerHTML = `
+    <div class="top">
+      <a class="back" href="index.html">← Программа</a>
+      <span class="num">Урок ${L.lesson}</span>
+    </div>
+    <h1>${escapeHtml(L.topic || "")}</h1>
+
+    <div class="play-row">
+      <a href="play.html?n=${L.lesson}&mode=self">🎯 Тренировка (сам)</a>
+      <a class="alt" href="play.html?n=${L.lesson}&mode=parent">👨‍👧 Игра с родителем</a>
+    </div>
+
+    <section>
+      <h2>Слова — ${L.words.length}</h2>
+      <div class="words">${wordsHtml}</div>
+    </section>
+
+    <section>
+      <h2>Грамматика</h2>
+      <div class="gram">
+        <div class="gram-left">${grammarTextHtml}</div>
+        <div class="gram-imgs">${grammarImgsHtml}</div>
+      </div>
+      ${examplesHtml}
+    </section>
+
+    <section>
+      <h2>Conversation</h2>
+      <div class="conv">
+        <ul>${convHtml}</ul>
+        ${convImgHtml}
+      </div>
+    </section>
+  `;
+
+  // bind clicks for audio
+  document.querySelectorAll(".word").forEach(card => {
+    card.addEventListener("click", () => playWord(card.dataset.audio, card));
+  });
+}
+
+main();
+</script>
+</body>
+</html>

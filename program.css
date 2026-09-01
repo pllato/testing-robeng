@@ -1,0 +1,36 @@
+/* ── PROGRAM panel ─────────────────────────────────────────────── */
+#panel-program{padding:14px 18px}
+#panel-program .pg-wrap{display:grid;grid-template-columns:280px 1fr;gap:18px;align-items:start}
+@media(max-width:900px){#panel-program .pg-wrap{grid-template-columns:1fr}}
+
+#panel-program .pg-students{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rl);padding:10px;max-height:80vh;overflow-y:auto}
+#panel-program .pg-students input{width:100%;background:var(--bg3);border:1px solid var(--b1);color:var(--t1);border-radius:8px;padding:7px 10px;font-family:var(--fb);font-size:12px;margin-bottom:8px;box-sizing:border-box}
+#panel-program .pg-stu{padding:8px 10px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:8px;border:1px solid transparent;font-size:13px;color:var(--t1);transition:.12s}
+#panel-program .pg-stu:hover{background:var(--bg3)}
+#panel-program .pg-stu.active{background:var(--acbg);border-color:var(--acb);color:var(--ac2)}
+#panel-program .pg-stu .pg-progress{margin-left:auto;font-size:10px;color:var(--t3);background:var(--bg3);padding:2px 7px;border-radius:6px;font-variant-numeric:tabular-nums}
+#panel-program .pg-stu.active .pg-progress{color:var(--ac);background:transparent}
+
+#panel-program .pg-detail{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rl);padding:14px 16px;min-height:60vh}
+#panel-program .pg-empty{color:var(--t3);text-align:center;padding:60px 20px;font-size:13px}
+#panel-program .pg-head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+#panel-program .pg-head h3{margin:0;font-family:var(--fd);font-size:16px;font-weight:600;color:var(--t1)}
+#panel-program .pg-head .pg-stat{margin-left:auto;font-size:11px;color:var(--t2);background:var(--bg3);padding:4px 10px;border-radius:8px;font-variant-numeric:tabular-nums}
+
+#panel-program .pg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
+#panel-program .pg-card{background:var(--bg3);border:1px solid var(--b1);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;transition:.12s;position:relative}
+#panel-program .pg-card.done{background:rgba(63,216,142,0.08);border-color:rgba(63,216,142,0.35)}
+#panel-program .pg-card .pg-num{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+#panel-program .pg-card .pg-topic{font-size:12px;color:var(--t1);line-height:1.3;flex:1;min-height:30px}
+#panel-program .pg-card.done .pg-topic{color:var(--gn)}
+#panel-program .pg-actions{display:flex;gap:4px;margin-top:4px}
+#panel-program .pg-btn{flex:1;background:var(--bg4);border:1px solid var(--b1);color:var(--t2);font-size:10.5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-family:var(--fb);transition:.12s}
+#panel-program .pg-btn:hover{color:var(--t1);border-color:var(--b2)}
+#panel-program .pg-btn.pg-mark{background:var(--ac);border-color:var(--ac);color:#fff}
+#panel-program .pg-btn.pg-mark:hover{background:var(--ac2);border-color:var(--ac2)}
+#panel-program .pg-btn.pg-mark.is-done{background:transparent;color:var(--gn);border-color:rgba(63,216,142,.4)}
+#panel-program .pg-btn.pg-wa{background:rgba(37,211,102,0.12);border-color:rgba(37,211,102,0.35);color:#25d366}
+#panel-program .pg-btn.pg-wa:hover{background:rgba(37,211,102,0.22)}
+#panel-program .pg-card .pg-meta{font-size:9px;color:var(--t3);margin-top:2px}
+
+#panel-program .pg-loading{color:var(--t3);text-align:center;padding:40px;font-size:13px}
