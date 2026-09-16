@@ -6673,6 +6673,7 @@ function renderStudents(){
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
           ${topBadge}
+          <button class="btn btn-xs" onclick="openStudentAttendance(${st.id})" title="Табель посещаемости по всем занятиям">🗓 Табель</button>
           ${currentRole==='admin'?`<button class="btn btn-xs" onclick="sendSurvey(${st.id})" title="Отправить опрос родителям">📋 Опрос</button>`:''}
           ${currentRole==='admin'?`<button class="btn btn-xs" onclick="editStudentInfo(${st.id})" title="Изменить данные ученика">✎ Данные</button>`:''}
           ${currentRole==='admin'?`<button class="btn btn-xs btn-r" onclick="deleteStudent(${st.id})" title="Удалить ученика">✕ Удалить</button>`:''}
@@ -7653,6 +7654,7 @@ function renderRenewals(){
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start;flex-shrink:0">
           <button class="btn btn-sm" onclick="openFullAttendance(${e.id})" style="font-size:11px">📋 Табель</button>
+          ${stu?`<button class="btn btn-sm" onclick="openStudentAttendance(${stu.id})" style="font-size:11px;background:rgba(56,189,248,.1);color:var(--tl)" title="Табель по всем занятиям ученика">🗓 Все занятия</button>`:''}
           <button class="btn btn-sm" onclick="setVacationUI(${e.id})" style="font-size:11px;background:rgba(56,189,248,.1);color:var(--tl)">🏖 Отпуск</button>
           <button class="btn btn-sm btn-a" onclick="renewEnrollUI(${e.id})" style="font-size:11px">🔄 Продлить</button>
           <button class="btn btn-sm" onclick="markDelayedUI(${e.id})" style="font-size:11px;background:rgba(245,200,66,.15);color:var(--am)">⏳ Оплата задерж.</button>
@@ -7735,7 +7737,10 @@ function renderFullAttModal(enrollId){
         <div style="font-size:15px;font-weight:700;color:var(--t1)">📋 Полный табель — ${stu?.name||'ученик'}</div>
         <div style="font-size:12px;color:var(--t3);margin-top:2px">${dayStr}${slotTime?' · '+slotTime:''} · с ${fmtDateRu(e.dateStart)} · всего: ${lessons.length} · проведено: <b style="color:var(--gn)">${doneCnt}</b></div>
       </div>
-      <button onclick="document.getElementById('m-fullatt').remove()" style="background:var(--bg3);border:1px solid var(--b2);border-radius:8px;color:var(--t2);cursor:pointer;font-size:15px;padding:2px 10px">✕</button>
+      <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+        <button onclick="openStudentAttendanceByEnroll(${e.id})" title="Табель по всем абонементам ученика" style="background:var(--bg3);border:1px solid var(--b2);border-radius:8px;color:var(--tl);cursor:pointer;font-size:12px;padding:5px 10px;font-family:var(--fb)">🗓 Все занятия ученика</button>
+        <button onclick="document.getElementById('m-fullatt').remove()" style="background:var(--bg3);border:1px solid var(--b2);border-radius:8px;color:var(--t2);cursor:pointer;font-size:15px;padding:2px 10px">✕</button>
+      </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--bg3);border:1px solid var(--b2);border-radius:10px;padding:10px 12px;margin:8px 0">
       <span style="font-size:12px;color:var(--t2)">Отметить проведёнными с 1 по</span>
@@ -7777,6 +7782,348 @@ function bulkMarkDone(enrollId){
   renderFullAttModal(enrollId);
   renderRenewals();
   toast(`✓ Отмечено проведёнными: ${upto} уроков`);
+}
+
+// ── ТАБЕЛЬ УЧЕНИКА — все абонементы, вся история ──────────────────
+// Полный табель посещаемости ученика: сводит уроки всех его абонементов
+// (действующих, завершённых, неактивных) в один хронологический список.
+const ATT_META={
+  done:  {lbl:'Проведён',      mark:'✓',  col:'#22c55e', bg:'rgba(34,197,94,.14)'},
+  miss:  {lbl:'Пропуск',       mark:'✗',  col:'#f05975', bg:'rgba(240,89,117,.12)'},
+  makeup:{lbl:'Отработан',     mark:'↩',  col:'#a87fff', bg:'rgba(168,127,255,.12)'},
+  skip:  {lbl:'Уваж. причина', mark:'—',  col:'#f5c842', bg:'rgba(245,200,66,.12)'},
+  vac:   {lbl:'Отпуск',        mark:'🏖', col:'#38bdf8', bg:'rgba(56,189,248,.12)'},
+  none:  {lbl:'Нет отметки',   mark:'·',  col:'#5e5c78', bg:'var(--bg3)'}
+};
+const MONTHS_FULL_RU=['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
+
+// Даты уроков абонемента по расписанию: от dateStart до сегодня,
+// но не позже dateEnd (для завершённых абонементов).
+function enrollLessonDates(e){
+  const slotDays=[...new Set((e.slots||[]).map(s=>s.day))];
+  if(!slotDays.length)return [];
+  const today=todayKZ();
+  const start=e.dateStart||today;
+  const last=(e.dateEnd&&e.dateEnd<today)?e.dateEnd:today;
+  if(last<start)return [];
+  const out=[];
+  let cur=new Date(start+'T00:00:00Z');
+  const end=new Date(last+'T00:00:00Z');
+  let guard=0;
+  while(cur<=end&&guard<5000){
+    if(slotDays.includes((cur.getUTCDay()+6)%7))out.push(cur.toISOString().slice(0,10));
+    cur=new Date(cur.getTime()+86400000);guard++;
+  }
+  return out;
+}
+
+// Абонементы ученика (преподаватель видит только свои)
+function studentEnrolls(studentId){
+  return (S.enrollments||[]).filter(e=>{
+    if(e.studentId!==studentId)return false;
+    if(currentRole==='teacher'&&currentTeacherId&&String(e.teacherId)!==String(currentTeacherId))return false;
+    return true;
+  }).sort((a,b)=>(a.dateStart||'').localeCompare(b.dateStart||''));
+}
+
+// Все уроки ученика по всем абонементам, по возрастанию даты
+function studentAttRows(studentId){
+  const att=S.attendance||{}, mks=S.makeups||{};
+  const stu=student(studentId);
+  const rows=[];
+  studentEnrolls(studentId).forEach(e=>{
+    const t=teacher(e.teacherId);
+    const sj=subj(stu&&stu.subjId!=null?stu.subjId:(t?t.subjId:null));
+    enrollLessonDates(e).forEach(ds=>{
+      const key=e.id+'_'+ds;
+      const val=att[key];
+      const d=new Date(ds+'T00:00:00Z');
+      const dow=(d.getUTCDay()+6)%7;
+      const isVac=(e.vacations||[]).some(v=>v.from<=ds&&v.to>=ds);
+      let status='none';
+      if(isVac&&(!val||val==='skip'))status='vac';
+      else if(val&&ATT_META[val])status=val;
+      const sl=(e.slots||[]).find(s=>s.day===dow)||(e.slots||[])[0];
+      const mk=mks[key];
+      const notes=[];
+      if(mk)notes.push('отработка '+fmtDateRu(mk.makeupDate)+(mk.makeupTi!=null&&TIMES[mk.makeupTi]?' · '+TIMES[mk.makeupTi]:''));
+      if(status==='vac')notes.push('отпуск');
+      rows.push({
+        date:ds, dow,
+        time:sl&&TIMES[sl.ti]?TIMES[sl.ti]:'',
+        enrollId:e.id,
+        teacherName:t?t.name:'—',
+        subjName:sj?sj.name:'—',
+        topic:e.topic||'',
+        status,
+        note:notes.join(' · ')
+      });
+    });
+  });
+  rows.sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));
+  rows.forEach((r,i)=>{r.n=i+1;});
+  return rows;
+}
+
+function studentAttStats(rows){
+  const s={total:rows.length,done:0,miss:0,makeup:0,skip:0,vac:0,none:0};
+  rows.forEach(r=>{s[r.status]=(s[r.status]||0)+1;});
+  const base=s.done+s.miss+s.makeup;
+  s.rate=base?Math.round((s.done+s.makeup)*100/base):0;
+  return s;
+}
+
+let _saStudentId=null;
+function openStudentAttendance(studentId){
+  if(!student(studentId)){toast('Ученик не найден',true);return;}
+  _saStudentId=studentId;
+  let modal=document.getElementById('m-stuatt');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='m-stuatt';
+    modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1250;display:flex;align-items:center;justify-content:center;padding:16px';
+    modal.addEventListener('click',ev=>{if(ev.target===modal)modal.remove();});
+    document.body.appendChild(modal);
+  }
+  renderStudentAttModal(studentId);
+}
+
+// Открыть табель ученика по абонементу (из полного табеля абонемента)
+function openStudentAttendanceByEnroll(enrollId){
+  const e=(S.enrollments||[]).find(x=>x.id===enrollId);
+  if(!e){toast('Запись не найдена',true);return;}
+  const fa=document.getElementById('m-fullatt');if(fa)fa.remove();
+  openStudentAttendance(e.studentId);
+}
+
+function renderStudentAttModal(studentId){
+  const modal=document.getElementById('m-stuatt');if(!modal)return;
+  const stu=student(studentId);if(!stu){modal.remove();return;}
+  const rows=studentAttRows(studentId);
+  const s=studentAttStats(rows);
+  const enrs=studentEnrolls(studentId);
+  const today=todayKZ();
+
+  const chip=(lbl,val,col)=>`<div style="background:var(--bg3);border:1px solid var(--b2);border-radius:9px;padding:7px 11px;min-width:76px">
+    <div style="font-size:17px;font-weight:700;color:${col};line-height:1.1">${val}</div>
+    <div style="font-size:10px;color:var(--t3);margin-top:2px">${lbl}</div></div>`;
+
+  // Сводка по каждому абонементу
+  const enrCards=enrs.map(e=>{
+    const er=rows.filter(r=>r.enrollId===e.id);
+    const es=studentAttStats(er);
+    const t=teacher(e.teacherId);
+    const dayStr=[...new Set((e.slots||[]).map(sl=>DS[sl.day]))].join(' · ');
+    const timeStr=(e.slots||[])[0]&&TIMES[e.slots[0].ti]?TIMES[e.slots[0].ti]:'';
+    const isActive=!e.inactive&&(!e.dateEnd||e.dateEnd>=today);
+    const badge=e.inactive
+      ?'<span style="font-size:10px;color:var(--am)">⏸ неактивен</span>'
+      :(isActive?'<span style="font-size:10px;color:var(--gn)">● активен</span>':'<span style="font-size:10px;color:var(--t3)">завершён</span>');
+    return `<div style="background:var(--bg3);border:1px solid var(--b2);border-radius:10px;padding:9px 12px">
+      <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center">
+        <div style="font-size:12px;color:var(--t1)"><b>${t?t.name:'—'}</b> · <span style="color:var(--t3)">${dayStr}${timeStr?' · '+timeStr:''}</span></div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          ${badge}
+          <button class="btn btn-xs" onclick="openFullAttendance(${e.id})" title="Открыть табель этого абонемента">📋 отметить</button>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--t3);margin-top:3px">📆 ${fmtDateRu(e.dateStart)} — ${fmtDateRu(e.dateEnd)}${e.topic?' · 📖 '+e.topic:''}</div>
+      <div style="font-size:11px;color:var(--t2);margin-top:4px">
+        уроков: <b>${es.total}</b> · <span style="color:${ATT_META.done.col}">✓ ${es.done}</span>
+        · <span style="color:${ATT_META.miss.col}">✗ ${es.miss}</span>
+        · <span style="color:${ATT_META.makeup.col}">↩ ${es.makeup}</span>
+        ${es.vac?` · <span style="color:${ATT_META.vac.col}">🏖 ${es.vac}</span>`:''}
+        ${es.none?` · <span style="color:var(--t3)">· без отметки ${es.none}</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+
+  // Таблица уроков с разбивкой по месяцам
+  let curMonth='';
+  const body=rows.map(r=>{
+    const d=new Date(r.date+'T00:00:00Z');
+    const mKey=d.getUTCFullYear()+'-'+d.getUTCMonth();
+    let head='';
+    if(mKey!==curMonth){
+      curMonth=mKey;
+      const mr=rows.filter(x=>{const dd=new Date(x.date+'T00:00:00Z');return dd.getUTCFullYear()+'-'+dd.getUTCMonth()===mKey;});
+      const ms=studentAttStats(mr);
+      const mName=MONTHS_FULL_RU[d.getUTCMonth()];
+      head=`<tr><td colspan="7" style="padding:8px 10px;background:var(--bg3);font-size:11px;font-weight:700;color:var(--t2)">
+        ${mName.charAt(0).toUpperCase()+mName.slice(1)} ${d.getUTCFullYear()} — уроков ${ms.total} · <span style="color:${ATT_META.done.col}">✓ ${ms.done}</span> · <span style="color:${ATT_META.miss.col}">✗ ${ms.miss}</span>${ms.makeup?` · <span style="color:${ATT_META.makeup.col}">↩ ${ms.makeup}</span>`:''}
+      </td></tr>`;
+    }
+    const m=ATT_META[r.status];
+    return head+`<tr style="border-bottom:1px solid var(--b1)">
+      <td style="padding:6px 10px;color:var(--t3);font-size:11px">${r.n}</td>
+      <td style="padding:6px 10px;color:var(--t1);white-space:nowrap">${fmtDateRu(r.date)}</td>
+      <td style="padding:6px 10px;color:var(--t3)">${DS[r.dow]}</td>
+      <td style="padding:6px 10px;color:var(--t2);white-space:nowrap">${r.time||'—'}</td>
+      <td style="padding:6px 10px;color:var(--t2)">${r.teacherName}</td>
+      <td style="padding:6px 10px;white-space:nowrap"><span style="display:inline-block;padding:2px 8px;border-radius:7px;background:${m.bg};color:${m.col};font-size:11px;font-weight:600">${m.mark} ${m.lbl}</span></td>
+      <td style="padding:6px 10px;color:var(--t3);font-size:11px">${r.note||''}</td>
+    </tr>`;
+  }).join('');
+
+  modal.innerHTML=`<div style="background:var(--bg2);border:1px solid var(--b1);border-radius:14px;padding:20px;max-width:940px;width:100%;max-height:90vh;display:flex;flex-direction:column">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:var(--t1)">🗓 Табель посещаемости — ${stu.name||'ученик'}</div>
+        <div style="font-size:12px;color:var(--t3);margin-top:3px">
+          ${stu.parent?'👤 '+stu.parent+' ':''}${stu.parentPhone?'· '+stu.parentPhone+' ':''}${stu.phone?'· 📱 '+stu.phone:''}
+        </div>
+        <div style="font-size:11px;color:var(--t3);margin-top:2px">Абонементов: ${enrs.length} · все уроки по расписанию с ${enrs.length?fmtDateRu(enrs[0].dateStart):'—'} по ${fmtDateRu(today)}</div>
+      </div>
+      <button onclick="document.getElementById('m-stuatt').remove()" style="background:var(--bg3);border:1px solid var(--b2);border-radius:8px;color:var(--t2);cursor:pointer;font-size:15px;padding:2px 10px">✕</button>
+    </div>
+
+    <div style="display:flex;gap:7px;flex-wrap:wrap;margin:12px 0 10px">
+      ${chip('всего уроков',s.total,'var(--t1)')}
+      ${chip('проведено',s.done,ATT_META.done.col)}
+      ${chip('пропусков',s.miss,ATT_META.miss.col)}
+      ${chip('отработано',s.makeup,ATT_META.makeup.col)}
+      ${chip('уваж. причина',s.skip,ATT_META.skip.col)}
+      ${chip('отпуск',s.vac,ATT_META.vac.col)}
+      ${chip('без отметки',s.none,'var(--t3)')}
+      ${chip('посещаемость',s.rate+'%',s.rate>=90?ATT_META.done.col:(s.rate>=75?ATT_META.skip.col:ATT_META.miss.col))}
+    </div>
+
+    ${enrs.length?`<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">${enrCards}</div>`:''}
+
+    <div style="overflow:auto;border:1px solid var(--b1);border-radius:10px;flex:1;min-height:120px">
+      ${rows.length?`<table style="width:100%;border-collapse:collapse;font-size:12px;font-family:var(--fb)">
+        <thead><tr style="position:sticky;top:0;background:var(--bg2);z-index:1">
+          <th style="padding:8px 10px;text-align:left;font-size:10px;color:var(--t3);text-transform:uppercase">№</th>
+          <th style="padding:8px 10px;text-align:left;font-size:10px;color:var(--t3);text-transform:uppercase">Дата</th>
+          <th style="padding:8px 10px;text-align:left;font-size:10px;color:var(--t3);text-transform:uppercase">День</th>
+          <th style="padding:8px 10px;text-align:left;font-size:10px;color:var(--t3);text-transform:uppercase">Время</th>
+          <th style="padding:8px 10px;text-align:left;font-size:10px;color:var(--t3);text-transform:uppercase">Преподаватель</th>
+          <th style="padding:8px 10px;text-align:left;font-size:10px;color:var(--t3);text-transform:uppercase">Статус</th>
+          <th style="padding:8px 10px;text-align:left;font-size:10px;color:var(--t3);text-transform:uppercase">Примечание</th>
+        </tr></thead>
+        <tbody>${body}</tbody>
+      </table>`:'<div style="padding:24px;color:var(--t3);font-size:13px">Нет уроков по расписанию. Проверьте дни недели и даты абонемента.</div>'}
+    </div>
+
+    <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:12px">
+      <button class="btn btn-sm" onclick="printStudentAttendance(${studentId})">🖨 Печать / PDF</button>
+      <button class="btn btn-sm" onclick="exportStudentAttendance(${studentId})">📊 Excel</button>
+      <button class="btn btn-sm" onclick="copyStudentAttendanceText(${studentId})">💬 Текст для WhatsApp</button>
+    </div>
+  </div>`;
+}
+
+function exportStudentAttendance(studentId){
+  const stu=student(studentId);
+  const rows=studentAttRows(studentId);
+  if(!rows.length){toast('Нет уроков для выгрузки',true);return;}
+  const s=studentAttStats(rows);
+  const aoa=[
+    ['ТАБЕЛЬ ПОСЕЩАЕМОСТИ'],
+    ['Ученик',stu&&stu.name?stu.name:''],
+    ['Родитель',stu&&stu.parent?stu.parent:''],
+    ['Телефон',(stu&&(stu.parentPhone||stu.phone))||''],
+    ['Период',rows[0].date+' — '+rows[rows.length-1].date],
+    ['Сформирован',new Date().toLocaleString('ru-RU')],
+    [],
+    ['Всего уроков',s.total],
+    ['Проведено',s.done],
+    ['Пропусков',s.miss],
+    ['Отработано',s.makeup],
+    ['Уваж. причина',s.skip],
+    ['Отпуск',s.vac],
+    ['Без отметки',s.none],
+    ['Посещаемость, %',s.rate],
+    [],
+    ['№','Дата','День','Время','Преподаватель','Предмет','Статус','Примечание']
+  ];
+  rows.forEach(r=>aoa.push([r.n,r.date,DS[r.dow],r.time,r.teacherName,r.subjName,ATT_META[r.status].lbl,r.note||'']));
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols']=[{wch:5},{wch:12},{wch:6},{wch:8},{wch:24},{wch:18},{wch:16},{wch:30}];
+  XLSX.utils.book_append_sheet(wb,ws,'Табель');
+  const safe=((stu&&stu.name)||'ученик').replace(/[\\\/:*?"<>|\s]+/g,'_');
+  XLSX.writeFile(wb,`Табель_${safe}_${todayKZ()}.xlsx`);
+  toast('📊 Табель выгружен в Excel');
+}
+
+function printStudentAttendance(studentId){
+  const stu=student(studentId);
+  const rows=studentAttRows(studentId);
+  if(!rows.length){toast('Нет уроков для печати',true);return;}
+  const s=studentAttStats(rows);
+  const w=window.open('','_blank');
+  if(!w){toast('Разрешите всплывающие окна для печати',true);return;}
+  const body=rows.map(r=>`<tr>
+    <td>${r.n}</td><td>${fmtDateRu(r.date)}</td><td>${DS[r.dow]}</td><td>${r.time||'—'}</td>
+    <td>${r.teacherName}</td><td>${ATT_META[r.status].mark} ${ATT_META[r.status].lbl}</td><td>${r.note||''}</td>
+  </tr>`).join('');
+  w.document.write(`<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"/>
+    <title>Табель — ${(stu&&stu.name)||'ученик'}</title>
+    <style>
+      body{font-family:Arial,Helvetica,sans-serif;color:#111;margin:24px}
+      h1{font-size:18px;margin:0 0 4px}
+      .sub{font-size:12px;color:#555;margin-bottom:14px}
+      .sum{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+      .sum div{border:1px solid #ddd;border-radius:8px;padding:6px 10px;font-size:12px}
+      .sum b{display:block;font-size:16px}
+      table{width:100%;border-collapse:collapse;font-size:12px}
+      th,td{border:1px solid #ddd;padding:5px 7px;text-align:left}
+      th{background:#f4f4f6;font-size:11px;text-transform:uppercase}
+      @media print{body{margin:10mm} .noprint{display:none}}
+    </style></head><body>
+    <h1>Табель посещаемости — ${(stu&&stu.name)||'ученик'}</h1>
+    <div class="sub">
+      ${stu&&stu.parent?'Родитель: '+stu.parent+'. ':''}${stu&&(stu.parentPhone||stu.phone)?'Телефон: '+(stu.parentPhone||stu.phone)+'. ':''}
+      Период: ${fmtDateRu(rows[0].date)} — ${fmtDateRu(rows[rows.length-1].date)}. Сформирован: ${new Date().toLocaleString('ru-RU')}
+    </div>
+    <div class="sum">
+      <div><b>${s.total}</b>всего уроков</div>
+      <div><b>${s.done}</b>проведено</div>
+      <div><b>${s.miss}</b>пропусков</div>
+      <div><b>${s.makeup}</b>отработано</div>
+      <div><b>${s.skip}</b>уваж. причина</div>
+      <div><b>${s.vac}</b>отпуск</div>
+      <div><b>${s.none}</b>без отметки</div>
+      <div><b>${s.rate}%</b>посещаемость</div>
+    </div>
+    <table><thead><tr><th>№</th><th>Дата</th><th>День</th><th>Время</th><th>Преподаватель</th><th>Статус</th><th>Примечание</th></tr></thead>
+    <tbody>${body}</tbody></table>
+    </body></html>`);
+  w.document.close();
+  w.focus();
+  setTimeout(()=>{try{w.print();}catch(err){}},350);
+}
+
+function copyStudentAttendanceText(studentId){
+  const stu=student(studentId);
+  const rows=studentAttRows(studentId);
+  if(!rows.length){toast('Нет уроков',true);return;}
+  const s=studentAttStats(rows);
+  const misses=rows.filter(r=>r.status==='miss');
+  const txt='🗓 Табель посещаемости\n'+
+    '👤 Ученик: '+((stu&&stu.name)||'—')+'\n'+
+    '📆 Период: '+fmtDateRu(rows[0].date)+' — '+fmtDateRu(rows[rows.length-1].date)+'\n\n'+
+    'Всего уроков: '+s.total+'\n'+
+    '✓ Проведено: '+s.done+'\n'+
+    '✗ Пропусков: '+s.miss+'\n'+
+    '↩ Отработано: '+s.makeup+'\n'+
+    (s.skip?'— Уваж. причина: '+s.skip+'\n':'')+
+    (s.vac?'🏖 Отпуск: '+s.vac+'\n':'')+
+    (s.none?'· Без отметки: '+s.none+'\n':'')+
+    '📊 Посещаемость: '+s.rate+'%\n'+
+    (misses.length?'\nПропущенные уроки:\n'+misses.map(r=>'• '+fmtDateRu(r.date)+' ('+DS[r.dow]+(r.time?', '+r.time:'')+')'+(r.note?' — '+r.note:'')).join('\n'):'');
+  const done=()=>toast('💬 Текст табеля скопирован');
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(done).catch(()=>{fallbackCopyTabel(txt);done();});
+  } else {fallbackCopyTabel(txt);done();}
+}
+
+function fallbackCopyTabel(txt){
+  const ta=document.createElement('textarea');
+  ta.value=txt;document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy');}catch(e){}
+  document.body.removeChild(ta);
 }
 
 function renderDelayed(){
@@ -16038,6 +16385,11 @@ function handleCRMHash(){
     const id = hash.slice(5); if(!id) return;
     nav(document.querySelector('[data-p=crm]'));
     setTimeout(()=>openCRMCard(id), 800);
+    history.replaceState(null,'',location.pathname);
+  } else if(hash.startsWith('#tabel=')){
+    const sid = parseInt(hash.slice(7)); if(!sid) return;
+    nav(document.querySelector('[data-p=students]'));
+    setTimeout(()=>openStudentAttendance(sid), 700);
     history.replaceState(null,'',location.pathname);
   } else if(hash.startsWith('#student=')){
     const id = parseInt(hash.slice(9)); if(!id) return;
