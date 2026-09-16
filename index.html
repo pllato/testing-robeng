@@ -8013,6 +8013,18 @@ function renderStudentAttModal(studentId){
   </div>`;
 }
 
+// Открыть табель по id ученика или по части имени (для ссылок #tabel=...)
+function openTabelByQuery(q){
+  const byId=parseInt(q);
+  if(!isNaN(byId)&&student(byId)){openStudentAttendance(byId);return;}
+  const needle=String(q).toLowerCase();
+  const found=(S.students||[]).filter(s=>(s.name||'').toLowerCase().includes(needle));
+  if(found.length===1){openStudentAttendance(found[0].id);return;}
+  const box=document.getElementById('stu-global-search');
+  if(box){box.value=q;onStuSearch();}
+  toast(found.length?`Найдено учеников: ${found.length} — выберите нужного`:'Ученик не найден',!found.length);
+}
+
 function exportStudentAttendance(studentId){
   const stu=student(studentId);
   const rows=studentAttRows(studentId);
@@ -16387,9 +16399,10 @@ function handleCRMHash(){
     setTimeout(()=>openCRMCard(id), 800);
     history.replaceState(null,'',location.pathname);
   } else if(hash.startsWith('#tabel=')){
-    const sid = parseInt(hash.slice(7)); if(!sid) return;
+    // #tabel=<id ученика> или #tabel=<часть имени>, напр. #tabel=Даниэль
+    const q = decodeURIComponent(hash.slice(7)).trim(); if(!q) return;
     nav(document.querySelector('[data-p=students]'));
-    setTimeout(()=>openStudentAttendance(sid), 700);
+    setTimeout(()=>openTabelByQuery(q), 700);
     history.replaceState(null,'',location.pathname);
   } else if(hash.startsWith('#student=')){
     const id = parseInt(hash.slice(9)); if(!id) return;
