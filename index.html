@@ -7797,14 +7797,16 @@ const ATT_META={
 };
 const MONTHS_FULL_RU=['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
 
-// Даты уроков абонемента по расписанию: от dateStart до сегодня,
-// но не позже dateEnd (для завершённых абонементов).
-function enrollLessonDates(e){
+// Даты уроков абонемента по расписанию: от dateStart до limitDate.
+// limitDate по умолчанию — сегодня: просроченный абонемент (продление ещё
+// не оформили) уроки не останавливает, поэтому по dateEnd НЕ обрезаем.
+function enrollLessonDates(e,limitDate){
   const slotDays=[...new Set((e.slots||[]).map(s=>s.day))];
   if(!slotDays.length)return [];
   const today=todayKZ();
   const start=e.dateStart||today;
-  const last=(e.dateEnd&&e.dateEnd<today)?e.dateEnd:today;
+  let last=limitDate||today;
+  if(last>today)last=today;
   if(last<start)return [];
   const out=[];
   let cur=new Date(start+'T00:00:00Z');
@@ -7831,10 +7833,22 @@ function studentAttRows(studentId){
   const att=S.attendance||{}, mks=S.makeups||{};
   const stu=student(studentId);
   const rows=[];
-  studentEnrolls(studentId).forEach(e=>{
+  const enrs=studentEnrolls(studentId);
+  enrs.forEach((e,idx)=>{
+    // Граница абонемента: день перед стартом следующего (чтобы уроки не
+    // задваивались), для последнего — сегодня; если ученик ушёл
+    // (абонемент деактивирован) — дата окончания.
+    const next=enrs[idx+1];
+    let limit=null;
+    if(next&&next.dateStart){
+      const d=new Date(next.dateStart+'T00:00:00Z');
+      limit=new Date(d.getTime()-86400000).toISOString().slice(0,10);
+    } else if(e.inactive){
+      limit=e.dateEnd||null;
+    }
     const t=teacher(e.teacherId);
     const sj=subj(stu&&stu.subjId!=null?stu.subjId:(t?t.subjId:null));
-    enrollLessonDates(e).forEach(ds=>{
+    enrollLessonDates(e,limit).forEach(ds=>{
       const key=e.id+'_'+ds;
       const val=att[key];
       const d=new Date(ds+'T00:00:00Z');
