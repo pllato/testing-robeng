@@ -1933,7 +1933,25 @@ body.theme-light .mo{background:rgba(30,28,60,.45);}
 
 <script>
 const DS=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
-const TIMES=['08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30','21:00'];
+// Урок 45 минут + 15 минут перерыв → слоты начинаются каждый час.
+const LESSON_MIN=45;
+const TIMES=['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00'];
+// Индексы слотов (ti) хранятся в записях учеников, расписании преподавателей
+// и отработках. Для записей со старой сеткой ti может выйти за границы —
+// поэтому время слота читаем только через эти функции, а не TIMES[ti].
+function slotTime(ti){return TIMES[ti]||'';}                       // '11:00' или ''
+function slotStartMin(ti){                                          // минуты от полуночи или null
+  const s=slotTime(ti);if(!s)return null;
+  const [h,m]=s.split(':').map(Number);return h*60+m;
+}
+function slotEnd(ti){                                               // '11:45'
+  const st=slotStartMin(ti);if(st==null)return '';
+  const e=st+LESSON_MIN;
+  return String(Math.floor(e/60)).padStart(2,'0')+':'+String(e%60).padStart(2,'0');
+}
+function slotRange(ti){                                             // '11:00–11:45'
+  const s=slotTime(ti);return s?s+'–'+slotEnd(ti):'—';
+}
 const AVC=['av0','av1','av2','av3','av4'];
 const SBC=['sb0','sb1','sb2','sb3','sb4'];
 const MAX_PER_SLOT=2;
@@ -1961,8 +1979,8 @@ function defState(){
   const avail={};
   teachers.forEach(t=>{
     avail[t.id]={};
-    for(let d=0;d<7;d++){avail[t.id][d]={};for(let ti=0;ti<TIMES.length;ti++)avail[t.id][d][ti]=(d<6)&&(ti>=20&&ti<=26);}
-    if(t.id<=2){for(let ti=8;ti<=26;ti++)avail[t.id][5][ti]=true;}
+    for(let d=0;d<7;d++){avail[t.id][d]={};for(let ti=0;ti<TIMES.length;ti++)avail[t.id][d][ti]=(d<6)&&(ti>=10&&ti<=13);}
+    if(t.id<=2){for(let ti=2;ti<=13;ti++)avail[t.id][5][ti]=true;}
   });
   const today=new Date().toISOString().slice(0,10);
   const nm=s=>{const d=new Date(s);d.setMonth(d.getMonth()+1);return d.toISOString().slice(0,10);};
@@ -3390,9 +3408,9 @@ function renderTeacherPulse(){
         if(att==='done'||att==='makeup') attDone++;
         else if(att==='miss') attMiss++;
         else {
-          // Урок уже прошёл если его время + 30 мин < сейчас
+          // Урок уже прошёл если его время + длительность урока < сейчас
           const sl=e.slots.find(s=>s.day===todayDow);
-          if(sl){const [lh,lm]=TIMES[sl.ti].split(':').map(Number);if((lh*60+lm+30)<nowMin)attEmpty++;}
+          if(sl){const st=slotStartMin(sl.ti);if(st!=null&&(st+LESSON_MIN)<nowMin)attEmpty++;}
         }
       });
 
@@ -3402,8 +3420,8 @@ function renderTeacherPulse(){
       todayEnrolls.forEach(e=>{
         const sl=e.slots.find(s=>s.day===todayDow);
         if(!sl)return;
-        const [lh,lm]=TIMES[sl.ti].split(':').map(Number);
-        if((lh*60+lm+30)<nowMin){ // урок закончился
+        const stMin=slotStartMin(sl.ti);
+        if(stMin!=null&&(stMin+LESSON_MIN)<nowMin){ // урок закончился
           videoNeeded++;
           if(vr[videoKey(e.id,today)]) videoSent++;
         }
@@ -3429,7 +3447,9 @@ function renderTeacherPulse(){
             if(!enrollActive(e,dt))return;
             const dow2=(new Date(dt).getDay()+6)%7;
             if(!e.slots.some(sl=>sl.day===dow2))return;
-            const [lh,lm]=TIMES[e.slots.find(sl=>sl.day===dow2).ti].split(':').map(Number);
+            const stMin=slotStartMin(e.slots.find(sl=>sl.day===dow2).ti);
+            if(stMin==null)return;
+            const lh=Math.floor(stMin/60), lm=stMin%60;
             if((new Date(dt+'T'+String(lh).padStart(2,'0')+':'+String(lm).padStart(2,'0')))<now){
               need++;
               if(vr[videoKey(e.id,dt)])sent++;
@@ -3705,9 +3725,9 @@ function getMetricForPeriod(metric,from,to){
         return false;
       }).length;
   } else if(metric==='graduates'){
-    // Выпускник = ученик набравший 100 часов (200 уроков по 30 мин)
+    // Выпускник = ученик набравший 100 часов
     // Считаем тех, кто достиг 200-го урока (done/makeup) в периоде [from, to]
-    const GRAD_LESSONS = 200; // 200 × 30 мин = 100 часов
+    const GRAD_LESSONS = Math.ceil(100*60/LESSON_MIN); // 100 часов уроками по LESSON_MIN
     const att = S.attendance || {};
 
     // Для каждого студента собираем все отметки done/makeup отсортированные по дате
@@ -4829,7 +4849,7 @@ function renderDashboard(){
     const st=student(e.studentId),t=teacher(e.teacherId),sj=subj(t?.subjId);
     const ak=`${e.id}_${today}`;
     const att=S.attendance&&S.attendance[ak];
-    lessons.push({time:TIMES[sl.ti],stName:st?.name||'—',tName:t?.name||'—',topic:e.topic,sj,att});
+    lessons.push({time:slotTime(sl.ti),stName:st?.name||'—',tName:t?.name||'—',topic:e.topic,sj,att});
   });
   lessons.sort((a,b)=>a.time.localeCompare(b.time));
   const el=document.getElementById('today-list');
@@ -4885,7 +4905,7 @@ function renderDashboard(){
 
 // ── TEACHER DASHBOARD ────────────────────────────────────────────
 function calcTeacherHours(tid, dates){
-  // 30 мин за каждый урок где ученик был (att==='done')
+  // LESSON_MIN за каждый урок где ученик был (att==='done')
   const slots=new Set();
   const myEnrolls=S.enrollments.filter(e=>String(e.teacherId)===String(tid)&&!e.inactive);
   myEnrolls.forEach(e=>{
@@ -4897,7 +4917,7 @@ function calcTeacherHours(tid, dates){
       if(att==='done') slots.add(`${dt}_${sl.ti}`);
     });
   });
-  return slots.size * 0.5; // каждый слот = 30 мин
+  return slots.size * (LESSON_MIN/60); // каждый слот = один урок
 }
 
 function renderTeacherDashboard(){
@@ -4925,7 +4945,7 @@ function renderTeacherDashboard(){
     const ak=`${e.id}_${today}`;
     const att=(S.attendance||{})[ak];
     const vid=getVideoStatus(e.id,today);
-    lessonsToday.push({e,st,sl,att,vid,time:TIMES[sl.ti]});
+    lessonsToday.push({e,st,sl,att,vid,time:slotTime(sl.ti)});
   });
   lessonsToday.sort((a,b)=>a.time.localeCompare(b.time));
 
@@ -5039,7 +5059,7 @@ function renderTeacherDashboard(){
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
         <div style="width:8px;height:8px;border-radius:50%;background:${attColor};box-shadow:0 0 6px ${attColor};flex-shrink:0"></div>
         <div style="flex:1;min-width:140px">
-          <div style="font-size:14px;font-weight:600">${TIMES[sl.ti]} — ${st?.name||'—'}</div>
+          <div style="font-size:14px;font-weight:600">${slotTime(sl.ti)} — ${st?.name||'—'}</div>
           <div style="font-size:11px;color:var(--t3)">${e.topic||'—'}</div>
         </div>
         ${att?`<span style="font-size:11px;color:${attColor};font-weight:600">${attLabel}</span>`:''}
@@ -5057,7 +5077,7 @@ function renderTeacherDashboard(){
           🎥 ${vid?.status==='approved'?'✅ Видео':vid?.status==='pending'?'⏳ На проверке':vid?.status==='rejected'?'💬 Получена обратная связь':'Загрузить видео'}
         </button>
       </div>
-      ${mk?`<div style="font-size:11px;color:var(--am);margin-top:7px">↩ Отработка: ${mk.makeupDate} ${TIMES[mk.makeupTi]||''}</div>`:''}
+      ${mk?`<div style="font-size:11px;color:var(--am);margin-top:7px">↩ Отработка: ${mk.makeupDate} ${slotTime(mk.makeupTi)||''}</div>`:''}
     </div>`;
   }).join('');
 }
@@ -5176,7 +5196,7 @@ function tAvailAll(v){
   for(let d=0;d<7;d++){_tAvail[d]={};for(let ti=0;ti<TIMES.length;ti++)_tAvail[d][ti]=v;}renderTAvailGrid();
 }
 function tAvailPreset(){
-  for(let d=0;d<7;d++){_tAvail[d]={};for(let ti=0;ti<TIMES.length;ti++)_tAvail[d][ti]=(d<6)&&(ti>=20&&ti<=26);}renderTAvailGrid();
+  for(let d=0;d<7;d++){_tAvail[d]={};for(let ti=0;ti<TIMES.length;ti++)_tAvail[d][ti]=(d<6)&&(ti>=10&&ti<=13);}renderTAvailGrid();
 }
 function saveTeacher(){
   const name=document.getElementById('t-name').value.trim();if(!name){toast('Введите ФИО',true);return;}
@@ -5368,7 +5388,7 @@ function initNewSched(){
   if(!Object.keys(_newSchedAvail).length)newSchedPreset();
 }
 function newSchedPreset(){
-  for(let d=0;d<7;d++){_newSchedAvail[d]={};for(let ti=0;ti<TIMES.length;ti++)_newSchedAvail[d][ti]=(d<6)&&(ti>=20&&ti<=26);}
+  for(let d=0;d<7;d++){_newSchedAvail[d]={};for(let ti=0;ti<TIMES.length;ti++)_newSchedAvail[d][ti]=(d<6)&&(ti>=10&&ti<=13);}
   renderNewSchedGrid();
 }
 function newSchedAll(v){
@@ -5517,7 +5537,7 @@ function openMakeup(enrollId,dateStr){
   document.getElementById('m-makeup-info').textContent=`Ученик: ${st?.name||'—'} · Пропущенный урок: ${dateStr}`;
   document.getElementById('makeup-date').value=dateStr;
   // Fill time select
-  document.getElementById('makeup-time').innerHTML=TIMES.map((t,i)=>`<option value="${i}">${t}</option>`).join('');
+  document.getElementById('makeup-time').innerHTML=TIMES.map((t,i)=>`<option value="${i}">${slotRange(i)}</option>`).join('');
   // Default to same time as enrollment
   if(e&&e.slots&&e.slots[0])document.getElementById('makeup-time').value=e.slots[0].ti;
   open1('m-makeup');
@@ -5535,7 +5555,7 @@ function saveMakeup(){
   S.attendance[k]='makeup';
   const e=S.enrollments.find(x=>x.id===_makeupEnrollId);
   const st=student(e?.studentId),t=teacher(e?.teacherId);
-  logAction('attendance',`Отработка запланирована: ${st?.name||'—'}`,`${t?.name||'—'} · ${mkDate} ${TIMES[mkTi]}`);
+  logAction('attendance',`Отработка запланирована: ${st?.name||'—'}`,`${t?.name||'—'} · ${mkDate} ${slotTime(mkTi)}`);
   // WhatsApp уведомление о переносе
   if(st){
     const parentPhone=st.parentPhone||'';
@@ -5546,7 +5566,7 @@ function saveMakeup(){
     const mkMonths=months;
     const [my,mm,md]=mkDate.split('-');
     const mkDateRu=md+' '+mkMonths[parseInt(mm)-1];
-    const msg='🔄 Перенос урока\n\n👤 Ученик: '+st.name+'\n📅 Пропущен: '+dateRu+'\n📅 Отработка: '+mkDateRu+' в '+TIMES[mkTi]+'\n\nЕсли есть вопросы — свяжитесь с нами.';
+    const msg='🔄 Перенос урока\n\n👤 Ученик: '+st.name+'\n📅 Пропущен: '+dateRu+'\n📅 Отработка: '+mkDateRu+' в '+slotTime(mkTi)+'\n\nЕсли есть вопросы — свяжитесь с нами.';
     const _mkLeadId = lead?.id ? String(lead.id) : null;
     const _mkSender = fbAuth.currentUser?.email||'Система';
     if(parentPhone){ notifyWhatsAppWithHistory(parentPhone,msg,_mkLeadId,_mkSender).then(r=>{ if(r?.ok) logNotify('crm',lead.name||'—',parentPhone,msg,{stage:newStage}); }); }
@@ -5632,7 +5652,7 @@ function buildSchedTable(tid,wd,today,isCurWeek){
   TIMES.forEach((time,ti)=>{
     const rowVisible=wd.some((_,d)=>av[d]&&av[d][ti]);
     if(!rowVisible)return;
-    html+=`<div class="s-row" style="grid-template-columns:${cols}"><div class="s-time">${time}</div>`;
+    html+=`<div class="s-row" style="grid-template-columns:${cols}"><div class="s-time" title="Урок ${slotRange(ti)} (${LESSON_MIN} мин)">${time}</div>`;
     for(let d=0;d<7;d++){
       const isAvail=av[d]&&av[d][ti];const dt=wd[d]||'';
       const isT=wd[d]===today;
@@ -5682,7 +5702,7 @@ function buildSchedTable(tid,wd,today,isCurWeek){
               <button class="att-btn att-miss${att==='miss'?' active':''}" onclick="event.stopPropagation();setAtt(${e.id},'${dt}','miss')" title="Пропуск">✗</button>
               ${att==='miss'&&!mk
                 ?`<button class="att-btn att-makeup" onclick="event.stopPropagation();openMakeup(${e.id},'${dt}')" title="Отработать пропуск">↩</button>`
-                :(mk?`<span style="font-size:10px;color:var(--am);font-weight:600" title="Отработка: ${mk.makeupDate} ${TIMES[mk.makeupTi]||''}">↩${mk.makeupDate.slice(5).replace('-','.')}</span>`:'')
+                :(mk?`<span style="font-size:10px;color:var(--am);font-weight:600" title="Отработка: ${mk.makeupDate} ${slotTime(mk.makeupTi)||''}">↩${mk.makeupDate.slice(5).replace('-','.')}</span>`:'')
               }
               <button class="att-btn vid-btn ${vidStatus?'vid-'+vidStatus.status:'vid-none'}"
                 onclick="event.stopPropagation();${vidStatus&&vidStatus.status==='pending'&&currentRole==='admin'?`openVideoReview('${e.id}_${dt}')`:`openVideoUpload(${e.id},'${dt}')`}"
@@ -5796,7 +5816,7 @@ function showDetail(enrollId){
   detailEnrollId=enrollId;
   const e=S.enrollments.find(x=>x.id===enrollId);if(!e)return;
   const st=student(e.studentId),t=teacher(e.teacherId),sj=subj(t?.subjId);
-  const slotStr=e.slots.map(sl=>`${DS[sl.day]} ${TIMES[sl.ti]}`).join(', ');
+  const slotStr=e.slots.map(sl=>`${DS[sl.day]} ${slotTime(sl.ti)}`).join(', ');
   document.getElementById('detail-body').innerHTML=`
     <div class="mmeta"><b>Ученик:</b> ${st?.name||'—'}${st?.phone?' &nbsp;·&nbsp; 📱 '+st.phone:''}</div>
     ${(st?.parent||st?.parentPhone)?`<div class="mmeta"><b>Родитель:</b> ${st.parent||'—'}${st.parentPhone?' &nbsp;·&nbsp; 📱 '+st.parentPhone:''}</div>`:''}\
@@ -5820,7 +5840,7 @@ function cancelEnrollment(){
 // ── FREE SLOTS ───────────────────────────────────────────────────
 function fillFsFilters(){
   fillSubjSel();
-  document.getElementById('fs-time').innerHTML='<option value="">Любое</option>'+TIMES.map((t,i)=>`<option value="${i}">${t}</option>`).join('');
+  document.getElementById('fs-time').innerHTML='<option value="">Любое</option>'+TIMES.map((t,i)=>`<option value="${i}">${slotRange(i)}</option>`).join('');
 }
 function renderFreeSlots(){
   const subjF=document.getElementById('fs-subj').value;
@@ -5980,7 +6000,7 @@ function renderFreeSlots(){
         <div style="display:flex;align-items:center;gap:12px">
           <div style="width:3px;height:40px;border-radius:2px;background:${hc};flex-shrink:0"></div>
           <div>
-            <div class="fs-gt" style="color:${isFull?'var(--t2)':'var(--t1)'}">${label} &nbsp;·&nbsp; ${TIMES[ti]}</div>
+            <div class="fs-gt" style="color:${isFull?'var(--t2)':'var(--t1)'}">${label} &nbsp;·&nbsp; ${slotTime(ti)}</div>
             <div class="fs-gm">${subjNames}</div>
           </div>
         </div>
@@ -5998,7 +6018,7 @@ function renderFreeSlots(){
             ?`<span style="font-size:10px;font-weight:600;color:var(--ac2);background:var(--acbg);border:1px solid var(--acb);padding:2px 8px;border-radius:8px">${compatParts.join(' · ')}</span>`
             :(r.free===MAX_PER_SLOT?`<span style="font-size:10px;color:var(--t3);background:var(--bg3);padding:2px 7px;border-radius:6px">Свободный слот</span>`:'');
           const daysLabel=r.isNonStandard
-            ?`<div style="font-size:10px;color:var(--am);margin-top:2px">⚡ ${r.coveredDays.map(d=>DS[d]).join(' · ')} · ${TIMES[ti]}</div>`:'';
+            ?`<div style="font-size:10px;color:var(--am);margin-top:2px">⚡ ${r.coveredDays.map(d=>DS[d]).join(' · ')} · ${slotTime(ti)}</div>`:'';
 
           return`<div class="fs-tr">
             <div>
@@ -6050,7 +6070,7 @@ function setModalSlot(days, ti, teacherId){
   setDays(days, true);
   // Update hidden s-time
   const sel=document.getElementById('s-time');
-  sel.innerHTML=TIMES.map((t,i)=>`<option value="${i}">${t}</option>`).join('');
+  sel.innerHTML=TIMES.map((t,i)=>`<option value="${i}">${slotRange(i)}</option>`).join('');
   sel.value=ti;
   // Update teacher if given
   if(teacherId!==undefined){
@@ -6060,7 +6080,7 @@ function setModalSlot(days, ti, teacherId){
   const tid=isNaN(document.getElementById('s-teacher').value)?document.getElementById('s-teacher').value:parseInt(document.getElementById('s-teacher').value);
   const t=teacher(tid);
   document.getElementById('s-slot-display').style.display='flex';
-  document.getElementById('s-slot-label').textContent=days.map(d=>DS[d]).join(' · ')+' · '+TIMES[ti];
+  document.getElementById('s-slot-label').textContent=days.map(d=>DS[d]).join(' · ')+' · '+slotRange(ti);
   document.getElementById('s-slot-teacher-lbl').textContent=t?t.name:'';
   checkConflicts();
 }
@@ -6103,7 +6123,7 @@ function renderModalStdSlots(){
     const pips=Array.from({length:MAX_PER_SLOT},(_,i)=>`<span style="width:7px;height:7px;border-radius:50%;display:inline-block;border:1.5px solid ${i<MAX_PER_SLOT-s.free?'rgba(240,89,117,.6)':'rgba(63,216,142,.5)'};background:${i<MAX_PER_SLOT-s.free?'rgba(240,89,117,.2)':'rgba(63,216,142,.15)'};margin:0 1px"></span>`).join('');
     return`<div onclick="setModalSlot([${s.pat.days}],${s.ti})" style="background:${isSel?'var(--acbg)':'var(--bg2)'};border:1.5px solid ${isSel?'var(--acb)':'var(--b1)'};border-radius:8px;padding:8px 10px;margin-bottom:5px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:all .12s">
       <div>
-        <div style="font-size:13px;font-weight:600;color:var(--t1)">${TIMES[s.ti]} <span style="font-size:11px;color:var(--t3)">${s.pat.label}</span></div>
+        <div style="font-size:13px;font-weight:600;color:var(--t1)">${slotTime(s.ti)} <span style="font-size:11px;color:var(--t3)">${s.pat.label}</span></div>
         ${ns}
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">
@@ -6132,7 +6152,7 @@ function renderModalNSGrid(){
   for(let ti=0;ti<TIMES.length;ti++){
     const rowHasAv=Array.from({length:7},(_,d)=>av[d]&&av[d][ti]).some(Boolean);
     if(!rowHasAv)continue;
-    html+=`<div style="background:var(--bg3);font-size:9px;color:var(--t3);text-align:right;padding:3px 5px;border-top:1px solid var(--b1);display:flex;align-items:center;justify-content:flex-end">${TIMES[ti]}</div>`;
+    html+=`<div style="background:var(--bg3);font-size:9px;color:var(--t3);text-align:right;padding:3px 5px;border-top:1px solid var(--b1);display:flex;align-items:center;justify-content:flex-end">${slotTime(ti)}</div>`;
     for(let d=0;d<7;d++){
       const avail=av[d]&&av[d][ti];
       const occ=avail?countAtSlot(tid,d,ti):0;
@@ -6155,7 +6175,7 @@ function renderModalNSGrid(){
       else if(avail&&occ===0){inner=`<div style="display:flex;gap:1px;justify-content:center">${Array.from({length:MAX_PER_SLOT},()=>`<span style="width:5px;height:5px;border-radius:50%;background:rgba(63,216,142,.4)"></span>`).join('')}</div>`;}
 
       if(avail&&occ<MAX_PER_SLOT){
-        html+=`<div onclick="setModalSlot([${d}],${ti})" style="border-top:1px solid var(--b1);border-left:1px solid var(--b1);min-height:28px;background:${bg};border-color:${border};cursor:${cursor};display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2px;transition:all .1s" title="${DS[d]} ${TIMES[ti]}${names.length?' — '+names.join(', '):''}  (${MAX_PER_SLOT-occ} своб.)">${inner}</div>`;
+        html+=`<div onclick="setModalSlot([${d}],${ti})" style="border-top:1px solid var(--b1);border-left:1px solid var(--b1);min-height:28px;background:${bg};border-color:${border};cursor:${cursor};display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2px;transition:all .1s" title="${DS[d]} ${slotTime(ti)}${names.length?' — '+names.join(', '):''}  (${MAX_PER_SLOT-occ} своб.)">${inner}</div>`;
       } else {
         html+=`<div style="border-top:1px solid var(--b1);border-left:1px solid var(--b1);min-height:28px;background:${bg};cursor:${cursor};display:flex;align-items:center;justify-content:center" title="${!avail?'Не работает':'Заполнено'}">${inner}</div>`;
       }
@@ -6169,7 +6189,7 @@ function renderModalNSGrid(){
 function updateTimeOptions(){
   // Now handled by setModalSlot — keep for compatibility
   const sel=document.getElementById('s-time');
-  if(!sel.innerHTML) sel.innerHTML=TIMES.map((t,i)=>`<option value="${i}">${t}</option>`).join('');
+  if(!sel.innerHTML) sel.innerHTML=TIMES.map((t,i)=>`<option value="${i}">${slotRange(i)}</option>`).join('');
   renderModalStdSlots();
   if(_modalNSOpen) renderModalNSGrid();
 }
@@ -6184,7 +6204,7 @@ function checkConflicts(){
   const conflicts=[];
   days.forEach(d=>{
     if(slotFull(tid,d,ti)){
-      enrollmentsAt(tid,d,ti,'').forEach(e=>{const st=student(e.studentId);conflicts.push(`${DS[d]} ${TIMES[ti]}: ${st?.name||'?'}`);});
+      enrollmentsAt(tid,d,ti,'').forEach(e=>{const st=student(e.studentId);conflicts.push(`${DS[d]} ${slotTime(ti)}: ${st?.name||'?'}`);});
     }
   });
   if(conflicts.length){warn.style.display='';warn.textContent='⚠ Слот заполнен: '+conflicts.join('; ');}
@@ -6206,7 +6226,7 @@ function openStudentModal(id,preTeacherId,preDays,preTimeIdx){
   document.getElementById('s-conflict-warn').style.display='none';
   // Init hidden s-time
   const sel=document.getElementById('s-time');
-  sel.innerHTML=TIMES.map((t,i)=>`<option value="${i}">${t}</option>`).join('');
+  sel.innerHTML=TIMES.map((t,i)=>`<option value="${i}">${slotRange(i)}</option>`).join('');
 
   if(id){
     const e=S.enrollments.find(x=>x.id===id);
@@ -6239,7 +6259,7 @@ function openStudentModal(id,preTeacherId,preDays,preTimeIdx){
     // Show selected slot badge
     const t=teacher(e.teacherId);
     document.getElementById('s-slot-display').style.display='flex';
-    document.getElementById('s-slot-label').textContent=days.map(d=>DS[d]).join(' · ')+' · '+TIMES[ti];
+    document.getElementById('s-slot-label').textContent=days.map(d=>DS[d]).join(' · ')+' · '+slotRange(ti);
     document.getElementById('s-slot-teacher-lbl').textContent=t?t.name:'';
     // Load sibling enrollments as extra slots
     const siblings=S.enrollments.filter(x=>x.studentId===e.studentId&&x.id!==id&&!x.inactive);
@@ -6268,7 +6288,7 @@ function openStudentModal(id,preTeacherId,preDays,preTimeIdx){
     if(preDays){setDays(preDays,true);sel.value=preTimeIdx||0;
       const tid=document.getElementById('s-teacher').value;const t=teacher(tid);
       document.getElementById('s-slot-display').style.display='flex';
-      document.getElementById('s-slot-label').textContent=preDays.map(d=>DS[d]).join(' · ')+' · '+TIMES[preTimeIdx||0];
+      document.getElementById('s-slot-label').textContent=preDays.map(d=>DS[d]).join(' · ')+' · '+slotRange(preTimeIdx||0);
       document.getElementById('s-slot-teacher-lbl').textContent=t?t.name:'';
     }
   }
@@ -6323,7 +6343,7 @@ function renderExtraSlots(){
     // Get available times for selected teacher
     const avail=slot.teacherId?getTeacherAvailTimes(slot.teacherId,slot.days):[];
     const timeOpts=avail.length
-      ? avail.map(ti=>`<option value="${ti}" ${slot.ti===ti?'selected':''}>${TIMES[ti]}</option>`).join('')
+      ? avail.map(ti=>`<option value="${ti}" ${slot.ti===ti?'selected':''}>${slotRange(ti)}</option>`).join('')
       : '<option value="">— выбери дни сначала —</option>';
 
     return `<div style="background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);padding:13px;margin-bottom:10px">
@@ -6524,7 +6544,7 @@ async function saveStudent(){
   }
   clearExtraSlots();
   const actSt=S.students.find(s=>s.id===stu.id);const actT=teacher(tid);
-  logAction('enroll',editSId?`Изменена запись: ${name}`:`Записан: ${name}`,`${actT?.name||'—'} · ${slots.map(s=>DS[s.day]).join(' ')} ${TIMES[ti]} · ${fmtDate(dateStart)}–${fmtDate(dateEnd)}`);
+  logAction('enroll',editSId?`Изменена запись: ${name}`:`Записан: ${name}`,`${actT?.name||'—'} · ${slots.map(s=>DS[s.day]).join(' ')} ${slotTime(ti)} · ${fmtDate(dateStart)}–${fmtDate(dateEnd)}`);
   save();close1('m-student');renderStudents();renderSchedule();toast('Ученик записан');
   // Если создаём ученика из CRM-сделки — привязываем
   if(!editSId && _crmLeadForStudent){
@@ -6626,7 +6646,7 @@ function renderStudents(){
           ?'<span style="font-size:10px;padding:2px 8px;border-radius:10px;background:var(--gnbg);border:1px solid rgba(63,216,142,.25);color:var(--gn);white-space:nowrap">● Активен</span>'
           :'<span style="font-size:10px;padding:2px 8px;border-radius:10px;background:var(--bg4);border:1px solid var(--b1);color:var(--t3);white-space:nowrap">Завершён</span>');
       const dayStr=[...new Set(e.slots.map(sl=>DS[sl.day]))].join(' ');
-      const timeStr=e.slots[0]?TIMES[e.slots[0].ti]:'—';
+      const timeStr=e.slots[0]?slotRange(e.slots[0].ti):'—';
       return`<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--bg3);border-radius:8px;flex-wrap:wrap;gap:8px">
         <div style="flex:1;min-width:160px">
           <div style="font-size:12px;color:var(--t2);margin-bottom:4px;display:flex;align-items:center;gap:5px">
@@ -7424,7 +7444,7 @@ function getAttendanceDots(enrollId, dateStart){
   if(!slotDays.length) return [];
 
   // Время урока для подсказки
-  const slotTime = slots.length ? TIMES[slots[0].ti] || '' : '';
+  const slotLabel = slots.length ? slotRange(slots[0].ti) : '';
 
   // Отпуска ученика
   const vacations = e.vacations || [];
@@ -7466,7 +7486,7 @@ function getAttendanceDots(enrollId, dateStart){
     else                           { type='none';   col='#5e5c78'; lbl='·'; }
 
     const typeLabel = type==='vac'?'🏖 Отпуск':(typeLabels[type]||'');
-    const tooltip = `${dayName}, ${dateLabel}${slotTime?' · '+slotTime:''} — ${typeLabel}`;
+    const tooltip = `${dayName}, ${dateLabel}${slotLabel?' · '+slotLabel:''} — ${typeLabel}`;
 
     return {d:ds, type, col, lbl, tooltip};
   });
@@ -7712,7 +7732,7 @@ function renderFullAttModal(enrollId){
   const DAYS_RU=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
   const MONTHS_RU=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
   const doneCnt=lessons.filter(ds=>att[e.id+'_'+ds]==='done').length;
-  const slotTime=e.slots&&e.slots[0]?TIMES[e.slots[0].ti]:'';
+  const slotLabel=e.slots&&e.slots[0]?slotRange(e.slots[0].ti):'';
   const dayStr=[...new Set((e.slots||[]).map(s=>DS[s.day]))].join(' · ');
   const cells=lessons.map((ds,i)=>{
     const val=att[e.id+'_'+ds];
@@ -7724,7 +7744,7 @@ function renderFullAttModal(enrollId){
     else if(val==='miss'){col='#f05975';bg='rgba(240,89,117,.12)';mark='✗';}
     else if(val==='makeup'){col='#a87fff';bg='rgba(168,127,255,.12)';mark='↩';}
     else if(val==='vacation'||val==='skip'){col='#38bdf8';bg='rgba(56,189,248,.12)';mark='🏖';}
-    return `<button onclick="toggleFullAtt(${e.id},'${ds}')" title="${DAYS_RU[dow]}, ${lbl}${slotTime?' · '+slotTime:''}"
+    return `<button onclick="toggleFullAtt(${e.id},'${ds}')" title="${DAYS_RU[dow]}, ${lbl}${slotLabel?' · '+slotLabel:''}"
       style="display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 4px;border:1px solid var(--b2);border-radius:8px;background:${bg};cursor:pointer;font-family:var(--fb);min-width:52px">
       <span style="font-size:9px;color:var(--t3)">№${i+1}</span>
       <span style="font-size:15px;font-weight:700;color:${col}">${mark}</span>
@@ -7735,7 +7755,7 @@ function renderFullAttModal(enrollId){
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">
       <div>
         <div style="font-size:15px;font-weight:700;color:var(--t1)">📋 Полный табель — ${stu?.name||'ученик'}</div>
-        <div style="font-size:12px;color:var(--t3);margin-top:2px">${dayStr}${slotTime?' · '+slotTime:''} · с ${fmtDateRu(e.dateStart)} · всего: ${lessons.length} · проведено: <b style="color:var(--gn)">${doneCnt}</b></div>
+        <div style="font-size:12px;color:var(--t3);margin-top:2px">${dayStr}${slotLabel?' · '+slotLabel:''} · с ${fmtDateRu(e.dateStart)} · всего: ${lessons.length} · проведено: <b style="color:var(--gn)">${doneCnt}</b></div>
       </div>
       <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
         <button onclick="openStudentAttendanceByEnroll(${e.id})" title="Табель по всем абонементам ученика" style="background:var(--bg3);border:1px solid var(--b2);border-radius:8px;color:var(--tl);cursor:pointer;font-size:12px;padding:5px 10px;font-family:var(--fb)">🗓 Все занятия ученика</button>
@@ -7860,11 +7880,11 @@ function studentAttRows(studentId){
       const sl=(e.slots||[]).find(s=>s.day===dow)||(e.slots||[])[0];
       const mk=mks[key];
       const notes=[];
-      if(mk)notes.push('отработка '+fmtDateRu(mk.makeupDate)+(mk.makeupTi!=null&&TIMES[mk.makeupTi]?' · '+TIMES[mk.makeupTi]:''));
+      if(mk)notes.push('отработка '+fmtDateRu(mk.makeupDate)+(mk.makeupTi!=null&&slotTime(mk.makeupTi)?' · '+slotTime(mk.makeupTi):''));
       if(status==='vac')notes.push('отпуск');
       rows.push({
         date:ds, dow,
-        time:sl&&TIMES[sl.ti]?TIMES[sl.ti]:'',
+        time:sl&&slotTime(sl.ti)?slotRange(sl.ti):'',
         enrollId:e.id,
         teacherName:t?t.name:'—',
         subjName:sj?sj.name:'—',
@@ -7928,7 +7948,7 @@ function renderStudentAttModal(studentId){
     const es=studentAttStats(er);
     const t=teacher(e.teacherId);
     const dayStr=[...new Set((e.slots||[]).map(sl=>DS[sl.day]))].join(' · ');
-    const timeStr=(e.slots||[])[0]&&TIMES[e.slots[0].ti]?TIMES[e.slots[0].ti]:'';
+    const timeStr=(e.slots||[])[0]&&slotTime(e.slots[0].ti)?slotRange(e.slots[0].ti):'';
     const isActive=!e.inactive&&(!e.dateEnd||e.dateEnd>=today);
     const badge=e.inactive
       ?'<span style="font-size:10px;color:var(--am)">⏸ неактивен</span>'
@@ -8556,7 +8576,7 @@ function delEnroll(id){
   if(!confirm('Удалить запись?\nМожно восстановить из Корзины в течение 30 дней.'))return;
   const delE=S.enrollments.find(e=>e.id===id);
   const delSt=delE?student(delE.studentId):null;
-  trashPut('enrollment',delE,`Запись: ${delSt?.name||'-'} · ${delE?.slots?.map(s=>DS[s.day]).join(' ')||''} ${TIMES[delE?.slots[0]?.ti]||''}`);
+  trashPut('enrollment',delE,`Запись: ${delSt?.name||'-'} · ${delE?.slots?.map(s=>DS[s.day]).join(' ')||''} ${slotTime(delE?.slots[0]?.ti)||''}`);
   logAction('other',`Удалена запись${delSt?' ученика: '+delSt.name:''}`,'');
   S.enrollments=S.enrollments.filter(e=>e.id!==id);
   save();renderStudents();toast('Перемещено в корзину');
@@ -8826,7 +8846,7 @@ function calcTeacherStats(t, dates){
 
   // Each slot = 30 min → convert to hours
   const workSlots=workedSlots.size;
-  const workHours=workSlots*0.5;
+  const workHours=workSlots*(LESSON_MIN/60);
 
   // Restarts: count extend journal entries in period where teacher name appears
   const totalRestarts=(S.journal||[]).filter(j=>
@@ -9173,7 +9193,7 @@ function renderReports(){
           for(let d=0;d<7;d++)for(let ti=0;ti<TIMES.length;ti++)if(av[d]&&av[d][ti])maxSlots++;
           // Per-period max = maxSlots per week * weeks in period
           const weeksInPeriod=rptPeriod/7;
-          const maxHours=maxSlots*0.5*weeksInPeriod;
+          const maxHours=maxSlots*(LESSON_MIN/60)*weeksInPeriod;
           const hoursPct=maxHours>0?Math.min(100,Math.round(r.workHours/maxHours*100)):0;
           return`<tr>
             <td>
@@ -9246,7 +9266,7 @@ function openExtend(enrollId){
   const e=S.enrollments.find(x=>x.id===enrollId);if(!e)return;
   const st=student(e.studentId),t=teacher(e.teacherId),sj=subj(t?.subjId);
   const dayStr=[...new Set(e.slots.map(sl=>DS[sl.day]))].join(' · ');
-  const timeStr=e.slots[0]?TIMES[e.slots[0].ti]:'—';
+  const timeStr=e.slots[0]?slotRange(e.slots[0].ti):'—';
   document.getElementById('m-ext-ttl').textContent='Продлить: '+( st?.name||'—');
   document.getElementById('m-ext-info').innerHTML=`
     <div class="mmeta" style="margin-bottom:0">
@@ -9283,15 +9303,15 @@ function updateExtTimeOptions(){
   const sel=document.getElementById('ext-time');
   const prev=sel.value;
   const warn=document.getElementById('ext-warn');
-  if(!tid||!days.length){sel.innerHTML=TIMES.map((t,i)=>`<option value="${i}">${t}</option>`).join('');sel.value=prev;warn.style.display='none';return;}
+  if(!tid||!days.length){sel.innerHTML=TIMES.map((t,i)=>`<option value="${i}">${slotRange(i)}</option>`).join('');sel.value=prev;warn.style.display='none';return;}
   const av=getTeacherAvailNow(tid);
   const avail=[];
   for(let ti=0;ti<TIMES.length;ti++){if(days.every(d=>av[d]&&av[d][ti]))avail.push(ti);}
   if(!avail.length){
-    sel.innerHTML=TIMES.map((t,i)=>`<option value="${i}">${t}</option>`).join('');
+    sel.innerHTML=TIMES.map((t,i)=>`<option value="${i}">${slotRange(i)}</option>`).join('');
     warn.style.display='';warn.textContent='⚠ Нет доступного времени для выбранных дней';return;
   }
-  sel.innerHTML=avail.map(ti=>`<option value="${ti}">${TIMES[ti]}</option>`).join('');
+  sel.innerHTML=avail.map(ti=>`<option value="${ti}">${slotRange(ti)}</option>`).join('');
   if(avail.includes(parseInt(prev)))sel.value=prev; else sel.value=avail[0];
   warn.style.display='none';
 }
@@ -9329,7 +9349,7 @@ function extendNew(){
   if(e.dateEnd<today)e.dateStart=today;
   e.teacherId=tid;e.slots=slots;e.dateEnd=dateEnd;e.inactive=false;
   const dayStr=days.map(d=>DS[d]).join(' ');
-  logAction('extend',`Продлено с изменениями: ${st?.name||'—'}`,`${t?.name||'—'} · ${dayStr} ${TIMES[ti]} · до ${fmtDate(dateEnd)}`);
+  logAction('extend',`Продлено с изменениями: ${st?.name||'—'}`,`${t?.name||'—'} · ${dayStr} ${slotTime(ti)} · до ${fmtDate(dateEnd)}`);
   // Спасибо за оплату
   const _phoneEN=(st?.parentPhone||st?.phone||'').replace(/\D/g,'');
   if(_phoneEN){ notifyWhatsApp('+'+_phoneEN,`Здравствуйте! Спасибо, оплату видим 🙏\n\nАбонемент *${st?.name||''}* продлён до ${fmtDate(dateEnd)}.`); }
@@ -11503,7 +11523,7 @@ function buildStudentAutomationTaskDescription(rule, payload={}){
   const enrollment = payload.primaryEnrollment||null;
   const teacherName = enrollment ? (teacher(enrollment.teacherId)?.name || '') : '';
   const scheduleLabel = enrollment?.slots?.length
-    ? enrollment.slots.map(slot=>`${DS[slot.day]} ${TIMES[slot.ti]}`).join(', ')
+    ? enrollment.slots.map(slot=>`${DS[slot.day]} ${slotTime(slot.ti)}`).join(', ')
     : '';
   const details = [
     student.name ? `Ученик: ${student.name}` : '',
@@ -12017,7 +12037,7 @@ function renderToday(){
     const sl=e.slots.find(s=>s.day===todayDay);if(!sl)return;
     const st=student(e.studentId),t=teacher(e.teacherId);
     const att=(S.attendance||{})[`${e.id}_${today}`];
-    lessonsToday.push({e,st,t,sl,att,time:TIMES[sl.ti]});
+    lessonsToday.push({e,st,t,sl,att,time:slotTime(sl.ti)});
   });
   lessonsToday.sort((a,b)=>a.time.localeCompare(b.time));
 
@@ -12029,7 +12049,7 @@ function renderToday(){
       return`<div class="today-item">
         <div class="today-check ${done?'done':''}" onclick="setAtt(${e.id},'${today}','done')" title="Отметить проведённым">${done?'✓':''}</div>
         <div style="flex:1">
-          <div style="font-size:13px;font-weight:500;color:${done?'var(--t3)':'var(--t1)'};${done?'text-decoration:line-through':''}">${TIMES[sl.ti]} — ${st?.name||'—'}</div>
+          <div style="font-size:13px;font-weight:500;color:${done?'var(--t3)':'var(--t1)'};${done?'text-decoration:line-through':''}">${slotTime(sl.ti)} — ${st?.name||'—'}</div>
           <div style="font-size:11px;color:var(--t3)">${currentRole==='admin'?((t?.name||'—')+' · '):''}${e.topic||'—'}</div>
         </div>
         ${att?`<span style="font-size:11px;color:${color};font-weight:600">${done?'✓ Проведён':miss?'✗ Пропуск':'↩ Отработка'}</span>`:''}
@@ -12244,7 +12264,7 @@ function checkLessonReminders(){
     const sl=e.slots.find(s=>s.day===dow);
     if(!sl)return;
 
-    const lessonTime=TIMES[sl.ti]; // "13:00"
+    const lessonTime=slotTime(sl.ti); // "13:00"
     const [lh,lm]=lessonTime.split(':').map(Number);
     const lessonMinutes=lh*60+lm;
     const diff=lessonMinutes-nowMinutes;
@@ -12797,13 +12817,14 @@ function checkTeacherBeforeLesson(now, today, nowMinutes){
     if(!enrollActive(e,today)) return;
     const sl = e.slots.find(s=>s.day===dow);
     if(!sl) return;
-    const [lh,lm] = TIMES[sl.ti].split(':').map(Number);
-    const diff = (lh*60+lm) - nowMinutes;
+    const stMin = slotStartMin(sl.ti);
+    if(stMin==null) return;
+    const diff = stMin - nowMinutes;
     if(diff<14||diff>16) return; // окно 14–16 мин
-    const key = `before15_${e.id}_${today}_${TIMES[sl.ti]}`;
+    const key = `before15_${e.id}_${today}_${slotTime(sl.ti)}`;
     if(_teacherBeforeKeys.has(key)) return;
     if(!byTeacher[e.teacherId]) byTeacher[e.teacherId]=[];
-    byTeacher[e.teacherId].push({e, st:student(e.studentId), time:TIMES[sl.ti], key});
+    byTeacher[e.teacherId].push({e, st:student(e.studentId), time:slotTime(sl.ti), key});
   });
 
   Object.entries(byTeacher).forEach(([tid, lessons])=>{
@@ -12847,8 +12868,8 @@ function checkUnmarkedAttendanceReminders(now, today, nowMinutes){
     const sl = e.slots.find(s=>s.day===dow);
     if(!sl) return;
 
-    const [lh,lm] = TIMES[sl.ti].split(':').map(Number);
-    const lessonMin = lh*60+lm;
+    const lessonMin = slotStartMin(sl.ti);
+    if(lessonMin==null) return;
     const afterLesson = kzNowMin - lessonMin;
 
     // Урок прошёл 60-75 минут назад (окно напоминания)
@@ -12864,7 +12885,7 @@ function checkUnmarkedAttendanceReminders(now, today, nowMinutes){
     if(!st) return;
 
     if(!byTeacher[e.teacherId]) byTeacher[e.teacherId] = [];
-    byTeacher[e.teacherId].push({e, st, time:TIMES[sl.ti], key});
+    byTeacher[e.teacherId].push({e, st, time:slotTime(sl.ti), key});
   });
 
   Object.entries(byTeacher).forEach(([tid, lessons])=>{
@@ -12912,10 +12933,11 @@ function checkEndOfDayReminders(now, today){
     const sl = e.slots.find(s=>s.day===dow);
     if(!sl) return;
 
-    const [lh,lm] = TIMES[sl.ti].split(':').map(Number);
-    // Считаем только уроки которые уже прошли (время урока + 30 мин) — KZ время
+    const stMin = slotStartMin(sl.ti);
+    if(stMin==null) return;
+    // Считаем только уроки которые уже прошли (время урока + длительность) — KZ время
     const nowKZMin = new Date(now.getTime()+5*3600000);
-    if((lh*60+lm+30) > nowKZMin.getUTCHours()*60+nowKZMin.getUTCMinutes()) return;
+    if((stMin+LESSON_MIN) > nowKZMin.getUTCHours()*60+nowKZMin.getUTCMinutes()) return;
 
     const attKey = `${e.id}_${today}`;
     const attVal = att[attKey];
@@ -12926,7 +12948,7 @@ function checkEndOfDayReminders(now, today){
 
     // Нет отметки посещения/пропуска
     if(!attVal){
-      byTeacher[e.teacherId].noAtt.push({st, time:TIMES[sl.ti], topic:e.topic});
+      byTeacher[e.teacherId].noAtt.push({st, time:slotTime(sl.ti), topic:e.topic});
     }
 
     // Видео не загружено (для состоявшихся уроков)
@@ -12934,7 +12956,7 @@ function checkEndOfDayReminders(now, today){
       const vidKey = `${e.id}_${today}`;
       const vid = vr[vidKey];
       if(!vid || vid.status==='missing'){
-        byTeacher[e.teacherId].noVideo.push({st, time:TIMES[sl.ti], topic:e.topic});
+        byTeacher[e.teacherId].noVideo.push({st, time:slotTime(sl.ti), topic:e.topic});
       }
     }
   });
@@ -16110,7 +16132,7 @@ function fillCRMSlotHint(selectedVal){
   const opts = Object.entries(slotMap)
     .sort(([,a],[,b])=> a.day!==b.day ? a.day-b.day : a.ti-b.ti)
     .map(([key,{teacher,day,ti,occupied}])=>{
-      const timeStr = (typeof TIMES!=='undefined'&&TIMES[ti])||'--:--';
+      const timeStr = (typeof TIMES!=='undefined'&&slotTime(ti))||'--:--';
       const label = `${DS[day]} ${timeStr} · ${teacher.name} (${occupied} уч.)`;
       return `<option value="${key}" ${key===selectedVal?'selected':''}>${label}</option>`;
     });
@@ -18444,7 +18466,7 @@ function selectCRMSlot(teacherId, days, ti, teacherName, daysLabel){
   _crmSelectedSlot = {teacherId, days, ti};
   const selBox = document.getElementById('crm-slot-selected');
   selBox.style.display = 'block';
-  document.getElementById('crm-slot-sel-label').textContent = daysLabel + ' · ' + TIMES[ti];
+  document.getElementById('crm-slot-sel-label').textContent = daysLabel + ' · ' + slotTime(ti);
   document.getElementById('crm-slot-sel-teacher').textContent = '👩‍🏫 ' + teacherName;
   renderCRMSlotPicker(); // refresh to grey out selected
 }
@@ -18567,7 +18589,7 @@ function renderCRMSlotPicker(){
       style="cursor:pointer;border:1px solid;border-radius:8px;padding:8px 10px;${selectedStyle}display:flex;align-items:center;justify-content:space-between;transition:all .1s">
       <div style="min-width:0">
         <div style="font-size:12px;font-weight:600;color:${daysColor}">
-          ${r.isStandard?'':'⚡ '}${daysLabel} &nbsp;·&nbsp; <span style="color:var(--t2)">${TIMES[r.ti]}</span>
+          ${r.isStandard?'':'⚡ '}${daysLabel} &nbsp;·&nbsp; <span style="color:var(--t2)">${slotTime(r.ti)}</span>
         </div>
         <div style="font-size:11px;color:var(--t3);margin-top:2px">
           👩‍🏫 ${r.t.name}${namesStr}
