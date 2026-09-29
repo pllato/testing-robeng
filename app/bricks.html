@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="theme-color" content="#ffd43b"/>
+<title>Кубики — что собрать из того, что есть</title>
+<style>
+:root{
+  --bg:#fffdf5; --card:#ffffff; --b1:#ece7d9; --b2:#ddd6c3;
+  --t1:#2b2a24; --t2:#6b665a; --t3:#9d9789;
+  --ac:#ff6b35; --ac2:#ffd43b; --gn:#2fb56b; --bl:#3b82f6; --rd:#ef4444;
+  --r:14px; --rs:10px;
+  --f:'Nunito','Segoe UI',system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--t1);font-family:var(--f);font-size:16px;overscroll-behavior-y:none}
+body{padding-bottom:78px}
+h1,h2,h3{margin:0}
+button{font-family:var(--f);cursor:pointer}
+.wrap{max-width:560px;margin:0 auto;padding:12px 14px 4px}
+
+/* ── ШАПКА ───────────────────────────────────────────── */
+.top{position:sticky;top:0;z-index:30;background:linear-gradient(180deg,var(--ac2),#ffe98a);border-bottom:3px solid #f0b400}
+.top-in{max-width:560px;margin:0 auto;padding:10px 14px;display:flex;align-items:center;gap:10px}
+.logo{font-size:20px;font-weight:900;letter-spacing:-.5px;display:flex;align-items:center;gap:7px}
+.logo span{font-size:22px}
+.badge-cnt{margin-left:auto;background:#fff;border:2px solid #f0b400;border-radius:999px;padding:3px 11px;font-size:13px;font-weight:800}
+
+/* ── КНОПКИ ──────────────────────────────────────────── */
+.btn{border:2px solid var(--b2);background:#fff;border-radius:var(--rs);padding:11px 15px;font-size:15px;font-weight:700;color:var(--t1);display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.btn:active{transform:translateY(1px)}
+.btn-big{width:100%;padding:16px;font-size:17px;border-radius:var(--r);margin-bottom:10px;box-shadow:0 3px 0 var(--b2)}
+.btn-p{background:var(--ac);border-color:#e05520;color:#fff;box-shadow:0 3px 0 #c9441a}
+.btn-y{background:var(--ac2);border-color:#f0b400;box-shadow:0 3px 0 #e0a800}
+.btn-g{background:var(--gn);border-color:#22945a;color:#fff;box-shadow:0 3px 0 #1a7a49}
+.btn-sm{padding:7px 11px;font-size:13px;border-radius:9px}
+.btn:disabled{opacity:.5}
+
+/* ── КАРТОЧКИ ────────────────────────────────────────── */
+.card{background:var(--card);border:2px solid var(--b1);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.muted{color:var(--t2);font-size:13px;line-height:1.5}
+.tiny{color:var(--t3);font-size:12px}
+.hint{background:#fff8e1;border:2px dashed #f0d27a;border-radius:var(--rs);padding:10px 12px;font-size:13px;color:#7a5c00;line-height:1.5}
+.err{background:#fff0f0;border:2px solid #ffc9c9;border-radius:var(--rs);padding:10px 12px;font-size:13px;color:#a02020;line-height:1.5}
+.ok-box{background:#effaf3;border:2px solid #b7e6ca;border-radius:var(--rs);padding:10px 12px;font-size:13px;color:#136c42;line-height:1.5}
+
+/* ── ИНВЕНТАРЬ ───────────────────────────────────────── */
+.inv-row{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--b1)}
+.inv-row:last-child{border-bottom:none}
+.swatch{width:30px;height:30px;border-radius:7px;border:2px solid rgba(0,0,0,.22);flex-shrink:0}
+.inv-name{flex:1;font-size:14px;font-weight:700}
+.stepper{display:flex;align-items:center;gap:4px}
+.stepper button{width:34px;height:34px;border-radius:9px;border:2px solid var(--b2);background:#fff;font-size:18px;font-weight:900;line-height:1;color:var(--t1)}
+.stepper .n{min-width:34px;text-align:center;font-weight:900;font-size:16px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.chip{border:2px solid var(--b2);background:#fff;border-radius:999px;padding:6px 12px;font-size:13px;font-weight:700}
+.chip.on{background:var(--ac);border-color:#e05520;color:#fff}
+.chip-c{display:flex;align-items:center;gap:6px}
+.chip-c i{width:15px;height:15px;border-radius:4px;border:1px solid rgba(0,0,0,.2);display:inline-block}
+
+/* ── ИДЕИ ────────────────────────────────────────────── */
+.idea{display:flex;gap:12px;align-items:center;padding:12px;border:2px solid var(--b1);border-radius:var(--r);background:#fff;margin-bottom:10px}
+.idea.can{border-color:#b7e6ca;background:#f8fffb}
+.idea-emoji{font-size:34px;width:46px;text-align:center;flex-shrink:0}
+.idea-t{font-size:16px;font-weight:800}
+.idea-s{font-size:12px;color:var(--t2);margin-top:2px;line-height:1.4}
+.pill{display:inline-block;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:800;margin-top:5px}
+.pill-ok{background:#e3f7ec;color:#137a4a}
+.pill-no{background:#fff1e0;color:#a05a10}
+
+/* ── СБОРКА ──────────────────────────────────────────── */
+.stepbar{display:flex;gap:4px;margin-bottom:10px}
+.stepdot{flex:1;height:7px;border-radius:4px;background:var(--b1)}
+.stepdot.done{background:var(--gn)}
+.stepdot.cur{background:var(--ac)}
+#build-canvas,#preview-canvas{width:100%;height:auto;display:block;border-radius:var(--rs);background:linear-gradient(180deg,#fdfbf2,#f3efe1)}
+.need{display:flex;align-items:center;gap:9px;padding:9px;border:2px solid var(--b1);border-radius:var(--rs);margin-bottom:7px;background:#fff}
+.brick-mini{width:44px;height:26px;border-radius:5px;border:2px solid rgba(0,0,0,.22);flex-shrink:0;position:relative}
+.brick-mini::after{content:'';position:absolute;top:3px;left:5px;right:5px;height:5px;border-radius:3px;background:rgba(255,255,255,.45)}
+
+/* ── ВИДЕОИСКАТЕЛЬ ───────────────────────────────────── */
+.cam-wrap{position:relative;border-radius:var(--r);overflow:hidden;background:#000;aspect-ratio:3/4}
+.cam-wrap video{width:100%;height:100%;object-fit:cover;display:block}
+.cam-wrap canvas.ov{position:absolute;inset:0;width:100%;height:100%}
+.cam-status{position:absolute;left:0;right:0;bottom:0;padding:10px 12px;background:linear-gradient(0deg,rgba(0,0,0,.75),transparent);color:#fff;font-weight:800;font-size:15px;text-align:center}
+.cam-target{position:absolute;top:10px;left:10px;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.92);border-radius:999px;padding:5px 12px 5px 6px;font-size:13px;font-weight:800}
+
+/* ── НИЖНЕЕ МЕНЮ ─────────────────────────────────────── */
+.nav{position:fixed;bottom:0;left:0;right:0;z-index:40;background:#fff;border-top:2px solid var(--b1);display:flex;padding:6px 0 max(6px,env(safe-area-inset-bottom))}
+.nav button{flex:1;background:none;border:none;padding:6px 2px;font-size:11px;font-weight:700;color:var(--t3);display:flex;flex-direction:column;align-items:center;gap:3px}
+.nav button b{font-size:21px;font-weight:400;line-height:1}
+.nav button.on{color:var(--ac)}
+.screen{display:none}
+.screen.on{display:block}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:92px;background:#2b2a24;color:#fff;padding:11px 18px;border-radius:999px;font-size:14px;font-weight:700;z-index:90;opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.show{opacity:1}
+.sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:60;display:none}
+.sheet-bg.on{display:block}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:61;background:#fff;border-radius:18px 18px 0 0;padding:16px 14px max(16px,env(safe-area-inset-bottom));max-height:88vh;overflow:auto;display:none}
+.sheet.on{display:block}
+.sheet h3{font-size:17px;margin-bottom:10px}
+input[type=text],input[type=password],input[type=number]{width:100%;padding:11px 12px;border:2px solid var(--b2);border-radius:var(--rs);font-size:15px;font-family:var(--f);background:#fff;color:var(--t1)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.photo-prev{width:100%;border-radius:var(--rs);border:2px solid var(--b1);display:block}
+</style>
+</head>
+<body>
+
+<div class="top"><div class="top-in">
+  <div class="logo"><span>🧱</span> Кубики</div>
+  <div class="badge-cnt" id="hdr-count">0 деталей</div>
+</div></div>
+
+<!-- ═══════════ ГЛАВНАЯ ═══════════ -->
+<div class="screen on" id="sc-home"><div class="wrap">
+  <div class="card" style="text-align:center;padding:18px 14px">
+    <div style="font-size:15px;font-weight:800;margin-bottom:4px">Высыпали кубики на ковёр?</div>
+    <div class="muted" style="margin-bottom:14px">Сфотографируйте кучу — приложение посчитает детали и покажет, что из них можно собрать прямо сейчас.</div>
+    <button class="btn btn-big btn-p" onclick="go('photo')">📷 Сфотографировать детали</button>
+    <button class="btn btn-big btn-y" onclick="go('inv')">✍️ Ввести детали руками</button>
+    <button class="btn btn-big btn-g" onclick="go('ideas')">💡 Что можно собрать</button>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <div style="font-size:26px">🎲</div>
+      <div style="flex:1">
+        <div style="font-weight:800;font-size:15px">Сюрприз</div>
+        <div class="tiny">Случайная игрушка из того, что есть</div>
+      </div>
+      <button class="btn btn-sm btn-y" onclick="surprise()">Хочу!</button>
+    </div>
+  </div>
+
+  <div class="card" id="home-stats"></div>
+
+  <div class="card">
+    <div style="font-weight:800;font-size:15px;margin-bottom:6px">Как это работает</div>
+    <div class="muted">
+      1. Высыпьте детали на ковёр или стол — так, чтобы они лежали в один слой.<br/>
+      2. Сфотографируйте или введите руками, сколько у вас каких кубиков.<br/>
+      3. Приложение подберёт игрушки, которые собираются именно из ваших деталей.<br/>
+      4. Собирайте по шагам. Не можете найти нужный кубик — включите «Искалку»: камера подсветит его в куче.
+    </div>
+  </div>
+</div></div>
+
+<!-- ═══════════ ФОТО ═══════════ -->
+<div class="screen" id="sc-photo"><div class="wrap">
+  <div class="card">
+    <h2 style="font-size:17px;margin-bottom:6px">📷 Фото кучи деталей</h2>
+    <div class="muted" style="margin-bottom:12px">Разложите детали в один слой на однотонном фоне (ковёр, стол, лист бумаги) и снимите сверху. Чем лучше видно каждый кубик, тем точнее счёт.</div>
+    <input type="file" accept="image/*" capture="environment" id="photo-input" style="display:none" onchange="onPhotoPicked(event)"/>
+    <button class="btn btn-big btn-p" onclick="document.getElementById('photo-input').click()">📸 Снять или выбрать фото</button>
+    <div id="photo-box"></div>
+  </div>
+  <div class="card" id="photo-result"></div>
+</div></div>
+
+<!-- ═══════════ ИНВЕНТАРЬ ═══════════ -->
+<div class="screen" id="sc-inv"><div class="wrap">
+  <div class="card">
+    <h2 style="font-size:17px;margin-bottom:4px">🧱 Мои детали</h2>
+    <div class="muted" style="margin-bottom:8px">Выберите цвет и отмечайте, сколько у вас кубиков каждого размера.</div>
+    <div class="chips" id="inv-colors"></div>
+    <div id="inv-list"></div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn btn-sm" onclick="clearColor()">Обнулить цвет</button>
+      <button class="btn btn-sm" onclick="clearAll()">Очистить всё</button>
+      <button class="btn btn-sm btn-g" style="margin-left:auto" onclick="go('ideas')">Что собрать →</button>
+    </div>
+  </div>
+  <div class="card">
+    <div style="font-weight:800;font-size:14px;margin-bottom:6px">Быстрый набор для пробы</div>
+    <div class="muted" style="margin-bottom:8px">Если хотите сначала просто посмотреть, как работает — загрузите пример набора.</div>
+    <button class="btn btn-sm btn-y" onclick="demoInventory()">Загрузить пример</button>
+  </div>
+</div></div>
+
+<!-- ═══════════ ИДЕИ ═══════════ -->
+<div class="screen" id="sc-ideas"><div class="wrap">
+  <div class="card">
+    <h2 style="font-size:17px;margin-bottom:6px">💡 Что можно собрать</h2>
+    <div class="chips" id="idea-filters"></div>
+    <div class="tiny" id="idea-sum"></div>
+  </div>
+  <div id="idea-list"></div>
+</div></div>
+
+<!-- ═══════════ СБОРКА ═══════════ -->
+<div class="screen" id="sc-build"><div class="wrap" id="build-wrap"></div></div>
+
+<!-- ═══════════ ИСКАЛКА ═══════════ -->
+<div class="screen" id="sc-find"><div class="wrap">
+  <div class="card">
+    <h2 style="font-size:17px;margin-bottom:6px">🔎 Искалка деталей</h2>
+    <div class="muted" style="margin-bottom:10px">Наведите камеру на кучу кубиков — приложение подсветит детали нужного цвета.</div>
+    <div id="find-box"></div>
+  </div>
+</div></div>
+
+<!-- ═══════════ НАСТРОЙКИ ═══════════ -->
+<div class="screen" id="sc-set"><div class="wrap">
+  <div class="card">
+    <h2 style="font-size:17px;margin-bottom:6px">⚙️ Распознавание по фото</h2>
+    <div class="muted" style="margin-bottom:10px">Чтобы приложение само считало детали на фото, нужен ключ Claude API. Ключ хранится только в этом браузере, на телефоне, и никуда больше не отправляется — кроме самого запроса к API.</div>
+    <input type="password" id="api-key" placeholder="sk-ant-..." autocomplete="off"/>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn btn-sm btn-g" onclick="saveKey()">Сохранить ключ</button>
+      <button class="btn btn-sm" onclick="delKey()">Удалить</button>
+    </div>
+    <div class="hint" style="margin-top:10px">Без ключа работает всё, кроме распознавания: ручной ввод деталей, подбор игрушек, пошаговые инструкции и искалка.</div>
+  </div>
+  <div class="card">
+    <div style="font-weight:800;font-size:15px;margin-bottom:6px">Собрано игрушек</div>
+    <div id="set-built" class="muted"></div>
+    <button class="btn btn-sm" style="margin-top:10px" onclick="resetBuilt()">Сбросить историю</button>
+  </div>
+  <div class="card">
+    <div class="tiny">Приложение не связано с компанией LEGO®. Модели придуманы для сборки из обычных прямоугольных кубиков любого производителя.</div>
+  </div>
+</div></div>
+
+<div class="nav">
+  <button id="nv-home" onclick="go('home')"><b>🏠</b>Главная</button>
+  <button id="nv-photo" onclick="go('photo')"><b>📷</b>Фото</button>
+  <button id="nv-inv" onclick="go('inv')"><b>🧱</b>Детали</button>
+  <button id="nv-ideas" onclick="go('ideas')"><b>💡</b>Идеи</button>
+  <button id="nv-set" onclick="go('set')"><b>⚙️</b>Ещё</button>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="sheet-bg" id="sheet-bg" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   КУБИКИ — подбор игрушек из деталей, которые уже есть у ребёнка.
+   Один файл, без сборки. Данные — в localStorage этого браузера.
+   ═══════════════════════════════════════════════════════════════ */
+
+// ── ЦВЕТА И РАЗМЕРЫ ───────────────────────────────────────────
+const COLORS = [
+  {id:'red',    name:'Красный',   hex:'#d8262c'},
+  {id:'blue',   name:'Синий',     hex:'#1f5fbf'},
+  {id:'yellow', name:'Жёлтый',    hex:'#f5c518'},
+  {id:'green',  name:'Зелёный',   hex:'#2f9e44'},
+  {id:'white',  name:'Белый',     hex:'#f2f2f0'},
+  {id:'black',  name:'Чёрный',    hex:'#2a2a2e'},
+  {id:'grey',   name:'Серый',     hex:'#9aa0a6'},
+  {id:'orange', name:'Оранжевый', hex:'#f07818'},
+  {id:'brown',  name:'Коричневый',hex:'#8a5a2b'},
+  {id:'azure',  name:'Голубой',   hex:'#57b9e8'},
+  {id:'lime',   name:'Салатовый', hex:'#8fd14f'},
+  {id:'pink',   name:'Розовый',   hex:'#f27ba7'},
+];
+const colorById = id => COLORS.find(c=>c.id===id) || COLORS[6];
+
+// Размеры в шипах. Ключ всегда «меньшее x большее»: 1x2, 2x4 …
+const SIZES = ['2x4','2x3','2x2','1x4','1x3','1x2','1x1'];
+const sizeKey = (w,d) => (w<=d ? w+'x'+d : d+'x'+w);
+const sizeStuds = k => { const [a,b]=k.split('x').map(Number); return a*b; };
+
+// Чем можно заменить недостающую деталь (двумя деталями поменьше)
+const SUBST = {
+  '2x4':[['2x2','2x2'],['2x3','1x2']],
+  '2x3':[['2x2','1x2']],
+  '2x2':[['1x2','1x2']],
+  '1x4':[['1x2','1x2'],['1x3','1x1']],
+  '1x3':[['1x2','1x1']],
+  '1x2':[['1x1','1x1']],
+};
+
+// ── МОДЕЛИ ────────────────────────────────────────────────────
+// Кубик: [x, y, z, w, d, слот]. x — вправо, y — вглубь, z — этаж (снизу вверх).
+// Слоты (A, B, C…) — это «роли» цветов: реальный цвет подставляется из того,
+// что есть у ребёнка, поэтому одна модель выглядит каждый раз по-новому.
+const b = (x,y,z,w,d,s) => ({x,y,z,w,d,s});
+
+const MODELS = [
+  {
+    id:'duck', name:'Уточка', emoji:'🦆', age:'3+', level:1,
+    slots:{A:'yellow', B:'orange'},
+    about:'Классика из шести деталей — с неё начинают все.',
+    steps:[
+      {t:'Тело', bricks:[b(0,0,0,4,2,'A')]},
+      {t:'Грудка', bricks:[b(0,0,1,2,2,'A')]},
+      {t:'Хвостик', bricks:[b(3,0,1,1,2,'B')]},
+      {t:'Шея', bricks:[b(0,0,2,2,2,'A')]},
+      {t:'Голова и клюв', bricks:[b(0,0,3,1,2,'A'), b(1,0,3,1,1,'B')]},
+    ]
+  },
+  {
+    id:'car', name:'Машинка', emoji:'🚗', age:'4+', level:1,
+    slots:{A:'red', B:'black', C:'azure'},
+    about:'Едет, если подтолкнуть. Колёса — из чёрных кубиков.',
+    steps:[
+      {t:'Днище', bricks:[b(0,1,0,4,2,'A')]},
+      {t:'Колёса по бокам', bricks:[b(0,0,0,1,1,'B'), b(3,0,0,1,1,'B'), b(0,3,0,1,1,'B'), b(3,3,0,1,1,'B')]},
+      {t:'Кузов', bricks:[b(0,1,1,4,2,'A')]},
+      {t:'Салон', bricks:[b(1,1,2,2,2,'C')]},
+      {t:'Крыша', bricks:[b(1,1,3,2,2,'A')]},
+    ]
+  },
+  {
+    id:'dog', name:'Собачка', emoji:'🐶', age:'4+', level:2,
+    slots:{A:'brown', B:'black', C:'white'},
+    about:'Сидит и ждёт, когда её погладят.',
+    steps:[
+      {t:'Лапы', bricks:[b(0,0,0,2,2,'A'), b(3,0,0,1,2,'A')]},
+      {t:'Туловище', bricks:[b(0,0,1,4,2,'A')]},
+      {t:'Спинка', bricks:[b(1,0,2,3,2,'A')]},
+      {t:'Шея', bricks:[b(0,0,2,1,2,'A')]},
+      {t:'Голова', bricks:[b(0,0,3,2,2,'A')]},
+      {t:'Ушки и нос', bricks:[b(0,0,4,1,1,'B'), b(0,1,4,1,1,'B'), b(1,0,4,1,2,'C')]},
+    ]
+  },
+  {
+    id:'plane', name:'Самолётик', emoji:'✈️', age:'4+', level:2,
+    slots:{A:'white', B:'blue', C:'red'},
+    about:'Крылья пошире — и можно летать по всей квартире.',
+    steps:[
+      {t:'Корпус', bricks:[b(1,1,0,4,2,'A')]},
+      {t:'Крылья поперёк корпуса', bricks:[b(1,0,1,1,4,'B'), b(3,0,1,1,4,'B')]},
+      {t:'Верх корпуса', bricks:[b(1,1,2,4,2,'A')]},
+      {t:'Кабина', bricks:[b(1,1,3,2,2,'C')]},
+      {t:'Хвост', bricks:[b(4,1,3,1,2,'B')]},
+      {t:'Киль', bricks:[b(4,1,4,1,1,'C')]},
+    ]
+  },
+  {
+    id:'house', name:'Домик', emoji:'🏠', age:'4+', level:2,
+    slots:{A:'white', B:'red', C:'azure'},
+    about:'С окошком и красной крышей.',
+    steps:[
+      {t:'Фундамент', bricks:[b(0,0,0,4,2,'A'), b(0,2,0,4,2,'A')]},
+      {t:'Стены — низ', bricks:[b(0,0,1,4,1,'A'), b(0,3,1,4,1,'A'), b(0,1,1,1,2,'A'), b(3,1,1,1,2,'A')]},
+      {t:'Окошко', bricks:[b(0,1,2,1,2,'C'), b(3,1,2,1,2,'C')]},
+      {t:'Стены — верх', bricks:[b(0,0,2,4,1,'A'), b(0,3,2,4,1,'A')]},
+      {t:'Крыша — первый ряд', bricks:[b(0,0,3,4,2,'B'), b(0,2,3,4,2,'B')]},
+      {t:'Конёк', bricks:[b(0,1,4,4,2,'B')]},
+    ]
+  },
+  {
+    id:'robot', name:'Робот', emoji:'🤖', age:'5+', level:3,
+    slots:{A:'grey', B:'azure', C:'red'},
+    about:'Руки в стороны, глаза горят.',
+    steps:[
+      {t:'Ноги', bricks:[b(0,0,0,1,2,'A'), b(3,0,0,1,2,'A')]},
+      {t:'Бёдра', bricks:[b(0,0,1,4,2,'A')]},
+      {t:'Корпус', bricks:[b(1,0,2,2,2,'B')]},
+      {t:'Руки', bricks:[b(0,0,2,1,2,'A'), b(3,0,2,1,2,'A')]},
+      {t:'Плечи', bricks:[b(0,0,3,4,2,'A')]},
+      {t:'Голова', bricks:[b(1,0,4,2,2,'B')]},
+      {t:'Глаза и антенна', bricks:[b(1,0,5,2,1,'C'), b(1,1,5,1,1,'A')]},
+    ]
+  },
+  {
+    id:'rocket', name:'Ракета', emoji:'🚀', age:'4+', level:2,
+    slots:{A:'white', B:'red', C:'yellow'},
+    about:'Три, два, один — поехали!',
+    steps:[
+      {t:'Стартовые опоры', bricks:[b(0,0,0,1,1,'B'), b(3,0,0,1,1,'B'), b(0,3,0,1,1,'B'), b(3,3,0,1,1,'B')]},
+      {t:'Нижний отсек', bricks:[b(0,0,1,4,2,'A'), b(0,2,1,4,2,'A')]},
+      {t:'Средний отсек', bricks:[b(1,1,2,2,2,'A')]},
+      {t:'Иллюминатор', bricks:[b(1,1,3,2,2,'C')]},
+      {t:'Носовой конус', bricks:[b(1,1,4,2,2,'B'), b(1,1,5,1,1,'B')]},
+    ]
+  },
+  {
+    id:'boat', name:'Кораблик', emoji:'⛵', age:'4+', level:1,
+    slots:{A:'blue', B:'white', C:'red'},
+    about:'Плавает в ванне, если аккуратно собрать.',
+    steps:[
+      {t:'Днище', bricks:[b(0,0,0,4,2,'A')]},
+      {t:'Борта', bricks:[b(0,0,1,4,1,'A'), b(0,1,1,4,1,'A')]},
+      {t:'Палуба', bricks:[b(1,0,2,2,2,'B')]},
+      {t:'Мачта', bricks:[b(2,0,3,1,1,'B'), b(2,0,4,1,1,'B')]},
+      {t:'Флаг', bricks:[b(2,0,5,1,2,'C')]},
+    ]
+  },
+  {
+    id:'penguin', name:'Пингвин', emoji:'🐧', age:'4+', level:2,
+    slots:{A:'black', B:'white', C:'orange'},
+    about:'Важный, с оранжевыми лапками.',
+    steps:[
+      {t:'Лапки', bricks:[b(0,0,0,1,1,'C'), b(2,0,0,1,1,'C')]},
+      {t:'Живот', bricks:[b(0,0,1,3,2,'B')]},
+      {t:'Спинка и бока', bricks:[b(0,0,2,1,2,'A'), b(2,0,2,1,2,'A')]},
+      {t:'Грудка', bricks:[b(1,0,2,1,2,'B')]},
+      {t:'Голова', bricks:[b(0,0,3,3,2,'A')]},
+      {t:'Клюв', bricks:[b(1,0,4,1,1,'C')]},
+    ]
+  },
+  {
+    id:'tower', name:'Маяк', emoji:'🗼', age:'5+', level:3,
+    slots:{A:'white', B:'red', C:'yellow'},
+    about:'Высокий, полосатый, с фонарём наверху.',
+    steps:[
+      {t:'Основание', bricks:[b(0,0,0,4,2,'A'), b(0,2,0,4,2,'A')]},
+      {t:'Первый этаж', bricks:[b(1,1,1,2,2,'B')]},
+      {t:'Второй этаж', bricks:[b(1,1,2,2,2,'A')]},
+      {t:'Третий этаж', bricks:[b(1,1,3,2,2,'B')]},
+      {t:'Площадка', bricks:[b(0,1,4,4,2,'A')]},
+      {t:'Фонарь', bricks:[b(1,1,5,2,2,'C')]},
+    ]
+  },
+];
+
+// ── ХРАНИЛИЩЕ ─────────────────────────────────────────────────
+const LS = 'bricks_v1';
+let S = load();
+function load(){
+  try{
+    const raw = localStorage.getItem(LS);
+    if(raw) return Object.assign({inv:{},built:[],key:'',color:'red',filter:'all',progress:{}}, JSON.parse(raw));
+  }catch(e){}
+  return {inv:{},built:[],key:'',color:'red',filter:'all',progress:{}};
+}
+function save(){ try{ localStorage.setItem(LS, JSON.stringify(S)); }catch(e){} }
+
+const invKey = (color,size) => color+'|'+size;
+function invGet(color,size){ return S.inv[invKey(color,size)] || 0; }
+function invSet(color,size,n){
+  const k = invKey(color,size);
+  if(n<=0) delete S.inv[k]; else S.inv[k]=n;
+  save(); refreshCount();
+}
+function invAdd(color,size,n){ invSet(color,size, invGet(color,size)+n); }
+function totalBricks(){ return Object.values(S.inv).reduce((a,b)=>a+b,0); }
+// Сколько деталей каждого размера всего, без учёта цвета
+function sizeTotals(){
+  const t={}; SIZES.forEach(s=>t[s]=0);
+  Object.entries(S.inv).forEach(([k,n])=>{ const s=k.split('|')[1]; if(t[s]!=null) t[s]+=n; });
+  return t;
+}
+// Сколько деталей каждого размера в конкретном цвете
+function colorTotals(color){
+  const t={}; SIZES.forEach(s=>t[s]=invGet(color,s));
+  return t;
+}
+
+// ── ПОДБОР: ХВАТАЕТ ЛИ ДЕТАЛЕЙ ────────────────────────────────
+function modelParts(m){
+  const need={};
+  m.steps.forEach(st=>st.bricks.forEach(br=>{
+    const k=sizeKey(br.w,br.d); need[k]=(need[k]||0)+1;
+  }));
+  return need;
+}
+// Пытаемся выдать деталь размера size из запаса stock (можно заменой на две меньших)
+function takePart(size, stock, depth){
+  if(stock[size]>0){ stock[size]--; return true; }
+  if((depth||0) > 3) return false;
+  const opts = SUBST[size]||[];
+  for(const pair of opts){
+    const backup = {...stock};
+    if(pair.every(p=>takePart(p, stock, (depth||0)+1))) return true;
+    Object.keys(stock).forEach(k=>stock[k]=backup[k]);
+  }
+  return false;
+}
+function planModel(m){
+  const need = modelParts(m);
+  const stock = sizeTotals();
+  const order = Object.keys(need).sort((a,b)=>sizeStuds(b)-sizeStuds(a)); // сначала крупные
+  const missing = [];
+  order.forEach(size=>{
+    for(let i=0;i<need[size];i++){
+      if(!takePart(size, stock)) missing.push(size);
+    }
+  });
+  return {need, missing, ok: missing.length===0};
+}
+// Какие реальные цвета подставить в слоты модели
+function colorPlan(m){
+  const slotNeed = {};
+  Object.keys(m.slots).forEach(s=>slotNeed[s]={});
+  m.steps.forEach(st=>st.bricks.forEach(br=>{
+    const k=sizeKey(br.w,br.d);
+    slotNeed[br.s][k] = (slotNeed[br.s][k]||0)+1;
+  }));
+  const plan={}, used=new Set();
+  // Слоты с бо́льшим количеством деталей выбирают цвет первыми
+  const slots = Object.keys(slotNeed).sort((a,b)=>
+    Object.values(slotNeed[b]).reduce((x,y)=>x+y,0) - Object.values(slotNeed[a]).reduce((x,y)=>x+y,0));
+  slots.forEach(slot=>{
+    let best=null, bestScore=-1;
+    COLORS.forEach(c=>{
+      const stock = colorTotals(c.id);
+      let covered=0, total=0;
+      Object.entries(slotNeed[slot]).forEach(([size,n])=>{
+        total+=n;
+        for(let i=0;i<n;i++) if(takePart(size, stock)) covered++;
+      });
+      let score = total ? covered/total : 0;
+      if(c.id===m.slots[slot]) score += 0.35;   // цвет «по задумке» чуть в приоритете
+      if(used.has(c.id)) score -= 0.5;          // разные слоты — разные цвета
+      if(score>bestScore){ bestScore=score; best=c.id; }
+    });
+    plan[slot] = best || m.slots[slot];
+    used.add(plan[slot]);
+  });
+  return plan;
+}
+function modelBrickCount(m){ return m.steps.reduce((a,st)=>a+st.bricks.length,0); }
+
+// ── ИЗОМЕТРИЧЕСКИЙ РИСУНОК ────────────────────────────────────
+function drawScene(canvas, bricks, opts){
+  opts = opts || {};
+  const dpr = Math.min(window.devicePixelRatio||1, 2);
+  const cssW = canvas.clientWidth || 320;
+  const cssH = opts.height || Math.round(cssW*0.78);
+  canvas.width = cssW*dpr; canvas.height = cssH*dpr;
+  canvas.style.height = cssH+'px';
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,cssW,cssH);
+  if(!bricks.length) return;
+
+  // Сначала проецируем в условных единицах, потом подгоняем масштаб под холст,
+  // чтобы модель любой высоты целиком влезала в картинку.
+  const p0 = (x,y,z) => ({ x:(x-y)*0.866, y:(x+y)*0.5 - z*1.15 });
+  let minX=1e9,maxX=-1e9,minY=1e9,maxY=-1e9;
+  bricks.forEach(k=>{
+    [[k.x,k.y],[k.x+k.w,k.y],[k.x+k.w,k.y+k.d],[k.x,k.y+k.d]].forEach(([px,py])=>{
+      [k.z, k.z+1].forEach(pz=>{
+        const q=p0(px,py,pz);
+        if(q.x<minX)minX=q.x; if(q.x>maxX)maxX=q.x;
+        if(q.y<minY)minY=q.y; if(q.y>maxY)maxY=q.y;
+      });
+    });
+  });
+  const pad = 14;
+  const U = Math.max(5, Math.min(34, Math.min((cssW-pad*2)/Math.max(maxX-minX,0.6), (cssH-pad*2)/Math.max(maxY-minY,0.6))));
+  const H = U*1.15;
+  const ox = pad + (cssW-pad*2 - (maxX-minX)*U)/2 - minX*U;
+  const oy = pad + (cssH-pad*2 - (maxY-minY)*U)/2 - minY*U;
+  const P = (x,y,z) => ({ x: ox + (x-y)*U*0.866, y: oy + ((x+y)*0.5 - z*1.15)*U });
+
+  const shade = (hex,f)=>{
+    const n = parseInt(hex.slice(1),16);
+    const r = Math.round(((n>>16)&255)*f), g = Math.round(((n>>8)&255)*f), b2 = Math.round((n&255)*f);
+    return `rgb(${Math.min(r,255)},${Math.min(g,255)},${Math.min(b2,255)})`;
+  };
+  // Порядок рисования: сначала дальние (меньше x+y), внутри — снизу вверх
+  const sorted = bricks.slice().sort((a,b)=> (a.x+a.y)-(b.x+b.y) || a.z-b.z);
+  sorted.forEach(k=>{
+    const hex = colorById(k.color||'grey').hex;
+    const ghost = !!k.ghost;
+    ctx.globalAlpha = ghost ? 0.32 : 1;
+    const z1=k.z+1;
+    const A=P(k.x,k.y,z1), B=P(k.x+k.w,k.y,z1), C=P(k.x+k.w,k.y+k.d,z1), D=P(k.x,k.y+k.d,z1);
+    const Ab=P(k.x,k.y,k.z), Bb=P(k.x+k.w,k.y,k.z), Cb=P(k.x+k.w,k.y+k.d,k.z), Db=P(k.x,k.y+k.d,k.z);
+    // левая грань
+    ctx.beginPath(); ctx.moveTo(D.x,D.y); ctx.lineTo(C.x,C.y); ctx.lineTo(Cb.x,Cb.y); ctx.lineTo(Db.x,Db.y); ctx.closePath();
+    ctx.fillStyle = shade(hex,0.62); ctx.fill(); ctx.strokeStyle='rgba(0,0,0,.28)'; ctx.stroke();
+    // правая грань
+    ctx.beginPath(); ctx.moveTo(C.x,C.y); ctx.lineTo(B.x,B.y); ctx.lineTo(Bb.x,Bb.y); ctx.lineTo(Cb.x,Cb.y); ctx.closePath();
+    ctx.fillStyle = shade(hex,0.8); ctx.fill(); ctx.stroke();
+    // верх
+    ctx.beginPath(); ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y); ctx.lineTo(C.x,C.y); ctx.lineTo(D.x,D.y); ctx.closePath();
+    ctx.fillStyle = hex; ctx.fill(); ctx.stroke();
+    if(k.flash){ ctx.strokeStyle='#ff6b35'; ctx.lineWidth=3; ctx.stroke(); ctx.lineWidth=1; }
+    // шипы — поверх верхней грани, иначе их не видно
+    if(!ghost && U>9){
+      for(let i=0;i<k.w;i++) for(let j=0;j<k.d;j++){
+        const s=P(k.x+i+0.5, k.y+j+0.5, z1);
+        ctx.beginPath(); ctx.ellipse(s.x, s.y-H*0.13, U*0.26, U*0.15, 0, 0, Math.PI*2);
+        ctx.fillStyle = shade(hex,1.15); ctx.strokeStyle='rgba(0,0,0,.2)'; ctx.lineWidth=1;
+        ctx.fill(); ctx.stroke();
+      }
+    }
+    ctx.globalAlpha = 1;
+  });
+}
+
+// ── НАВИГАЦИЯ ─────────────────────────────────────────────────
+let cur='home';
+function go(name){
+  if(cur==='find' && name!=='find') stopFinder();
+  cur=name;
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+  const el=document.getElementById('sc-'+name); if(el) el.classList.add('on');
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('on'));
+  const nv=document.getElementById('nv-'+name); if(nv) nv.classList.add('on');
+  window.scrollTo(0,0);
+  if(name==='inv') renderInv();
+  if(name==='ideas') renderIdeas();
+  if(name==='home') renderHome();
+  if(name==='set') renderSettings();
+}
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(t._tm); t._tm=setTimeout(()=>t.classList.remove('show'),2200);
+}
+function refreshCount(){
+  const n=totalBricks();
+  document.getElementById('hdr-count').textContent = n+' '+plural(n,'деталь','детали','деталей');
+}
+function plural(n,a,b,c){
+  const n10=n%10, n100=n%100;
+  if(n10===1&&n100!==11) return a;
+  if(n10>=2&&n10<=4&&(n100<10||n100>=20)) return b;
+  return c;
+}
+function openSheet(html){
+  document.getElementById('sheet').innerHTML=html;
+  document.getElementById('sheet').classList.add('on');
+  document.getElementById('sheet-bg').classList.add('on');
+}
+function closeSheet(){
+  document.getElementById('sheet').classList.remove('on');
+  document.getElementById('sheet-bg').classList.remove('on');
+}
+
+// ── ГЛАВНАЯ ───────────────────────────────────────────────────
+function renderHome(){
+  const n=totalBricks();
+  const ideas = MODELS.map(m=>({m, p:planModel(m)}));
+  const can = ideas.filter(i=>i.p.ok).length;
+  document.getElementById('home-stats').innerHTML = n===0
+    ? `<div class="hint">Пока не введено ни одной детали. Начните с фото кучи или ручного ввода — это займёт пару минут.</div>`
+    : `<div style="display:flex;gap:10px;text-align:center">
+        <div style="flex:1"><div style="font-size:26px;font-weight:900">${n}</div><div class="tiny">деталей</div></div>
+        <div style="flex:1"><div style="font-size:26px;font-weight:900;color:var(--gn)">${can}</div><div class="tiny">игрушек можно собрать</div></div>
+        <div style="flex:1"><div style="font-size:26px;font-weight:900;color:var(--ac)">${S.built.length}</div><div class="tiny">уже собрано</div></div>
+      </div>`;
+}
+
+// ── ИНВЕНТАРЬ ─────────────────────────────────────────────────
+function renderInv(){
+  document.getElementById('inv-colors').innerHTML = COLORS.map(c=>{
+    const cnt = SIZES.reduce((a,s)=>a+invGet(c.id,s),0);
+    return `<button class="chip chip-c ${S.color===c.id?'on':''}" onclick="pickColor('${c.id}')">
+      <i style="background:${c.hex}"></i>${c.name}${cnt?' · '+cnt:''}</button>`;
+  }).join('');
+  const c = colorById(S.color);
+  document.getElementById('inv-list').innerHTML = SIZES.map(s=>{
+    const n=invGet(c.id,s);
+    return `<div class="inv-row">
+      <div class="swatch" style="background:${c.hex}"></div>
+      <div class="inv-name">${s} <span class="tiny">(${sizeStuds(s)} ${plural(sizeStuds(s),'шип','шипа','шипов')})</span></div>
+      <div class="stepper">
+        <button onclick="bump('${s}',-1)">−</button>
+        <div class="n" id="n-${s}">${n}</div>
+        <button onclick="bump('${s}',1)">+</button>
+        <button onclick="bump('${s}',5)" style="font-size:12px;width:40px">+5</button>
+      </div>
+    </div>`;
+  }).join('');
+  refreshCount();
+}
+function pickColor(id){ S.color=id; save(); renderInv(); }
+function bump(size,delta){
+  invAdd(S.color, size, delta);
+  const el=document.getElementById('n-'+size);
+  if(el) el.textContent = invGet(S.color,size);
+  document.getElementById('inv-colors').innerHTML='';
+  renderInv();
+}
+function clearColor(){
+  SIZES.forEach(s=>invSet(S.color,s,0));
+  renderInv(); toast('Цвет обнулён');
+}
+function clearAll(){
+  if(!confirm('Удалить все детали из списка?')) return;
+  S.inv={}; save(); renderInv(); toast('Список очищен');
+}
+function demoInventory(){
+  S.inv = {};
+  const demo = {
+    red:{'2x4':4,'2x2':4,'1x2':3},
+    white:{'2x4':3,'2x2':4,'1x2':4,'1x1':2},
+    blue:{'2x4':2,'2x2':3,'1x2':2},
+    yellow:{'2x2':3,'1x2':2,'1x1':3},
+    black:{'1x1':6,'1x2':2},
+    green:{'2x4':2,'2x2':2},
+  };
+  Object.entries(demo).forEach(([c,sz])=>Object.entries(sz).forEach(([s,n])=>invSet(c,s,n)));
+  renderInv(); toast('Пример загружен');
+}
+
+// ── ИДЕИ ──────────────────────────────────────────────────────
+function renderIdeas(){
+  const filters = [['all','Все'],['can','Можно собрать'],['1','Малышам 3–4'],['3','Постарше 5+']];
+  document.getElementById('idea-filters').innerHTML = filters.map(([id,name])=>
+    `<button class="chip ${S.filter===id?'on':''}" onclick="setFilter('${id}')">${name}</button>`).join('');
+
+  let list = MODELS.map(m=>({m, p:planModel(m), c:colorPlan(m)}));
+  list.sort((a,b)=> (a.p.missing.length-b.p.missing.length) || (a.m.level-b.m.level));
+  const canCount = list.filter(i=>i.p.ok).length;
+  document.getElementById('idea-sum').textContent =
+    totalBricks()===0 ? 'Сначала добавьте детали — тогда подбор заработает.'
+      : `Из ваших деталей сейчас собирается ${canCount} ${plural(canCount,'игрушка','игрушки','игрушек')} из ${MODELS.length}.`;
+
+  if(S.filter==='can') list = list.filter(i=>i.p.ok);
+  if(S.filter==='1')  list = list.filter(i=>i.m.level<=2);
+  if(S.filter==='3')  list = list.filter(i=>i.m.level>=2);
+
+  document.getElementById('idea-list').innerHTML = list.map(({m,p})=>{
+    const done = S.built.filter(x=>x===m.id).length;
+    const sub = p.ok
+      ? `<span class="pill pill-ok">✓ Можно собрать</span>`
+      : `<span class="pill pill-no">Не хватает ${p.missing.length} ${plural(p.missing.length,'детали','деталей','деталей')}: ${[...new Set(p.missing)].join(', ')}</span>`;
+    return `<div class="idea ${p.ok?'can':''}" onclick="openBuild('${m.id}')">
+      <div class="idea-emoji">${m.emoji}</div>
+      <div style="flex:1;min-width:0">
+        <div class="idea-t">${m.name}${done?` <span class="tiny">· собрано ${done}×</span>`:''}</div>
+        <div class="idea-s">${m.about}</div>
+        <div class="idea-s">${modelBrickCount(m)} ${plural(modelBrickCount(m),'деталь','детали','деталей')} · ${m.steps.length} ${plural(m.steps.length,'шаг','шага','шагов')} · ${m.age}</div>
+        ${sub}
+      </div>
+      <div style="font-size:22px;color:var(--t3)">›</div>
+    </div>`;
+  }).join('') || `<div class="card muted">Ничего не подошло под фильтр.</div>`;
+}
+function setFilter(f){ S.filter=f; save(); renderIdeas(); }
+function surprise(){
+  const can = MODELS.filter(m=>planModel(m).ok);
+  if(!can.length){ toast('Пока не хватает деталей — добавьте ещё'); go('inv'); return; }
+  const rare = can.filter(m=>!S.built.includes(m.id));
+  const pool = rare.length?rare:can;
+  openBuild(pool[Math.floor(Math.random()*pool.length)].id);
+}
+
+// ── СБОРКА ────────────────────────────────────────────────────
+let B = null; // {model, plan, colors, step}
+function openBuild(id){
+  const m = MODELS.find(x=>x.id===id); if(!m) return;
+  B = { m, plan: planModel(m), colors: colorPlan(m), step: 0 };
+  go('build'); renderBuild();
+}
+function bricksUpTo(step, withCurrent){
+  const out=[];
+  B.m.steps.forEach((st,i)=>{
+    if(i<step || (withCurrent && i===step)){
+      st.bricks.forEach(br=>out.push({...br, color:B.colors[br.s], ghost:false, flash:(i===step)}));
+    }
+  });
+  return out;
+}
+function renderBuild(){
+  const {m, step} = B;
+  const st = m.steps[step];
+  const isLast = step === m.steps.length-1;
+  // что взять на этом шаге
+  const need = {};
+  st.bricks.forEach(br=>{
+    const k = B.colors[br.s]+'|'+sizeKey(br.w,br.d);
+    need[k] = (need[k]||0)+1;
+  });
+  const needHtml = Object.entries(need).map(([k,n])=>{
+    const [c,size]=k.split('|'); const col=colorById(c);
+    const have = invGet(c,size);
+    return `<div class="need">
+      <div class="brick-mini" style="background:${col.hex}"></div>
+      <div style="flex:1">
+        <div style="font-weight:800;font-size:14px">${n} × ${col.name.toLowerCase()} ${size}</div>
+        <div class="tiny">${have>=n?'у вас есть '+have+' шт.':'в списке только '+have+' шт. — возьмите похожую'}</div>
+      </div>
+      <button class="btn btn-sm btn-y" onclick="openFinder('${c}','${size}')">🔎 Найти</button>
+    </div>`;
+  }).join('');
+
+  document.getElementById('build-wrap').innerHTML = `
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <button class="btn btn-sm" onclick="go('ideas')">‹ Назад</button>
+        <div style="flex:1;text-align:center;font-weight:900;font-size:16px">${m.emoji} ${m.name}</div>
+        <div class="tiny">Шаг ${step+1}/${m.steps.length}</div>
+      </div>
+      <div class="stepbar">${m.steps.map((_,i)=>`<div class="stepdot ${i<step?'done':(i===step?'cur':'')}"></div>`).join('')}</div>
+      <canvas id="build-canvas"></canvas>
+      <div style="text-align:center;font-weight:800;font-size:15px;margin:10px 0 2px">${st.t}</div>
+      <div class="tiny" style="text-align:center;margin-bottom:10px">Оранжевой рамкой показаны детали этого шага</div>
+      ${needHtml}
+      <div class="row2" style="margin-top:12px">
+        <button class="btn" onclick="stepMove(-1)" ${step===0?'disabled':''}>‹ Назад</button>
+        ${isLast
+          ? `<button class="btn btn-g" onclick="finishBuild()">Готово! 🎉</button>`
+          : `<button class="btn btn-p" onclick="stepMove(1)">Дальше ›</button>`}
+      </div>
+    </div>
+    ${B.plan.ok?'':`<div class="card"><div class="hint">Деталей по списку не хватает (${[...new Set(B.plan.missing)].join(', ')}). Можно собирать похожими: две 2x2 заменяют одну 2x4, две 1x2 — одну 2x2.</div></div>`}
+  `;
+  drawScene(document.getElementById('build-canvas'), bricksUpTo(step,true), {height: 230});
+}
+function stepMove(d){
+  B.step = Math.max(0, Math.min(B.m.steps.length-1, B.step+d));
+  renderBuild();
+}
+function finishBuild(){
+  S.built.push(B.m.id); save();
+  const all = bricksUpTo(B.m.steps.length-1, true).map(k=>({...k, flash:false}));
+  openSheet(`
+    <h3 style="text-align:center">🎉 Готово!</h3>
+    <div style="text-align:center;font-size:44px;margin:4px 0">${B.m.emoji}</div>
+    <div style="text-align:center;font-weight:800;margin-bottom:8px">${B.m.name} собран${B.m.name.endsWith('а')?'а':''}!</div>
+    <canvas id="preview-canvas"></canvas>
+    <div class="muted" style="text-align:center;margin:10px 0">Всего собрано игрушек: ${S.built.length}</div>
+    <button class="btn btn-big btn-g" onclick="closeSheet();surprise()">🎲 Собрать ещё одну</button>
+    <button class="btn btn-big" onclick="closeSheet();go('ideas')">К списку идей</button>
+  `);
+  setTimeout(()=>drawScene(document.getElementById('preview-canvas'), all, {height:210}), 30);
+}
+function resetBuilt(){ S.built=[]; save(); renderSettings(); toast('История сброшена'); }
+
+// ── ИСКАЛКА ДЕТАЛИ ────────────────────────────────────────────
+let FIND = {stream:null, raf:0, target:null, size:''};
+function openFinder(colorId, size){
+  FIND.target = colorById(colorId); FIND.size = size;
+  go('find'); startFinder();
+}
+function startFinder(){
+  const box = document.getElementById('find-box');
+  if(!FIND.target){
+    box.innerHTML = `<div class="hint">Откройте любой шаг сборки и нажмите «🔎 Найти» рядом с нужной деталью.</div>
+      <button class="btn btn-big btn-y" style="margin-top:10px" onclick="go('ideas')">К идеям</button>`;
+    return;
+  }
+  const t = FIND.target;
+  box.innerHTML = `
+    <div class="cam-wrap" id="cam-wrap">
+      <video id="cam" playsinline muted autoplay></video>
+      <canvas class="ov" id="cam-ov"></canvas>
+      <div class="cam-target"><span class="brick-mini" style="background:${t.hex};width:34px;height:20px;display:inline-block"></span> ${t.name.toLowerCase()} ${FIND.size}</div>
+      <div class="cam-status" id="cam-status">Включаю камеру…</div>
+    </div>
+    <div class="row2" style="margin-top:10px">
+      <button class="btn" onclick="backToBuild()">‹ К сборке</button>
+      <button class="btn btn-y" onclick="showBig()">Показать деталь</button>
+    </div>`;
+  const video = document.getElementById('cam');
+  navigator.mediaDevices?.getUserMedia({video:{facingMode:{ideal:'environment'}}, audio:false})
+    .then(stream=>{
+      FIND.stream = stream; video.srcObject = stream;
+      video.onloadedmetadata = ()=>{ video.play(); loopFinder(); };
+    })
+    .catch(err=>{
+      document.getElementById('cam-wrap').innerHTML =
+        `<div style="padding:22px;color:#fff;font-size:14px;line-height:1.5">Камера недоступна (${err.name}).<br/><br/>
+         Ничего страшного: нажмите «Показать деталь» — приложение покажет нужный кубик крупно, и его можно искать глазами.</div>`;
+    });
+}
+function backToBuild(){ stopFinder(); if(B){ go('build'); renderBuild(); } else go('ideas'); }
+function stopFinder(){
+  cancelAnimationFrame(FIND.raf);
+  if(FIND.stream){ FIND.stream.getTracks().forEach(t=>t.stop()); FIND.stream=null; }
+}
+function showBig(){
+  const t=FIND.target, [w,d]=FIND.size.split('x').map(Number);
+  openSheet(`<h3 style="text-align:center">Ищем эту деталь</h3>
+    <canvas id="preview-canvas"></canvas>
+    <div style="text-align:center;font-weight:800;margin-top:8px">${t.name} ${FIND.size}</div>
+    <div class="muted" style="text-align:center;margin-bottom:10px">Столько шипов сверху: ${w*d}</div>
+    <button class="btn btn-big" onclick="closeSheet()">Понятно</button>`);
+  setTimeout(()=>drawScene(document.getElementById('preview-canvas'), [{x:0,y:0,z:0,w:Math.max(w,d),d:Math.min(w,d),color:t.id}], {height:190}), 30);
+}
+// Разбор кадра: ищем пиксели целевого цвета и рисуем рамку вокруг самого крупного пятна
+function loopFinder(){
+  const video=document.getElementById('cam'), ov=document.getElementById('cam-ov');
+  if(!video||!ov||!FIND.stream) return;
+  const W=96, H=128;
+  if(!FIND._buf){ FIND._buf=document.createElement('canvas'); FIND._buf.width=W; FIND._buf.height=H; }
+  const bctx=FIND._buf.getContext('2d',{willReadFrequently:true});
+  try{ bctx.drawImage(video,0,0,W,H); }catch(e){ FIND.raf=requestAnimationFrame(loopFinder); return; }
+  const data=bctx.getImageData(0,0,W,H).data;
+  const target=hexToRgb(FIND.target.hex);
+  const th=colorThreshold(FIND.target.id);
+  let minX=W,minY=H,maxX=0,maxY=0,hits=0,sx=0,sy=0;
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++){
+    const i=(y*W+x)*4;
+    if(colorClose(data[i],data[i+1],data[i+2],target,th)){
+      hits++; sx+=x; sy+=y;
+      if(x<minX)minX=x; if(x>maxX)maxX=x; if(y<minY)minY=y; if(y>maxY)maxY=y;
+    }
+  }
+  const cw=ov.clientWidth||300, ch=ov.clientHeight||400;
+  ov.width=cw; ov.height=ch;
+  const ctx=ov.getContext('2d'); ctx.clearRect(0,0,cw,ch);
+  const st=document.getElementById('cam-status');
+  const share = hits/(W*H);
+  if(hits>14){
+    // рамка вокруг центра масс, а не вокруг всех пятен сразу
+    const cx=sx/hits, cy=sy/hits, rad=Math.max(10, Math.sqrt(hits)*1.4);
+    const bx=(cx-rad)/W*cw, by=(cy-rad)/H*ch, bw=rad*2/W*cw, bh=rad*2/H*ch;
+    ctx.strokeStyle='#ff6b35'; ctx.lineWidth=4; ctx.setLineDash([10,7]);
+    ctx.strokeRect(bx,by,bw,bh);
+    ctx.setLineDash([]);
+    ctx.fillStyle='rgba(255,107,53,.15)'; ctx.fillRect(bx,by,bw,bh);
+    st.textContent = share>0.06 ? '🎯 Вот он! Бери деталь в рамке' : '🔥 Горячо — подойдите ближе';
+  } else {
+    st.textContent = '❄️ Холодно — води камерой над кучей';
+  }
+  FIND.raf=requestAnimationFrame(loopFinder);
+}
+function hexToRgb(hex){ const n=parseInt(hex.slice(1),16); return [(n>>16)&255,(n>>8)&255,n&255]; }
+function colorThreshold(id){
+  if(id==='white') return 62;
+  if(id==='black') return 58;
+  if(id==='grey')  return 52;
+  return 78;
+}
+function colorClose(r,g,b,t,th){
+  // сравниваем и по оттенку, и по яркости — так меньше ложных срабатываний на ковре
+  const dr=r-t[0], dg=g-t[1], db=b-t[2];
+  const dist=Math.sqrt(dr*dr+dg*dg+db*db);
+  if(dist>th) return false;
+  const lum=(r+g+b)/3, tlum=(t[0]+t[1]+t[2])/3;
+  return Math.abs(lum-tlum) < th*0.95;
+}
+
+// ── ФОТО → РАСПОЗНАВАНИЕ ──────────────────────────────────────
+let PHOTO = {b64:null, mime:null};
+function onPhotoPicked(ev){
+  const file = ev.target.files && ev.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    shrinkImage(reader.result, 1200).then(({dataUrl, mime, b64})=>{
+      PHOTO = {b64, mime};
+      document.getElementById('photo-box').innerHTML =
+        `<img class="photo-prev" src="${dataUrl}" alt="фото деталей"/>
+         <button class="btn btn-big btn-g" style="margin-top:10px" onclick="recognize()">🔍 Посчитать детали на фото</button>`;
+      document.getElementById('photo-result').innerHTML='';
+    });
+  };
+  reader.readAsDataURL(file);
+}
+function shrinkImage(dataUrl, maxSide){
+  return new Promise(res=>{
+    const img=new Image();
+    img.onload=()=>{
+      const k=Math.min(1, maxSide/Math.max(img.width,img.height));
+      const c=document.createElement('canvas');
+      c.width=Math.round(img.width*k); c.height=Math.round(img.height*k);
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      const out=c.toDataURL('image/jpeg',0.82);
+      res({dataUrl:out, mime:'image/jpeg', b64:out.split(',')[1]});
+    };
+    img.src=dataUrl;
+  });
+}
+
+const RECOGNIZE_PROMPT =
+`На фото — детские кубики-конструктор, высыпанные на пол или стол.
+Посчитай детали и верни результат вызовом инструмента save_inventory.
+
+Правила:
+- Считай только те детали, которые реально видно. Не придумывай.
+- Размер — в шипах сверху: 1x1, 1x2, 1x3, 1x4, 2x2, 2x3, 2x4. Если деталь необычной формы (скос, колесо, фигурка) — пропусти её.
+- Цвет выбирай из списка значений схемы, самый близкий.
+- Детали одного цвета и размера объединяй в одну строку с количеством.
+- Если деталь видно частично или непонятен размер — не считай её.
+- В поле note одним коротким предложением по-русски скажи, насколько уверенно получилось посчитать.`;
+
+const INV_SCHEMA = {
+  type:'object',
+  properties:{
+    items:{
+      type:'array',
+      items:{
+        type:'object',
+        properties:{
+          color:{type:'string', enum:COLORS.map(c=>c.id)},
+          size:{type:'string', enum:SIZES},
+          count:{type:'integer', minimum:1, maximum:99}
+        },
+        required:['color','size','count'],
+        additionalProperties:false
+      }
+    },
+    note:{type:'string'}
+  },
+  required:['items','note'],
+  additionalProperties:false
+};
+
+async function recognize(){
+  if(!PHOTO.b64){ toast('Сначала выберите фото'); return; }
+  if(!S.key){
+    document.getElementById('photo-result').innerHTML =
+      `<div class="hint">Чтобы считать детали по фото, нужен ключ Claude API — добавьте его в разделе «Ещё».<br/><br/>
+       А пока детали можно ввести руками: это дольше на пару минут, но работает всегда.</div>
+       <div class="row2" style="margin-top:10px">
+         <button class="btn btn-y" onclick="go('set')">Добавить ключ</button>
+         <button class="btn" onclick="go('inv')">Ввести руками</button>
+       </div>`;
+    return;
+  }
+  const box = document.getElementById('photo-result');
+  box.innerHTML = `<div class="muted">🔍 Считаю детали на фото… это занимает 10–30 секунд.</div>`;
+  try{
+    const { default: Anthropic } = await import('https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk/+esm');
+    const client = new Anthropic({ apiKey: S.key, dangerouslyAllowBrowser: true });
+    const response = await client.messages.create({
+      model: 'claude-opus-5-5',
+      max_tokens: 16000,
+      tools: [{
+        name: 'save_inventory',
+        description: 'Сохранить список деталей, найденных на фото.',
+        strict: true,
+        input_schema: INV_SCHEMA
+      }],
+      tool_choice: { type: 'auto' },
+      messages: [{
+        role: 'user',
+        content: [
+          { type:'image', source:{ type:'base64', media_type: PHOTO.mime, data: PHOTO.b64 } },
+          { type:'text', text: RECOGNIZE_PROMPT }
+        ]
+      }]
+    });
+    if(response.stop_reason === 'refusal'){
+      box.innerHTML = `<div class="err">Запрос отклонён моделью. Попробуйте другое фото.</div>`;
+      return;
+    }
+    const block = response.content.find(b => b.type === 'tool_use' && b.name === 'save_inventory');
+    let parsed = block ? block.input : null;
+    if(!parsed){
+      // запасной путь: модель ответила текстом с JSON
+      const text = response.content.filter(b=>b.type==='text').map(b=>b.text).join('\n');
+      const m = text.match(/\{[\s\S]*\}/);
+      if(m){ try{ parsed = JSON.parse(m[0]); }catch(e){} }
+    }
+    if(!parsed || !Array.isArray(parsed.items) || !parsed.items.length){
+      box.innerHTML = `<div class="err">На фото не удалось разобрать детали. Попробуйте снять ближе, при хорошем свете, разложив кубики в один слой.</div>`;
+      return;
+    }
+    showRecognized(parsed);
+  }catch(err){
+    box.innerHTML = `<div class="err">Не получилось: ${String(err && err.message || err)}<br/><br/>
+      Проверьте ключ в разделе «Ещё» и интернет. Детали всегда можно ввести руками.</div>
+      <button class="btn btn-big" style="margin-top:10px" onclick="go('inv')">Ввести руками</button>`;
+  }
+}
+let RECOG = [];
+function showRecognized(parsed){
+  RECOG = parsed.items.filter(i=>COLORS.some(c=>c.id===i.color) && SIZES.includes(i.size));
+  const total = RECOG.reduce((a,i)=>a+i.count,0);
+  document.getElementById('photo-result').innerHTML = `
+    <div class="ok-box">Нашлось ${total} ${plural(total,'деталь','детали','деталей')}. ${parsed.note||''}</div>
+    <div style="margin:10px 0" id="recog-list">${RECOG.map((i,idx)=>{
+      const c=colorById(i.color);
+      return `<div class="inv-row">
+        <div class="swatch" style="background:${c.hex}"></div>
+        <div class="inv-name">${c.name} ${i.size}</div>
+        <div class="stepper">
+          <button onclick="recogBump(${idx},-1)">−</button>
+          <div class="n">${i.count}</div>
+          <button onclick="recogBump(${idx},1)">+</button>
+        </div>
+      </div>`;
+    }).join('')}</div>
+    <div class="tiny" style="margin-bottom:10px">Проверьте счёт и поправьте, если приложение ошиблось — на фото детали часто лежат друг на друге.</div>
+    <div class="row2">
+      <button class="btn btn-g" onclick="applyRecognized(true)">Добавить к моим</button>
+      <button class="btn" onclick="applyRecognized(false)">Заменить всё</button>
+    </div>`;
+}
+function recogBump(idx,d){
+  RECOG[idx].count = Math.max(0, RECOG[idx].count + d);
+  RECOG = RECOG.filter(i=>i.count>0);
+  showRecognized({items:RECOG, note:''});
+}
+function applyRecognized(add){
+  if(!add) S.inv = {};
+  RECOG.forEach(i=>invAdd(i.color, i.size, i.count));
+  save(); toast('Детали сохранены'); go('ideas');
+}
+
+// ── НАСТРОЙКИ ─────────────────────────────────────────────────
+function renderSettings(){
+  document.getElementById('api-key').value = S.key ? '••••••••••••' + S.key.slice(-4) : '';
+  const counts = {};
+  S.built.forEach(id=>counts[id]=(counts[id]||0)+1);
+  const list = Object.entries(counts).map(([id,n])=>{
+    const m=MODELS.find(x=>x.id===id);
+    return m ? `${m.emoji} ${m.name} — ${n}×` : '';
+  }).filter(Boolean).join('<br/>');
+  document.getElementById('set-built').innerHTML = list || 'Пока ничего не собрано.';
+}
+function saveKey(){
+  const v = document.getElementById('api-key').value.trim();
+  if(!v || v.startsWith('•')){ toast('Введите ключ'); return; }
+  S.key = v; save(); renderSettings(); toast('Ключ сохранён');
+}
+function delKey(){ S.key=''; save(); renderSettings(); toast('Ключ удалён'); }
+
+// ── СТАРТ ─────────────────────────────────────────────────────
+window.addEventListener('resize', ()=>{ if(cur==='build' && B) renderBuild(); });
+refreshCount();
+renderHome();
+</script>
+</body>
+</html>
