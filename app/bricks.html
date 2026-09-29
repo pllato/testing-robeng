@@ -2,8 +2,8 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-<meta name="theme-color" content="#ffd43b"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="theme-color" content="#f7f4ec"/>
 <title>Кубики — что собрать из того, что есть</title>
 <style>
 :root{
@@ -103,61 +103,37 @@ button{font-family:var(--f);cursor:pointer}
 input[type=text],input[type=password],input[type=number]{width:100%;padding:11px 12px;border:2px solid var(--b2);border-radius:var(--rs);font-size:15px;font-family:var(--f);background:#fff;color:var(--t1)}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .photo-prev{width:100%;max-height:320px;object-fit:contain;border-radius:var(--rs);border:2px solid var(--b1);display:block}
+/* One action, one adventure. */
+:root{--bg:#f7f4ec;--t1:#262a38;--t2:#626574;--t3:#777a87;--ac:#7055e8;--gn:#7055e8;--b1:#e6e2d8;--b2:#ddd8ce;--r:26px;--rs:18px;--f:ui-rounded,'SF Pro Rounded','Segoe UI',system-ui,sans-serif}
+body{padding-bottom:140px;background:radial-gradient(ellipse at 90% 18%,#eae4fa66,transparent 55%),var(--bg)}
+[hidden]{display:none!important}button:focus-visible,summary:focus-visible{outline:3px solid #3422a9;outline-offset:5px}button{touch-action:manipulation}
+.top{position:relative;background:none;border:0}.top-in{max-width:1050px;padding:25px 28px;gap:12px}.quiet{border:0;background:none;color:var(--t2);padding:10px;min-height:44px}.logo{font-size:27px;color:var(--t1);gap:6px;padding:0;font-weight:900}.logo .brand-brick{display:grid;place-items:center;width:36px;height:36px;border-radius:11px;background:#f6ca4d;color:#715623;box-shadow:0 3px 0 #d4a72d;font-size:27px;transform:rotate(-9deg);margin-right:6px}.logo .brand-dot{color:var(--ac);font-size:30px}.parents{margin-left:auto;font-size:13px}.back{font-size:24px;width:44px;padding:0}.wrap{max-width:620px;padding:16px 28px 24px}.eyebrow{font-size:10px;font-weight:800;letter-spacing:2px;color:#777189;margin:8px 0 20px;display:flex;align-items:center;justify-content:center;gap:9px}.eyebrow i{height:7px;width:7px;background:#8c78eb;border-radius:50%}.page-title{text-align:center;font-size:clamp(28px,5vw,42px);line-height:1.13;letter-spacing:-1.4px;font-weight:900;margin-bottom:18px}em{font-style:normal;color:var(--ac)}.lead{text-align:center;font-size:16px;line-height:1.65;color:var(--t2);margin:14px 0 22px}.hero-copy h1{font-size:clamp(42px,6vw,66px);font-weight:900;line-height:1.06;letter-spacing:-2.8px}.hero-copy .lead{text-align:left;font-size:18px}.hero-copy .eyebrow{justify-content:flex-start}.little-route{display:flex;align-items:center;gap:12px;font-size:12px;color:#7b768b;margin-top:26px}.little-route b{color:#b6abcf;letter-spacing:2px}.hero-art{position:relative;isolation:isolate;padding:42px 36px 30px;min-height:390px;display:flex;align-items:center}.hero-art canvas{width:100%;position:relative;z-index:2;filter:drop-shadow(14px 24px 12px #55467e24);transform:rotate(-7deg);animation:arrive .65s ease both}.orbit{position:absolute;inset:35px 12px;background:#e4ddf5;border-radius:47% 53% 59% 41%;transform:rotate(-15deg);z-index:-1}.orbit:after{content:'';position:absolute;inset:20px;border:1px solid #ffffffaa;border-radius:50%}.art-label{position:absolute;top:30px;left:4px;font-size:12px;line-height:1.5;transform:rotate(-8deg);z-index:3;color:#736987}.art-label strong{font-weight:700}.spark{position:absolute;z-index:3;color:#f0b92f;font-size:46px}.spark-one{right:6px;top:55px}.spark-two{left:18px;bottom:50px;color:#7b62d6;font-size:30px}.art-sticker{position:absolute;right:0;bottom:18px;background:#fffdf6;box-shadow:0 8px 24px #5f50751a;padding:12px 18px;border-radius:12px;font-weight:800;font-size:13px;transform:rotate(6deg);z-index:4}.art-sticker span{color:var(--ac);font-size:21px;margin-left:10px}.hero-layout{display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:20px}#sc-home .wrap{max-width:1020px;padding-top:45px}
+.action-dock{position:fixed;bottom:0;left:0;right:0;padding:20px 24px max(18px,env(safe-area-inset-bottom));z-index:45;background:linear-gradient(0deg,#f7f4ec 80%,#f7f4ec00)}.action-inner{max-width:450px;margin:auto}.primary-action{border:0;border-radius:22px;background:#7055e8;color:white;width:100%;min-height:66px;box-shadow:0 6px 0 #5037bd,0 12px 30px #7055e823;padding:18px 24px;font-size:18px;font-weight:800;display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;transition:transform .15s,box-shadow .15s}.primary-action span{font-size:25px;font-weight:400}.primary-action:active{transform:translateY(4px);box-shadow:0 2px 0 #5037bd}.primary-action:disabled{background:#9c8ae0;box-shadow:0 5px 0 #8a77d0;cursor:wait}#action-caption{text-align:center;color:#837d91;font-size:11px;margin-top:16px;min-height:16px}.card{border:0;box-shadow:0 3px 16px #40345506;padding:22px}.btn{border-width:1px;box-shadow:none;min-height:44px}.btn-p,.btn-g,.btn-y{background:#eee9fc;border-color:#ddd4f6;color:#5e46c7;box-shadow:none}.btn-big{font-size:15px}.parent-links{display:flex;flex-wrap:wrap;gap:8px;margin:24px 0}.parent-links .btn{flex:1}.photo-guide{height:280px;background:#eeeadf;border:2px dashed #d5cec0;border-radius:30px;position:relative;margin:25px 0}.photo-guide span{position:absolute;bottom:25px;text-align:center;width:100%;font-size:13px;color:#8e8270}.loose-brick{width:90px;height:65px;border-radius:12px;position:absolute;box-shadow:0 9px 0 var(--side);background:var(--brick);transform:rotate(-15deg);top:50px;left:20%}.loose-brick:before{content:'';position:absolute;inset:12px;background:radial-gradient(ellipse,#ffffff55 35%,transparent 40%);background-size:33px 22px}.yellow{--brick:#f3c742;--side:#d3a72f}.purple{--brick:#a995e9;--side:#8875c6;top:125px;left:48%;transform:rotate(12deg)}.coral{--brick:#f58b6d;--side:#d27158;top:42px;left:62%;width:58px;transform:rotate(19deg)}.photo-prev{border:0;background:#eee8df;border-radius:26px;max-height:300px;margin:20px 0;object-fit:contain}.hint,.err,.ok-box{border:0;background:#eee8fb;color:#594880;border-radius:18px;padding:16px;font-size:14px}.err{background:#f9e9df;color:#865739}#photo-result{margin:16px 0}.recognition-details,.step-help{margin-top:18px;text-align:left}summary{cursor:pointer;min-height:44px;padding:12px 0;font-size:13px;color:var(--t2)}.model-stage{background:#ebe6f7;border-radius:35px;padding:22px 18px 20px;position:relative}.model-stage canvas{width:100%;filter:drop-shadow(12px 18px 10px #67587b22);animation:arrive .3s ease}.ready-tag{display:table;margin:0 auto 12px;background:#fffaf5;color:#725c8c;border-radius:99px;padding:8px 14px;font-size:11px;font-weight:700}.model-selector{display:flex;align-items:center;justify-content:space-between;text-align:center;gap:10px}.model-selector h2{font-size:27px;letter-spacing:-.8px}.model-selector p{font-size:12px;color:#897e99;margin:6px 0}.arrow{border:1px solid #d8cfea;border-radius:50%;width:46px;height:46px;font-size:22px;color:#75618e;flex-shrink:0}.idea-position{text-align:center;font-size:12px;color:#746487;margin-top:18px}.idea-position span{display:block;font-size:11px;color:#8f8798;margin-top:5px}.build-stage{border-radius:28px;overflow:hidden;background:#ebe6f7;margin-top:24px;padding:14px}#build-canvas,#preview-canvas{background:none}.stepbar{gap:7px;margin:22px 0}.stepdot{height:6px;background:#e2dced}.stepdot.done{background:#b5a4ee}.stepdot.cur{background:var(--ac)}.step-instruction{font-size:16px;text-align:center;line-height:1.5;margin-top:20px}.need{border:0;background:#ffffff88}.stepper button{min-width:40px;min-height:44px}.celebration{position:relative;background:#e8e0f6;border-radius:50%;padding:25px 30px;margin:20px 0}.celebration canvas{width:100%;filter:drop-shadow(12px 18px 14px #77628d30)}.confetti{position:absolute;font-size:40px;animation:arrive .6s ease}.c1{top:5px;left:20px;color:#eab32c}.c2{right:0;top:45%;color:#f49779;font-size:24px}.c3{right:20px;top:0;color:#967ada}.done-title{text-align:center;font-size:26px}.empty-art{font-size:110px;text-align:center;color:#d3b8ed;padding:30px}.toast{bottom:145px;max-width:90%;text-align:center}.sheet{z-index:61}.row2{gap:12px}.inv-row{flex-wrap:wrap}.screen.on{animation:arrive .25s ease}
+@keyframes arrive{from{opacity:0;translate:0 8px}to{opacity:1;translate:0 0}}
+@media(max-width:700px){.top-in{padding:17px 22px}.logo{font-size:24px}.logo .brand-brick{width:31px;height:31px;font-size:23px}.parents{font-size:12px}.wrap{padding:12px 24px 22px}.hero-layout{display:flex;flex-direction:column;gap:0}.hero-copy{align-self:stretch}.hero-copy h1{text-align:center;font-size:46px;letter-spacing:-2px}.hero-copy .eyebrow{justify-content:center;font-size:9px;letter-spacing:1.6px;margin-bottom:20px}.hero-copy .lead{text-align:center;font-size:15px;margin-bottom:0}.little-route{display:none}#sc-home .wrap{padding-top:8px}.hero-art{width:100%;max-width:355px;min-height:280px;height:280px;padding:30px 45px}.hero-art canvas{height:210px!important;object-fit:contain}.orbit{inset:25px 24px}.art-label{font-size:10px;top:25px;left:12px}.art-sticker{font-size:11px;bottom:5px;right:10px;padding:9px 12px}.spark-one{font-size:34px;top:43px;right:12px}.spark-two{bottom:28px}.page-title{font-size:32px}.eyebrow{font-size:9px;letter-spacing:1.6px}.model-stage{padding:18px 12px}.model-selector h2{font-size:24px}.lead{font-size:15px}.primary-action{font-size:17px;min-height:62px}.photo-guide{height:255px}.action-dock{padding-top:18px}.parent-links{flex-direction:column}}
+@media(max-width:360px){.hero-copy h1{font-size:40px}.hero-art{height:245px;min-height:245px}.wrap{padding-left:20px;padding-right:20px}.top-in{padding-left:18px;padding-right:18px}.parents{font-size:11px}.primary-action{font-size:15px}.model-stage canvas{max-height:240px;object-fit:contain}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+
+.step-parts{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}.step-parts>span{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:700;padding:12px 16px;background:#fff9;border-radius:16px}.step-parts .brick-mini{width:36px;height:24px}
 </style>
 </head>
 <body>
 
-<div class="top"><div class="top-in">
-  <div class="logo"><span>🧱</span> Кубики</div>
-  <div class="badge-cnt" id="hdr-count">0 деталей</div>
+<header class="top"><div class="top-in">
+  <button class="quiet back" id="back-button" onclick="goBack()" aria-label="Назад" hidden>←</button>
+  <button class="logo quiet" onclick="go('home')"><span class="brand-brick" aria-hidden="true">▦</span> кубики<span class="brand-dot">.</span></button>
+  <span id="hdr-count" hidden></span>
+  <button class="quiet parents" onclick="go('set')">Родителям</button>
+</div></header>
+<div class="screen on" id="sc-home"><div class="wrap" id="home-content"></div></div>
+<div class="screen" id="sc-photo"><div class="wrap photo-layout">
+  <div class="eyebrow">01 / ЗНАКОМИМСЯ С КУБИКАМИ</div>
+  <h1 class="page-title" id="photo-title">Покажи, что у тебя!</h1>
+  <p class="lead" id="photo-help">Разложи обычные кубики рядом.<br>Пусть каждый попадёт на фото.</p>
+  <input type="file" accept="image/*" capture="environment" id="photo-input" hidden onchange="onPhotoPicked(event)"/>
+  <div id="photo-box"><div class="photo-guide"><div class="loose-brick yellow"></div><div class="loose-brick purple"></div><div class="loose-brick coral"></div><span>Вот так. Не друг на друге.</span></div></div>
+  <div id="photo-result" aria-live="polite" hidden></div>
 </div></div>
-
-<!-- ═══════════ ГЛАВНАЯ ═══════════ -->
-<div class="screen on" id="sc-home"><div class="wrap">
-  <div class="card" style="text-align:center;padding:18px 14px">
-    <div style="font-size:15px;font-weight:800;margin-bottom:4px">Высыпали кубики на ковёр?</div>
-    <div class="muted" style="margin-bottom:14px">Сфотографируйте кучу — приложение посчитает детали и покажет, что из них можно собрать прямо сейчас.</div>
-    <button class="btn btn-big btn-p" onclick="go('photo')">📷 Сфотографировать детали</button>
-    <button class="btn btn-big btn-y" onclick="go('inv')">✍️ Ввести детали руками</button>
-    <button class="btn btn-big btn-g" onclick="go('ideas')">💡 Что можно собрать</button>
-  </div>
-
-  <div class="card">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-      <div style="font-size:26px">🎲</div>
-      <div style="flex:1">
-        <div style="font-weight:800;font-size:15px">Сюрприз</div>
-        <div class="tiny">Случайная игрушка из того, что есть</div>
-      </div>
-      <button class="btn btn-sm btn-y" onclick="surprise()">Хочу!</button>
-    </div>
-  </div>
-
-  <div class="card" id="home-stats"></div>
-
-  <div class="card">
-    <div style="font-weight:800;font-size:15px;margin-bottom:6px">Как это работает</div>
-    <div class="muted">
-      1. Высыпьте детали на ковёр или стол — так, чтобы они лежали в один слой.<br/>
-      2. Сфотографируйте или введите руками, сколько у вас каких кубиков.<br/>
-      3. Приложение подберёт игрушки, которые собираются именно из ваших деталей.<br/>
-      4. Собирайте по шагам. Не можете найти нужный кубик — включите «Искалку»: камера подсветит его в куче.
-    </div>
-  </div>
-</div></div>
-
-<!-- ═══════════ ФОТО ═══════════ -->
-<div class="screen" id="sc-photo"><div class="wrap">
-  <div class="card">
-    <h2 style="font-size:17px;margin-bottom:6px">📷 Покажи свои кубики</h2>
-    <div class="muted" style="margin-bottom:12px">Возьми обычные прямоугольные кубики. Разложи их рядом, чтобы они не закрывали друг друга, и сфотографируй сверху.</div>
-    <input type="file" accept="image/*" capture="environment" id="photo-input" style="display:none" onchange="onPhotoPicked(event)"/>
-    <button id="photo-pick" class="btn btn-big btn-p" onclick="document.getElementById('photo-input').click()">📸 Снять или выбрать фото</button>
-    <div id="photo-box"></div>
-  </div>
-  <div class="card" id="photo-result" aria-live="polite" hidden></div>
-</div></div>
-
 <!-- ═══════════ ИНВЕНТАРЬ ═══════════ -->
 <div class="screen" id="sc-inv"><div class="wrap">
   <div class="card">
@@ -178,16 +154,8 @@ input[type=text],input[type=password],input[type=number]{width:100%;padding:11px
   </div>
 </div></div>
 
-<!-- ═══════════ ИДЕИ ═══════════ -->
-<div class="screen" id="sc-ideas"><div class="wrap">
-  <div class="card">
-    <h2 style="font-size:17px;margin-bottom:6px">💡 Что можно собрать</h2>
-    <div class="chips" id="idea-filters"></div>
-    <div class="tiny" id="idea-sum"></div>
-  </div>
-  <div id="idea-list"></div>
-</div></div>
-
+<div class="screen" id="sc-ideas"><div class="wrap" id="ideas-content"></div></div>
+<div class="screen" id="sc-done"><div class="wrap" id="done-content"></div></div>
 <!-- ═══════════ СБОРКА ═══════════ -->
 <div class="screen" id="sc-build"><div class="wrap" id="build-wrap"></div></div>
 
@@ -202,6 +170,8 @@ input[type=text],input[type=password],input[type=number]{width:100%;padding:11px
 
 <!-- ═══════════ НАСТРОЙКИ ═══════════ -->
 <div class="screen" id="sc-set"><div class="wrap">
+  <div class="eyebrow">ДЛЯ ВЗРОСЛЫХ</div><h1 class="page-title">Маленькая мастерская</h1>
+  <div class="parent-links"><button class="btn" onclick="go('inv')">Мои детали</button><button class="btn" onclick="resetPhoto()">Новое фото</button><button class="btn" onclick="demoInventory();go('ideas')">Попробовать на примере</button></div>
   <div class="card">
     <h2 style="font-size:17px;margin-bottom:6px">⚙️ Распознавание по фото</h2>
     <div class="muted">Распознавание подключено. Ключ на телефоне не нужен.</div>
@@ -217,14 +187,7 @@ input[type=text],input[type=password],input[type=number]{width:100%;padding:11px
   </div>
 </div></div>
 
-<div class="nav">
-  <button id="nv-home" onclick="go('home')"><b>🏠</b>Главная</button>
-  <button id="nv-photo" onclick="go('photo')"><b>📷</b>Фото</button>
-  <button id="nv-inv" onclick="go('inv')"><b>🧱</b>Детали</button>
-  <button id="nv-ideas" onclick="go('ideas')"><b>💡</b>Идеи</button>
-  <button id="nv-set" onclick="go('set')"><b>⚙️</b>Ещё</button>
-</div>
-
+<div class="action-dock"><div class="action-inner"><button id="main-action" class="primary-action" onclick="runMain()">Начать волшебство <span>↗</span></button><div id="action-caption">Одно фото. Новая игрушка.</div></div></div>
 <div class="toast" id="toast"></div>
 <div class="sheet-bg" id="sheet-bg" onclick="closeSheet()"></div>
 <div class="sheet" id="sheet"></div>
@@ -578,6 +541,8 @@ let cur='home';
 function go(name){
   if(cur==='find' && name!=='find') stopFinder();
   cur=name;
+  document.getElementById('back-button').hidden=name==='home';
+  document.body.dataset.screen=name;
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
   const el=document.getElementById('sc-'+name); if(el) el.classList.add('on');
   document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('on'));
@@ -586,7 +551,10 @@ function go(name){
   if(name==='inv') renderInv();
   if(name==='ideas') renderIdeas();
   if(name==='home') renderHome();
-  if(name==='set') renderSettings();
+  if(name==='set'){renderSettings();mainAction('Вернуться к игре',()=>go('home'));}
+  if(name==='inv')mainAction('Посмотреть идеи',()=>go('ideas'));
+  if(name==='photo')photoAction();
+  if(name==='find')mainAction('Продолжить сборку',backToBuild);
 }
 function toast(msg){
   const t=document.getElementById('toast');
@@ -614,17 +582,40 @@ function closeSheet(){
 }
 
 // ── ГЛАВНАЯ ───────────────────────────────────────────────────
+let MAIN_ACTION=()=>{}, IDEA_INDEX=0;
+function mainAction(label,action,caption='',disabled=false){
+  MAIN_ACTION=action;
+  const button=document.getElementById('main-action');
+  button.innerHTML=label+' <span aria-hidden="true">'+(disabled?'⋯':'↗')+'</span>';
+  button.disabled=disabled;
+  document.getElementById('action-caption').textContent=caption;
+}
+function runMain(){ if(!document.getElementById('main-action').disabled) MAIN_ACTION(); }
+function drawModel(id,model,height=290){
+  const canvas=document.getElementById(id);if(!canvas)return;
+  const colors=totalBricks()?colorPlan(model):model.slots;
+  drawScene(canvas,model.steps.flatMap(st=>st.bricks.map(br=>({...br,color:colors[br.s]}))),{height});
+}
+function goBack(){
+  if(cur==='build'&&B?.step>0){stepMove(-1);return;}
+  if(cur==='find'){backToBuild();return;}
+  go(['build','done'].includes(cur)?'ideas':cur==='inv'?'set':'home');
+}
+function resetPhoto(){
+  photoVersion++;recognitionController?.abort();recognitionController=null;PHOTO={b64:null,mime:null};RECOG=[];
+  document.getElementById('photo-box').innerHTML='<div class="photo-guide"><div class="loose-brick yellow"></div><div class="loose-brick purple"></div><div class="loose-brick coral"></div><span>Вот так. Не друг на друге.</span></div>';
+  photoResult('');go('photo');
+}
+function photoAction(){
+  if(recognitionController)mainAction('Ищу маленькие сокровища',()=>{},'Можно немного помечтать, пока я смотрю.',true);
+  else if(RECOG.length)mainAction('Выбрать игрушку',()=>applyRecognized(false),'Перед сборкой вместе проверим кубики.');
+  else mainAction(PHOTO.b64?'Снять другое фото':'Сфотографировать кубики',()=>document.getElementById('photo-input').click(),'Обычные кубики. Рядом, в один слой.');
+}
 function renderHome(){
-  const n=totalBricks();
-  const ideas = MODELS.map(m=>({m, p:planModel(m)}));
-  const can = ideas.filter(i=>i.p.ok).length;
-  document.getElementById('home-stats').innerHTML = n===0
-    ? `<div class="hint">Пока не введено ни одной детали. Начните с фото кучи или ручного ввода — это займёт пару минут.</div>`
-    : `<div style="display:flex;gap:10px;text-align:center">
-        <div style="flex:1"><div style="font-size:26px;font-weight:900">${n}</div><div class="tiny">деталей</div></div>
-        <div style="flex:1"><div style="font-size:26px;font-weight:900;color:var(--gn)">${can}</div><div class="tiny">игрушек можно собрать</div></div>
-        <div style="flex:1"><div style="font-size:26px;font-weight:900;color:var(--ac)">${S.built.length}</div><div class="tiny">уже собрано</div></div>
-      </div>`;
+  const ready=totalBricks()>0;
+  document.getElementById('home-content').innerHTML=`<div class="hero-layout"><div class="hero-copy"><div class="eyebrow"><i></i> МАСТЕРСКАЯ ВООБРАЖЕНИЯ</div><h1>Куча кубиков.<br>Целый <em>мир.</em></h1><p class="lead">В твоих кубиках уже прячется<br>новая игрушка. Давай найдём её!</p><div class="little-route"><span>Фото</span><b>···</b><span>Идея</span><b>···</b><span>Твоя игрушка</span></div></div><div class="hero-art"><div class="orbit"></div><span class="spark spark-one">✦</span><span class="spark spark-two">✧</span><div class="art-label">Обычные кубики.<br><strong>Необычные возможности.</strong></div><canvas id="hero-canvas" role="img" aria-label="Робот, собранный из обычных кубиков"></canvas><div class="art-sticker">Привет, изобретатель! <span>☺</span></div></div></div>`;
+  drawModel('hero-canvas',MODELS.find(m=>m.id==='robot'),300);
+  mainAction(ready?'Что соберём сегодня?':'Начать волшебство',()=>go(ready?'ideas':'photo'),ready?'Твои кубики уже ждут.':'Одно фото. Новая игрушка.');
 }
 
 // ── ИНВЕНТАРЬ ─────────────────────────────────────────────────
@@ -682,37 +673,17 @@ function demoInventory(){
 
 // ── ИДЕИ ──────────────────────────────────────────────────────
 function renderIdeas(){
-  const filters = [['all','Все'],['can','Можно собрать'],['1','Малышам 3–4'],['3','Постарше 5+']];
-  document.getElementById('idea-filters').innerHTML = filters.map(([id,name])=>
-    `<button class="chip ${S.filter===id?'on':''}" onclick="setFilter('${id}')">${name}</button>`).join('');
-
-  let list = MODELS.map(m=>({m, p:planModel(m), c:colorPlan(m)}));
-  list.sort((a,b)=> (a.p.missing.length-b.p.missing.length) || (a.m.level-b.m.level));
-  const canCount = list.filter(i=>i.p.ok).length;
-  document.getElementById('idea-sum').textContent =
-    totalBricks()===0 ? 'Сначала добавьте детали — тогда подбор заработает.'
-      : `Из ваших деталей сейчас собирается ${canCount} ${plural(canCount,'игрушка','игрушки','игрушек')} из ${MODELS.length}.`;
-
-  if(S.filter==='can') list = list.filter(i=>i.p.ok);
-  if(S.filter==='1')  list = list.filter(i=>i.m.level<=2);
-  if(S.filter==='3')  list = list.filter(i=>i.m.level>=2);
-
-  document.getElementById('idea-list').innerHTML = list.map(({m,p})=>{
-    const done = S.built.filter(x=>x===m.id).length;
-    const sub = p.ok
-      ? `<span class="pill pill-ok">✓ Можно собрать</span>`
-      : `<span class="pill pill-no">Не хватает ${p.missing.length} ${plural(p.missing.length,'детали','деталей','деталей')}: ${[...new Set(p.missing)].join(', ')}</span>`;
-    return `<div class="idea ${p.ok?'can':''}" onclick="openBuild('${m.id}')">
-      <div class="idea-emoji">${m.emoji}</div>
-      <div style="flex:1;min-width:0">
-        <div class="idea-t">${m.name}${done?` <span class="tiny">· собрано ${done}×</span>`:''}</div>
-        <div class="idea-s">${m.about}</div>
-        <div class="idea-s">${modelBrickCount(m)} ${plural(modelBrickCount(m),'деталь','детали','деталей')} · ${m.steps.length} ${plural(m.steps.length,'шаг','шага','шагов')} · ${m.age}</div>
-        ${sub}
-      </div>
-      <div style="font-size:22px;color:var(--t3)">›</div>
-    </div>`;
-  }).join('') || `<div class="card muted">Ничего не подошло под фильтр.</div>`;
+  const available=MODELS.filter(m=>planModel(m).ok);
+  const target=document.getElementById('ideas-content');
+  if(!available.length){
+    target.innerHTML='<div class="eyebrow">02 / НАХОДИМ ИДЕЮ</div><h1 class="page-title">Ещё немного кубиков?</h1><div class="empty-art" aria-hidden="true">✦</div><p class="lead">Для этих игрушек пока не хватает деталей.<br>Давай покажем ещё несколько обычных кубиков.</p>';
+    mainAction('Показать кубики',resetPhoto,'Сними вместе все кубики для новой игрушки.');return;
+  }
+  IDEA_INDEX=((IDEA_INDEX%available.length)+available.length)%available.length;
+  const m=available[IDEA_INDEX];
+  target.innerHTML=`<div class="eyebrow">02 / ВЫБИРАЕМ ПРИКЛЮЧЕНИЕ</div><h1 class="page-title">А если собрать…</h1><div class="model-stage"><span class="ready-tag">✦ Из твоих кубиков</span><canvas id="idea-canvas" role="img" aria-label="${m.name} из кубиков"></canvas><div class="model-selector"><button class="quiet arrow" onclick="IDEA_INDEX--;renderIdeas()" aria-label="Предыдущая игрушка" ${available.length===1?'hidden':''}>←</button><div><h2>${m.name}</h2><p>${modelBrickCount(m)} кубиков · ${m.steps.length} шагов</p></div><button class="quiet arrow" onclick="IDEA_INDEX++;renderIdeas()" aria-label="Следующая игрушка" ${available.length===1?'hidden':''}>→</button></div></div><div class="idea-position">${IDEA_INDEX+1} / ${available.length}<span>Листай и выбирай свою</span></div>`;
+  drawModel('idea-canvas',m,270);
+  mainAction('Собрать '+({duck:'уточку',car:'машинку',dog:'собачку',rocket:'ракету'}[m.id]||m.name.toLowerCase()),()=>openBuild(m.id),'По одному кубику. У тебя получится.');
 }
 function setFilter(f){ S.filter=f; save(); renderIdeas(); }
 function surprise(){
@@ -763,45 +734,28 @@ function renderBuild(){
   }).join('');
 
   document.getElementById('build-wrap').innerHTML = `
-    <div class="card">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-        <button class="btn btn-sm" onclick="go('ideas')">‹ Назад</button>
-        <div style="flex:1;text-align:center;font-weight:900;font-size:16px">${m.emoji} ${m.name}</div>
-        <div class="tiny">Шаг ${step+1}/${m.steps.length}</div>
-      </div>
-      <div class="stepbar">${m.steps.map((_,i)=>`<div class="stepdot ${i<step?'done':(i===step?'cur':'')}"></div>`).join('')}</div>
-      <canvas id="build-canvas"></canvas>
-      <div style="text-align:center;font-weight:800;font-size:15px;margin:10px 0 2px">${st.t}</div>
-      <div class="tiny" style="text-align:center;margin-bottom:10px">Оранжевой рамкой показаны детали этого шага</div>
-      ${needHtml}
-      <div class="row2" style="margin-top:12px">
-        <button class="btn" onclick="stepMove(-1)" ${step===0?'disabled':''}>‹ Назад</button>
-        ${isLast
-          ? `<button class="btn btn-g" onclick="finishBuild()">Готово! 🎉</button>`
-          : `<button class="btn btn-p" onclick="stepMove(1)">Дальше ›</button>`}
-      </div>
-    </div>
-    ${B.plan.ok?'':`<div class="card"><div class="hint">Деталей по списку не хватает (${[...new Set(B.plan.missing)].join(', ')}). Можно собирать похожими: две 2x2 заменяют одну 2x4, две 1x2 — одну 2x2.</div></div>`}
-  `;
-  drawScene(document.getElementById('build-canvas'), bricksUpTo(step,true), {height: 230});
+    <div class="eyebrow">${m.name.toUpperCase()} / ШАГ ${step+1} ИЗ ${m.steps.length}</div>
+    <h1 class="page-title">${st.t}</h1>
+    <div class="stepbar" aria-label="Шаг ${step+1} из ${m.steps.length}">${m.steps.map((_,i)=>`<div class="stepdot ${i<step?'done':i===step?'cur':''}"></div>`).join('')}</div>
+    <div class="build-stage"><canvas id="build-canvas" role="img" aria-label="${st.t}: оранжевым обведены новые кубики"></canvas></div>
+    <p class="step-instruction">Добавь кубики в оранжевой рамке</p>
+    <div class="step-parts">${Object.entries(need).map(([key,n])=>{const [color,size]=key.split('|');return `<span><i class="brick-mini" style="background:${colorById(color).hex}"></i>${n} шт. · ${size.replace('x',' × ')}</span>`;}).join('')}</div>
+    <details class="step-help"><summary>Помоги найти кубики</summary>${needHtml}</details>
+    ${B.plan.ok?'':'<p class="muted">Проверь детали вместе со взрослым: некоторых может не хватать.</p>'}`;
+  drawScene(document.getElementById('build-canvas'),bricksUpTo(step,true),{height:280});
+  mainAction(isLast?'Готово! Это я собрал!':'Получилось! Дальше',()=>isLast?finishBuild():stepMove(1),isLast?'Последний кубик — и можно играть.':'Не спеши. Можно вернуться стрелкой сверху.');
 }
+
 function stepMove(d){
   B.step = Math.max(0, Math.min(B.m.steps.length-1, B.step+d));
   renderBuild();
 }
 function finishBuild(){
-  S.built.push(B.m.id); save();
-  const all = bricksUpTo(B.m.steps.length-1, true).map(k=>({...k, flash:false}));
-  openSheet(`
-    <h3 style="text-align:center">🎉 Готово!</h3>
-    <div style="text-align:center;font-size:44px;margin:4px 0">${B.m.emoji}</div>
-    <div style="text-align:center;font-weight:800;margin-bottom:8px">${B.m.name} собран${B.m.name.endsWith('а')?'а':''}!</div>
-    <canvas id="preview-canvas"></canvas>
-    <div class="muted" style="text-align:center;margin:10px 0">Всего собрано игрушек: ${S.built.length}</div>
-    <button class="btn btn-big btn-g" onclick="closeSheet();surprise()">🎲 Собрать ещё одну</button>
-    <button class="btn btn-big" onclick="closeSheet();go('ideas')">К списку идей</button>
-  `);
-  setTimeout(()=>drawScene(document.getElementById('preview-canvas'), all, {height:210}), 30);
+  if(cur==='done')return;
+  S.built.push(B.m.id);save();go('done');
+  document.getElementById('done-content').innerHTML=`<div class="eyebrow">НОВАЯ ИГРУШКА. ТВОЯ РАБОТА.</div><h1 class="page-title">Вот это <em>да!</em></h1><div class="celebration"><span class="confetti c1">✦</span><span class="confetti c2">●</span><span class="confetti c3">✦</span><canvas id="done-canvas" role="img" aria-label="Твоя готовая игрушка: ${B.m.name}"></canvas></div><h2 class="done-title">Ты это собрал!</h2><p class="lead">Новая игрушка готова к приключениям.</p>`;
+  drawModel('done-canvas',B.m,270);
+  mainAction('Ещё одно приключение',()=>{IDEA_INDEX++;go('ideas');},'А пока — можно просто поиграть.');
 }
 function resetBuilt(){ S.built=[]; save(); renderSettings(); toast('История сброшена'); }
 
@@ -933,6 +887,7 @@ async function onPhotoPicked(ev){
   RECOG=[];
   document.getElementById('photo-box').innerHTML='';
   photoResult('<div class="muted">Готовлю фото…</div>');
+  if(cur==='photo')mainAction('Готовлю фото',()=>{},'Сейчас начнётся волшебство.',true);
   try{
     if(file.size>20*1024*1024) throw new Error('large');
     const dataUrl=await new Promise((resolve,reject)=>{
@@ -944,15 +899,12 @@ async function onPhotoPicked(ev){
     const photo=await shrinkImage(dataUrl,1200);
     if(version!==photoVersion) return;
     PHOTO={b64:photo.b64,mime:photo.mime};
-    document.getElementById('photo-box').innerHTML=
-      `<img class="photo-prev" src="${photo.dataUrl}" alt="Твои кубики" style="margin-top:12px"/>
-       <button id="recognize-button" class="btn btn-big btn-g" style="margin-top:10px" onclick="recognize()">🔍 Найти кубики на фото</button>`;
-    document.getElementById('photo-pick').textContent='📸 Другое фото';
-    document.getElementById('photo-pick').className='btn btn-sm';
+    document.getElementById('photo-box').innerHTML=`<img class="photo-prev" src="${photo.dataUrl}" alt="Твои кубики"/>`;
     photoResult('');
+    await recognize();
   }catch{
     if(version===photoVersion) photoResult('<div class="err">Не удалось открыть фото. Попробуй другой снимок в JPEG или PNG, до 20 МБ.</div>');
-  }finally{ev.target.value='';}
+  }finally{ev.target.value='';if(version===photoVersion&&cur==='photo')photoAction();}
 }
 function shrinkImage(dataUrl,maxSide){
   return new Promise((resolve,reject)=>{
@@ -983,6 +935,7 @@ async function recognize(){
   if(recognitionController) return;
   const controller=new AbortController();
   recognitionController=controller;
+  if(cur==='photo')photoAction();
   const version=photoVersion;
   const button=document.getElementById('recognize-button');
   if(button){button.disabled=true;button.textContent='🔍 Ищу кубики…';}
@@ -1013,6 +966,7 @@ async function recognize(){
   }finally{
     clearTimeout(timeout);
     if(recognitionController===controller) recognitionController=null;
+    if(version===photoVersion&&cur==='photo')photoAction();
     if(version===photoVersion && button){button.disabled=false;button.textContent='🔍 Найти кубики на фото';}
   }
 }
@@ -1022,8 +976,8 @@ function showRecognized(parsed){
   document.getElementById('photo-result').hidden=false;
   const total = RECOG.reduce((a,i)=>a+i.count,0);
   document.getElementById('photo-result').innerHTML = `
-    <div class="ok-box">Нашлось ${total} ${plural(total,'деталь','детали','деталей')}. ${escapeHtml(parsed.note||'')}</div>
-    <div style="margin:10px 0" id="recog-list">${RECOG.map((i,idx)=>{
+    <div class="ok-box">✦ Нашлось ${total} ${plural(total,'деталь','детали','деталей')}. ${escapeHtml(parsed.note||'')}</div>
+    <details class="recognition-details"><summary>Проверить детали со взрослым</summary><div style="margin:10px 0" id="recog-list">${RECOG.map((i,idx)=>{
       const c=colorById(i.color);
       return `<div class="inv-row">
         <div class="swatch" style="background:${c.hex}"></div>
@@ -1036,10 +990,8 @@ function showRecognized(parsed){
       </div>`;
     }).join('')}</div>
     <div class="tiny" style="margin-bottom:10px">Проверьте счёт и поправьте, если приложение ошиблось — на фото детали часто лежат друг на друге.</div>
-    <div class="row2">
-      <button class="btn btn-g" onclick="applyRecognized(true)">Добавить к моим</button>
-      <button class="btn" onclick="applyRecognized(false)">Заменить всё</button>
-    </div>`;
+    </details>`;
+  if(cur==='photo'&&!recognitionController)photoAction();
 }
 function recogBump(idx,d){
   RECOG[idx].count = Math.max(0, Math.min(99, RECOG[idx].count + d));
@@ -1049,7 +1001,7 @@ function recogBump(idx,d){
 function applyRecognized(add){
   if(!add) S.inv = {};
   RECOG.forEach(i=>invAdd(i.color, i.size, i.count));
-  save(); toast('Детали сохранены'); go('ideas');
+  save(); go('ideas');
 }
 
 // ── НАСТРОЙКИ ─────────────────────────────────────────────────
@@ -1063,7 +1015,7 @@ function renderSettings(){
   document.getElementById('set-built').innerHTML = list || 'Пока ничего не собрано.';
 }
 // ── СТАРТ ─────────────────────────────────────────────────────
-window.addEventListener('resize', ()=>{ if(cur==='build' && B) renderBuild(); });
+window.addEventListener('resize', ()=>{ if(cur==='build' && B) renderBuild();if(cur==='home')renderHome();if(cur==='ideas')renderIdeas(); });
 refreshCount();
 renderHome();
 </script>
