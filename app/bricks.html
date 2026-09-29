@@ -102,7 +102,7 @@ button{font-family:var(--f);cursor:pointer}
 .sheet h3{font-size:17px;margin-bottom:10px}
 input[type=text],input[type=password],input[type=number]{width:100%;padding:11px 12px;border:2px solid var(--b2);border-radius:var(--rs);font-size:15px;font-family:var(--f);background:#fff;color:var(--t1)}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.photo-prev{width:100%;border-radius:var(--rs);border:2px solid var(--b1);display:block}
+.photo-prev{width:100%;max-height:320px;object-fit:contain;border-radius:var(--rs);border:2px solid var(--b1);display:block}
 </style>
 </head>
 <body>
@@ -149,13 +149,13 @@ input[type=text],input[type=password],input[type=number]{width:100%;padding:11px
 <!-- ═══════════ ФОТО ═══════════ -->
 <div class="screen" id="sc-photo"><div class="wrap">
   <div class="card">
-    <h2 style="font-size:17px;margin-bottom:6px">📷 Фото кучи деталей</h2>
-    <div class="muted" style="margin-bottom:12px">Разложите детали в один слой на однотонном фоне (ковёр, стол, лист бумаги) и снимите сверху. Чем лучше видно каждый кубик, тем точнее счёт.</div>
+    <h2 style="font-size:17px;margin-bottom:6px">📷 Покажи свои кубики</h2>
+    <div class="muted" style="margin-bottom:12px">Возьми обычные прямоугольные кубики. Разложи их рядом, чтобы они не закрывали друг друга, и сфотографируй сверху.</div>
     <input type="file" accept="image/*" capture="environment" id="photo-input" style="display:none" onchange="onPhotoPicked(event)"/>
-    <button class="btn btn-big btn-p" onclick="document.getElementById('photo-input').click()">📸 Снять или выбрать фото</button>
+    <button id="photo-pick" class="btn btn-big btn-p" onclick="document.getElementById('photo-input').click()">📸 Снять или выбрать фото</button>
     <div id="photo-box"></div>
   </div>
-  <div class="card" id="photo-result"></div>
+  <div class="card" id="photo-result" aria-live="polite" hidden></div>
 </div></div>
 
 <!-- ═══════════ ИНВЕНТАРЬ ═══════════ -->
@@ -204,13 +204,8 @@ input[type=text],input[type=password],input[type=number]{width:100%;padding:11px
 <div class="screen" id="sc-set"><div class="wrap">
   <div class="card">
     <h2 style="font-size:17px;margin-bottom:6px">⚙️ Распознавание по фото</h2>
-    <div class="muted" style="margin-bottom:10px">Чтобы приложение само считало детали на фото, нужен ключ Claude API. Ключ хранится только в этом браузере, на телефоне, и никуда больше не отправляется — кроме самого запроса к API.</div>
-    <input type="password" id="api-key" placeholder="sk-ant-..." autocomplete="off"/>
-    <div style="display:flex;gap:8px;margin-top:10px">
-      <button class="btn btn-sm btn-g" onclick="saveKey()">Сохранить ключ</button>
-      <button class="btn btn-sm" onclick="delKey()">Удалить</button>
-    </div>
-    <div class="hint" style="margin-top:10px">Без ключа работает всё, кроме распознавания: ручной ввод деталей, подбор игрушек, пошаговые инструкции и искалка.</div>
+    <div class="muted">Распознавание подключено. Ключ на телефоне не нужен.</div>
+    <div class="hint" style="margin-top:10px">Фото отправляется в Cloudflare Workers AI для распознавания. Наш сервер не сохраняет снимки. Счёт приблизительный: перед сборкой проверьте нужные детали.</div>
   </div>
   <div class="card">
     <div style="font-weight:800;font-size:15px;margin-bottom:6px">Собрано игрушек</div>
@@ -411,12 +406,14 @@ const MODELS = [
 // ── ХРАНИЛИЩЕ ─────────────────────────────────────────────────
 const LS = 'bricks_v1';
 let S = load();
+// Old browser keys are no longer needed; keep the child's inventory.
+if ('key' in S) { delete S.key; save(); }
 function load(){
   try{
     const raw = localStorage.getItem(LS);
-    if(raw) return Object.assign({inv:{},built:[],key:'',color:'red',filter:'all',progress:{}}, JSON.parse(raw));
+    if(raw) return Object.assign({inv:{},built:[],color:'red',filter:'all',progress:{}}, JSON.parse(raw));
   }catch(e){}
-  return {inv:{},built:[],key:'',color:'red',filter:'all',progress:{}};
+  return {inv:{},built:[],color:'red',filter:'all',progress:{}};
 }
 function save(){ try{ localStorage.setItem(LS, JSON.stringify(S)); }catch(e){} }
 
@@ -914,135 +911,118 @@ function colorClose(r,g,b,t,th){
 }
 
 // ── ФОТО → РАСПОЗНАВАНИЕ ──────────────────────────────────────
+const RECOGNITION_API = 'https://bricks-recognition.uurraa.workers.dev/recognize';
 let PHOTO = {b64:null, mime:null};
-function onPhotoPicked(ev){
-  const file = ev.target.files && ev.target.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    shrinkImage(reader.result, 1200).then(({dataUrl, mime, b64})=>{
-      PHOTO = {b64, mime};
-      document.getElementById('photo-box').innerHTML =
-        `<img class="photo-prev" src="${dataUrl}" alt="фото деталей"/>
-         <button class="btn btn-big btn-g" style="margin-top:10px" onclick="recognize()">🔍 Посчитать детали на фото</button>`;
-      document.getElementById('photo-result').innerHTML='';
-    });
-  };
-  reader.readAsDataURL(file);
+let recognitionController = null;
+let photoVersion = 0;
+function photoResult(markup){
+  const box=document.getElementById('photo-result');
+  box.hidden=!markup;
+  box.innerHTML=markup;
 }
-function shrinkImage(dataUrl, maxSide){
-  return new Promise(res=>{
+function escapeHtml(value){
+  return String(value).replace(/[&<>"']/g, ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+async function onPhotoPicked(ev){
+  const file=ev.target.files && ev.target.files[0];
+  if(!file) return;
+  const version=++photoVersion;
+  recognitionController?.abort();
+  recognitionController=null;
+  PHOTO={b64:null,mime:null};
+  RECOG=[];
+  document.getElementById('photo-box').innerHTML='';
+  photoResult('<div class="muted">Готовлю фото…</div>');
+  try{
+    if(file.size>20*1024*1024) throw new Error('large');
+    const dataUrl=await new Promise((resolve,reject)=>{
+      const reader=new FileReader();
+      reader.onload=()=>resolve(reader.result);
+      reader.onerror=()=>reject(new Error('read'));
+      reader.readAsDataURL(file);
+    });
+    const photo=await shrinkImage(dataUrl,1200);
+    if(version!==photoVersion) return;
+    PHOTO={b64:photo.b64,mime:photo.mime};
+    document.getElementById('photo-box').innerHTML=
+      `<img class="photo-prev" src="${photo.dataUrl}" alt="Твои кубики" style="margin-top:12px"/>
+       <button id="recognize-button" class="btn btn-big btn-g" style="margin-top:10px" onclick="recognize()">🔍 Найти кубики на фото</button>`;
+    document.getElementById('photo-pick').textContent='📸 Другое фото';
+    document.getElementById('photo-pick').className='btn btn-sm';
+    photoResult('');
+  }catch{
+    if(version===photoVersion) photoResult('<div class="err">Не удалось открыть фото. Попробуй другой снимок в JPEG или PNG, до 20 МБ.</div>');
+  }finally{ev.target.value='';}
+}
+function shrinkImage(dataUrl,maxSide){
+  return new Promise((resolve,reject)=>{
     const img=new Image();
+    img.onerror=()=>reject(new Error('image'));
     img.onload=()=>{
-      const k=Math.min(1, maxSide/Math.max(img.width,img.height));
-      const c=document.createElement('canvas');
-      c.width=Math.round(img.width*k); c.height=Math.round(img.height*k);
-      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
-      const out=c.toDataURL('image/jpeg',0.82);
-      res({dataUrl:out, mime:'image/jpeg', b64:out.split(',')[1]});
+      try{
+        const k=Math.min(1,maxSide/Math.max(img.width,img.height));
+        const c=document.createElement('canvas');
+        c.width=Math.max(1,Math.round(img.width*k));c.height=Math.max(1,Math.round(img.height*k));
+        c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+        const out=c.toDataURL('image/jpeg',0.82);
+        resolve({dataUrl:out,mime:'image/jpeg',b64:out.split(',')[1]});
+      }catch(error){reject(error);}
     };
     img.src=dataUrl;
   });
 }
-
-const RECOGNIZE_PROMPT =
-`На фото — детские кубики-конструктор, высыпанные на пол или стол.
-Посчитай детали и верни результат вызовом инструмента save_inventory.
-
-Правила:
-- Считай только те детали, которые реально видно. Не придумывай.
-- Размер — в шипах сверху: 1x1, 1x2, 1x3, 1x4, 2x2, 2x3, 2x4. Если деталь необычной формы (скос, колесо, фигурка) — пропусти её.
-- Цвет выбирай из списка значений схемы, самый близкий.
-- Детали одного цвета и размера объединяй в одну строку с количеством.
-- Если деталь видно частично или непонятен размер — не считай её.
-- В поле note одним коротким предложением по-русски скажи, насколько уверенно получилось посчитать.`;
-
-const INV_SCHEMA = {
-  type:'object',
-  properties:{
-    items:{
-      type:'array',
-      items:{
-        type:'object',
-        properties:{
-          color:{type:'string', enum:COLORS.map(c=>c.id)},
-          size:{type:'string', enum:SIZES},
-          count:{type:'integer', minimum:1, maximum:99}
-        },
-        required:['color','size','count'],
-        additionalProperties:false
-      }
-    },
-    note:{type:'string'}
-  },
-  required:['items','note'],
-  additionalProperties:false
+const RECOGNITION_ERRORS={
+  rate_limited:'Давай немного подождём. Попробуй снова через минуту.',
+  image_too_large:'Фото слишком большое. Попробуй другой снимок.',
+  invalid_image:'Не удалось прочитать фото. Попробуй снять ещё раз.',
+  unreadable_result:'Не удалось разобрать кубики. Разложи небольшую порцию отдельно и сними сверху.',
+  ai_unavailable:'Распознавание сейчас недоступно. Попробуй немного позже.',
 };
-
 async function recognize(){
-  if(!PHOTO.b64){ toast('Сначала выберите фото'); return; }
-  if(!S.key){
-    document.getElementById('photo-result').innerHTML =
-      `<div class="hint">Чтобы считать детали по фото, нужен ключ Claude API — добавьте его в разделе «Ещё».<br/><br/>
-       А пока детали можно ввести руками: это дольше на пару минут, но работает всегда.</div>
-       <div class="row2" style="margin-top:10px">
-         <button class="btn btn-y" onclick="go('set')">Добавить ключ</button>
-         <button class="btn" onclick="go('inv')">Ввести руками</button>
-       </div>`;
-    return;
-  }
-  const box = document.getElementById('photo-result');
-  box.innerHTML = `<div class="muted">🔍 Считаю детали на фото… это занимает 10–30 секунд.</div>`;
+  if(!PHOTO.b64){toast('Сначала выбери фото');return;}
+  if(recognitionController) return;
+  const controller=new AbortController();
+  recognitionController=controller;
+  const version=photoVersion;
+  const button=document.getElementById('recognize-button');
+  if(button){button.disabled=true;button.textContent='🔍 Ищу кубики…';}
+  RECOG=[];
+  photoResult('<div class="muted">🔍 Рассматриваю кубики… Это может занять около минуты.</div>');
+  const timeout=setTimeout(()=>controller.abort(),90000);
   try{
-    const { default: Anthropic } = await import('https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk/+esm');
-    const client = new Anthropic({ apiKey: S.key, dangerouslyAllowBrowser: true });
-    const response = await client.messages.create({
-      model: 'claude-opus-5-5',
-      max_tokens: 16000,
-      tools: [{
-        name: 'save_inventory',
-        description: 'Сохранить список деталей, найденных на фото.',
-        strict: true,
-        input_schema: INV_SCHEMA
-      }],
-      tool_choice: { type: 'auto' },
-      messages: [{
-        role: 'user',
-        content: [
-          { type:'image', source:{ type:'base64', media_type: PHOTO.mime, data: PHOTO.b64 } },
-          { type:'text', text: RECOGNIZE_PROMPT }
-        ]
-      }]
+    const response=await fetch(RECOGNITION_API,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({image:PHOTO.b64,mime:PHOTO.mime}),signal:controller.signal,
     });
-    if(response.stop_reason === 'refusal'){
-      box.innerHTML = `<div class="err">Запрос отклонён моделью. Попробуйте другое фото.</div>`;
-      return;
-    }
-    const block = response.content.find(b => b.type === 'tool_use' && b.name === 'save_inventory');
-    let parsed = block ? block.input : null;
-    if(!parsed){
-      // запасной путь: модель ответила текстом с JSON
-      const text = response.content.filter(b=>b.type==='text').map(b=>b.text).join('\n');
-      const m = text.match(/\{[\s\S]*\}/);
-      if(m){ try{ parsed = JSON.parse(m[0]); }catch(e){} }
-    }
-    if(!parsed || !Array.isArray(parsed.items) || !parsed.items.length){
-      box.innerHTML = `<div class="err">На фото не удалось разобрать детали. Попробуйте снять ближе, при хорошем свете, разложив кубики в один слой.</div>`;
+    const parsed=await response.json();
+    if(version!==photoVersion) return;
+    if(!response.ok) throw new Error(RECOGNITION_ERRORS[parsed.error] || 'Не удалось распознать фото. Попробуй позже.');
+    if(!parsed || !Array.isArray(parsed.items) || parsed.items.length>84 || parsed.items.some(i=>
+      !i || !COLORS.some(c=>c.id===i.color) || !SIZES.includes(i.size) || !Number.isInteger(i.count) || i.count<1 || i.count>99
+    )) throw new Error('Не удалось разобрать ответ. Попробуй другое фото.');
+    if(!parsed.items.length){
+      photoResult('<div class="hint">Пока не вижу обычных кубиков достаточно хорошо. Разложи несколько прямоугольных кубиков отдельно и сфотографируй сверху.</div>');
       return;
     }
     showRecognized(parsed);
-  }catch(err){
-    box.innerHTML = `<div class="err">Не получилось: ${String(err && err.message || err)}<br/><br/>
-      Проверьте ключ в разделе «Ещё» и интернет. Детали всегда можно ввести руками.</div>
-      <button class="btn btn-big" style="margin-top:10px" onclick="go('inv')">Ввести руками</button>`;
+  }catch(error){
+    if(version!==photoVersion) return;
+    const message=error.name==='AbortError' ? 'Фото рассматривается слишком долго. Попробуй ещё раз.' :
+      error instanceof TypeError ? 'Не удалось связаться с распознаванием. Проверь интернет и попробуй ещё раз.' : error.message;
+    photoResult(`<div class="err">${escapeHtml(message)}</div>`);
+  }finally{
+    clearTimeout(timeout);
+    if(recognitionController===controller) recognitionController=null;
+    if(version===photoVersion && button){button.disabled=false;button.textContent='🔍 Найти кубики на фото';}
   }
 }
 let RECOG = [];
 function showRecognized(parsed){
-  RECOG = parsed.items.filter(i=>COLORS.some(c=>c.id===i.color) && SIZES.includes(i.size));
+  RECOG = parsed.items.filter(i=>COLORS.some(c=>c.id===i.color) && SIZES.includes(i.size) && Number.isInteger(i.count) && i.count>0 && i.count<=99);
+  document.getElementById('photo-result').hidden=false;
   const total = RECOG.reduce((a,i)=>a+i.count,0);
   document.getElementById('photo-result').innerHTML = `
-    <div class="ok-box">Нашлось ${total} ${plural(total,'деталь','детали','деталей')}. ${parsed.note||''}</div>
+    <div class="ok-box">Нашлось ${total} ${plural(total,'деталь','детали','деталей')}. ${escapeHtml(parsed.note||'')}</div>
     <div style="margin:10px 0" id="recog-list">${RECOG.map((i,idx)=>{
       const c=colorById(i.color);
       return `<div class="inv-row">
@@ -1062,7 +1042,7 @@ function showRecognized(parsed){
     </div>`;
 }
 function recogBump(idx,d){
-  RECOG[idx].count = Math.max(0, RECOG[idx].count + d);
+  RECOG[idx].count = Math.max(0, Math.min(99, RECOG[idx].count + d));
   RECOG = RECOG.filter(i=>i.count>0);
   showRecognized({items:RECOG, note:''});
 }
@@ -1074,7 +1054,6 @@ function applyRecognized(add){
 
 // ── НАСТРОЙКИ ─────────────────────────────────────────────────
 function renderSettings(){
-  document.getElementById('api-key').value = S.key ? '••••••••••••' + S.key.slice(-4) : '';
   const counts = {};
   S.built.forEach(id=>counts[id]=(counts[id]||0)+1);
   const list = Object.entries(counts).map(([id,n])=>{
@@ -1083,13 +1062,6 @@ function renderSettings(){
   }).filter(Boolean).join('<br/>');
   document.getElementById('set-built').innerHTML = list || 'Пока ничего не собрано.';
 }
-function saveKey(){
-  const v = document.getElementById('api-key').value.trim();
-  if(!v || v.startsWith('•')){ toast('Введите ключ'); return; }
-  S.key = v; save(); renderSettings(); toast('Ключ сохранён');
-}
-function delKey(){ S.key=''; save(); renderSettings(); toast('Ключ удалён'); }
-
 // ── СТАРТ ─────────────────────────────────────────────────────
 window.addEventListener('resize', ()=>{ if(cur==='build' && B) renderBuild(); });
 refreshCount();

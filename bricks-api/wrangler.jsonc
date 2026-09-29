@@ -1,0 +1,16 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "bricks-recognition",
+  "main": "src/index.js",
+  "account_id": "d0655e161d8fca8487f88d55c0eeb215",
+  "compatibility_date": "2026-09-29",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "ai": { "binding": "AI" },
+  "vars": { "ALLOWED_ORIGIN": "https://pllato.github.io" },
+  "ratelimits": [
+    { "name": "PHOTO_LIMIT", "namespace_id": "9292601", "simple": { "limit": 4, "period": 60 } },
+    { "name": "TOTAL_LIMIT", "namespace_id": "9292602", "simple": { "limit": 20, "period": 60 } }
+  ],
+  "observability": { "enabled": true, "head_sampling_rate": 1 }
+}
